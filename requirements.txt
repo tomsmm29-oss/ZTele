@@ -77,3 +77,4 @@ youtube-search-python==1.4.9
 youtube-search
 youtube_dl
 yt-dlp
+flask
