@@ -10,8 +10,8 @@ from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.tools import media_type
 from ..helpers.utils import _format
 
-# تصحيح الاستيرادات (كانت تسبب كراش)
-BOTLOG = True # أو خذها من الكونفج Config.BOTLOG
+# تصحيح الاستيرادات
+BOTLOG = True 
 BOTLOG_CHATID = Config.PM_LOGGER_GROUP_ID
 
 plugin_category = "البوت"
@@ -24,7 +24,6 @@ class AFK:
         self.USERAFK_ON = {}
         self.afk_time = None
         self.last_afk_message = {}
-        # التعديل المهم: كانت {} وسببت الكراش، خليناها None
         self.afk_star = None
         self.afk_end = None
         self.reason = None
@@ -44,7 +43,6 @@ async def set_not_afk(event):
     back_alive = datetime.now()
     AFK_.afk_end = back_alive.replace(microsecond=0)
     
-    # التحقق الصحيح (بدل {})
     if AFK_.afk_star is not None:
         total_afk_time = AFK_.afk_end - AFK_.afk_star
         time = int(total_afk_time.seconds)
@@ -100,7 +98,6 @@ async def on_afk(event):
     back_alivee = datetime.now()
     AFK_.afk_end = back_alivee.replace(microsecond=0)
     
-    # التحقق الصحيح
     if AFK_.afk_star is not None:
         total_afk_time = AFK_.afk_end - AFK_.afk_star
         time = int(total_afk_time.seconds)
@@ -164,7 +161,6 @@ async def on_afk(event):
         except Exception as e:
             LOGS.info(str(e))
         
-        # تجنب الأخطاء في التنسيق
         try:
             messaget = media_type(event)
         except:
@@ -195,7 +191,7 @@ async def _(event):
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
     AFK_.last_afk_message = {}
-    AFK_.afk_end = None # تعديل
+    AFK_.afk_end = None
     AFK_.afk_type = "text"
     start_1 = datetime.now()
     AFK_.afk_on = True
@@ -210,7 +206,6 @@ async def _(event):
             AFK_.reason = input_str
             AFK_.msg_link = False
         
-        # تجنب مشاكل الخصوصية
         try:
             last_seen_status = await event.client(
                 functions.account.GetPrivacyRequest(types.InputPrivacyKeyStatusTimestamp())
@@ -239,7 +234,7 @@ async def _(event):
                         BOTLOG_CHATID,
                         "⪼ وضع السليب \nتم تشغيل وضع السليب، بدون ذكر اي سبب",
                     )
-            except:
+            except Exception: # هذا السطر اللي كان ناقص
                 pass
 
 
@@ -255,7 +250,7 @@ async def _(event):
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
     AFK_.last_afk_message = {}
-    AFK_.afk_end = None # تعديل
+    AFK_.afk_end = None
     AFK_.media_afk = None
     AFK_.afk_type = "media"
     start_1 = datetime.now()
@@ -293,7 +288,7 @@ async def _(event):
                     BOTLOG_CHATID,
                     f"⪼ وضع السليب \nتم تشغيل وضع السليب، والسبب هو {AFK_.reason}",
                 )
-            except:
+            except Exception: # وهنا كمان كان ناقص
                 pass
         else:
             try:
@@ -301,3 +296,5 @@ async def _(event):
                     BOTLOG_CHATID,
                     "⪼ وضع السليب \nتم تشغيل وضع السليب، بدون ذكر اي سبب",
                 )
+            except Exception: # وهنا
+                pass
