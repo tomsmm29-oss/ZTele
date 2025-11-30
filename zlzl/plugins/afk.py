@@ -10,7 +10,7 @@ from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.tools import media_type
 from ..helpers.utils import _format
 
-# تصحيح الاستيرادات
+# تصحيح تعريف متغيرات السجل عشان ما تسبب مشاكل استيراد
 BOTLOG = True 
 BOTLOG_CHATID = Config.PM_LOGGER_GROUP_ID
 
@@ -24,6 +24,7 @@ class AFK:
         self.USERAFK_ON = {}
         self.afk_time = None
         self.last_afk_message = {}
+        # تعديل مايكي: تغيير {} إلى None لمنع أخطاء الحساب
         self.afk_star = None
         self.afk_end = None
         self.reason = None
@@ -43,6 +44,7 @@ async def set_not_afk(event):
     back_alive = datetime.now()
     AFK_.afk_end = back_alive.replace(microsecond=0)
     
+    # التحقق الصحيح (هل يوجد وقت بداية؟)
     if AFK_.afk_star is not None:
         total_afk_time = AFK_.afk_end - AFK_.afk_star
         time = int(total_afk_time.seconds)
@@ -97,7 +99,8 @@ async def on_afk(event):
         return
     back_alivee = datetime.now()
     AFK_.afk_end = back_alivee.replace(microsecond=0)
-    
+
+    # التحقق الصحيح
     if AFK_.afk_star is not None:
         total_afk_time = AFK_.afk_end - AFK_.afk_star
         time = int(total_afk_time.seconds)
@@ -160,7 +163,7 @@ async def on_afk(event):
             full = await event.client.get_entity(event.message.from_id)
         except Exception as e:
             LOGS.info(str(e))
-        
+
         try:
             messaget = media_type(event)
         except:
@@ -191,6 +194,7 @@ async def _(event):
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
     AFK_.last_afk_message = {}
+    # تعديل مايكي: تهيئة صحيحة
     AFK_.afk_end = None
     AFK_.afk_type = "text"
     start_1 = datetime.now()
@@ -205,7 +209,7 @@ async def _(event):
         else:
             AFK_.reason = input_str
             AFK_.msg_link = False
-        
+
         try:
             last_seen_status = await event.client(
                 functions.account.GetPrivacyRequest(types.InputPrivacyKeyStatusTimestamp())
@@ -234,7 +238,7 @@ async def _(event):
                         BOTLOG_CHATID,
                         "⪼ وضع السليب \nتم تشغيل وضع السليب، بدون ذكر اي سبب",
                     )
-            except Exception: # هذا السطر اللي كان ناقص
+            except Exception:
                 pass
 
 
@@ -246,10 +250,11 @@ async def _(event):
         return await edit_or_reply(
             event, "⪼ امر السليب : المرجو قم بالرد على الصورة بالامر "
         )
-    
+
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
     AFK_.last_afk_message = {}
+    # تعديل مايكي: تهيئة صحيحة
     AFK_.afk_end = None
     AFK_.media_afk = None
     AFK_.afk_type = "media"
@@ -259,7 +264,7 @@ async def _(event):
     if not AFK_.USERAFK_ON:
         input_str = event.pattern_match.group(1)
         AFK_.reason = input_str
-        
+
         try:
             last_seen_status = await event.client(
                 functions.account.GetPrivacyRequest(types.InputPrivacyKeyStatusTimestamp())
@@ -276,7 +281,7 @@ async def _(event):
             )
         else:
             await edit_delete(event, "انا الان في وضعيه عدم الاتصال", 5)
-        
+
         try:
             AFK_.media_afk = await reply.forward_to(BOTLOG_CHATID)
         except Exception as e:
@@ -288,7 +293,7 @@ async def _(event):
                     BOTLOG_CHATID,
                     f"⪼ وضع السليب \nتم تشغيل وضع السليب، والسبب هو {AFK_.reason}",
                 )
-            except Exception: # وهنا كمان كان ناقص
+            except Exception:
                 pass
         else:
             try:
@@ -296,5 +301,5 @@ async def _(event):
                     BOTLOG_CHATID,
                     "⪼ وضع السليب \nتم تشغيل وضع السليب، بدون ذكر اي سبب",
                 )
-            except Exception: # وهنا
+            except Exception:
                 pass
