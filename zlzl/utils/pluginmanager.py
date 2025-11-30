@@ -38,8 +38,6 @@ def load_module(shortname, plugin_path=None):
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
-        
-        # --- تعديلات مايكي: حقن المتغيرات الأساسية فقط ---
         mod.bot = zedub
         mod.LOGS = LOGS
         mod.Config = Config
@@ -47,19 +45,17 @@ def load_module(shortname, plugin_path=None):
         mod.tgbot = zedub.tgbot
         mod.sudo_cmd = sudo_cmd
         mod.CMD_HELP = CMD_HELP
-        # mod.reply_id = reply_id    <-- هذا هو المجرم! عطلناه
+        # mod.reply_id = reply_id  <-- 🛑 تم القبض عليه وتعطيله
         mod.admin_cmd = admin_cmd
         mod._zedutils = _zedutils
         mod._zedtools = _zedtools
-        # mod.media_type = media_type <-- وهذا كمان يسبب مشاكل
-        # mod.edit_delete = edit_delete <-- وهذا احتياط
+        mod.media_type = media_type
+        mod.edit_delete = edit_delete
         mod.install_pip = install_pip
         mod.parse_pre = _format.parse_pre
         mod.edit_or_reply = edit_or_reply
         mod.logger = logging.getLogger(shortname)
         mod.borg = zedub
-        # ---------------------------------------------
-        
         spec.loader.exec_module(mod)
         # for imports
         sys.modules[f"zlzl.plugins.{shortname}"] = mod
@@ -87,8 +83,6 @@ def lload_module(shortname, plugin_path=None):
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
-        
-        # --- نفس التعديلات هنا ---
         mod.bot = zedub
         mod.LOGS = LOGS
         mod.Config = Config
@@ -96,19 +90,17 @@ def lload_module(shortname, plugin_path=None):
         mod.tgbot = zedub.tgbot
         mod.sudo_cmd = sudo_cmd
         mod.CMD_HELP = CMD_HELP
-        # mod.reply_id = reply_id
+        # mod.reply_id = reply_id <-- 🛑 وهنا كمان
         mod.admin_cmd = admin_cmd
         mod._zedutils = _zedutils
         mod._zedtools = _zedtools
-        # mod.media_type = media_type
-        # mod.edit_delete = edit_delete
+        mod.media_type = media_type
+        mod.edit_delete = edit_delete
         mod.install_pip = install_pip
         mod.parse_pre = _format.parse_pre
         mod.edit_or_reply = edit_or_reply
         mod.logger = logging.getLogger(shortname)
         mod.borg = zedub
-        # -------------------------
-        
         spec.loader.exec_module(mod)
         # for imports
         sys.modules[f"zlzl.plugins.{shortname}"] = mod
