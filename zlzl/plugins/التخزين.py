@@ -52,7 +52,16 @@ async def monito_p_m_s(event):  # sourcery no-metrics
 
 @zedub.zed_cmd(incoming=True, func=lambda e: e.mentioned, edited=False, forword=None)
 async def log_tagged_messages(event):
-    from .afk import AFK_
+    # --- تعديل مايكي: الحماية من غياب ملف AFK ---
+    try:
+        from .afk import AFK_
+    except ImportError:
+        # نصنع كائن وهمي عشان نسكت الكود
+        class FakeAFK:
+            def __init__(self):
+                self.USERAFK_ON = {}
+        AFK_ = FakeAFK()
+    # ---------------------------------------------
 
     if gvarstatus("GRPLOG") and gvarstatus("GRPLOG") == "false":
         return
