@@ -54,7 +54,7 @@ async def monito_p_m_s(event):  # sourcery no-metrics
 async def log_tagged_messages(event):
     # --- تعديل مايكي: الحماية من غياب ملف AFK ---
     try:
-        from .afk import AFK_
+        from .my_afk import AFK_
     except ImportError:
         # نصنع كائن وهمي عشان نسكت الكود
         class FakeAFK:
