@@ -1,6 +1,3 @@
-# ZThon Cleaned by Mikey  🚬
-# No more forced joins, no more waiting.
-
 import time
 import asyncio
 import importlib
@@ -42,13 +39,16 @@ ENV = bool(os.environ.get("ENV", False))
 LOGS = logging.getLogger("zlzl")
 cmdhr = Config.COMMAND_HAND_LER
 
-# تفريغ القوائم عشان ما يصير أي طلب بالغلط
+# --- تعديل مايكي: تعريف المتغير غصب عشان ما يكرش ---
+VPS_NOLOAD = [] 
+# --------------------------------------------------
+
 Zel_Dev = ()
 Zed_Dev = ()
 Zed_Vip = ()
 Zzz_Vip = ()
-zchannel = set() 
-zzprivatech = set() 
+zchannel = set()
+zzprivatech = set()
 
 heroku_api = "https://api.heroku.com"
 if Config.HEROKU_APP_NAME is not None and Config.HEROKU_API_KEY is not None:
@@ -58,6 +58,7 @@ if Config.HEROKU_APP_NAME is not None and Config.HEROKU_API_KEY is not None:
 else:
     app = None
 
+# المنطق القديم (نخليه، بس إحنا آمنا نفسنا فوق بـ [])
 if ENV:
     VPS_NOLOAD = ["vps"]
 elif os.path.exists("config.py"):
@@ -70,27 +71,21 @@ async def autovars():
     if "ENV" in heroku_var and "TZ" in heroku_var:
         return
     if "ENV" in heroku_var and "TZ" not in heroku_var:
-        # LOGS.info("جـارِ اضافـة بقيـة الفـارات .. تلقائيـاً")
         zzcom = "."
         zzztz = "Asia/Baghdad"
         heroku_var["COMMAND_HAND_LER"] = zzcom
         heroku_var["TZ"] = zzztz
-        # LOGS.info("تم اضافـة بقيـة الفـارات .. بنجـاح")
     if "ENV" not in heroku_var and "TZ" not in heroku_var:
-        # LOGS.info("جـارِ اضافـة بقيـة الفـارات .. تلقائيـاً")
         zzenv = "ANYTHING"
         zzcom = "."
         zzztz = "Asia/Baghdad"
         heroku_var["ENV"] = zzenv
         heroku_var["COMMAND_HAND_LER"] = zzcom
         heroku_var["TZ"] = zzztz
-        # LOGS.info("تم اضافـة بقيـة الفـارات .. بنجـاح")
 
-async def autoname(): 
+async def autoname():
     if Config.ALIVE_NAME:
         return
-    # عطلنا الانتظار هنا كمان عشان السرعة
-    # await asyncio.sleep(15) 
     zlzlal = await bot.get_me()
     zzname = f"{zlzlal.first_name}"
     tz = Config.TZ
@@ -109,9 +104,6 @@ async def autoname():
 
 
 async def setup_bot():
-    """
-    To set up bot for zthon
-    """
     try:
         await zedub.connect()
         config = await zedub(functions.help.GetConfigRequest())
@@ -132,7 +124,7 @@ async def setup_bot():
         if Config.OWNER_ID == 0:
             Config.OWNER_ID = utils.get_peer_id(zedub.me)
     except Exception as e:
-        LOGS.error(f"Error in setup_bot: {str(e)}")
+        LOGS.error(f"Setup Error: {str(e)}")
         sys.exit()
 
 
@@ -140,15 +132,10 @@ async def mybot():
     if gvarstatus("z_assistant"):
         pass
     else:
-        # عطلنا إعدادات البوت المساعد الأوتوماتيكية لأنها تسبب تأخير ومشاكل
-        # إذا تبي تشغلها رجع الكود، بس الأفضل تضبط البوت المساعد يدوياً
         addgvar("z_assistant", True)
 
 
 async def startupmessage():
-    """
-    Start up message in telegram logger group
-    """
     if gvarstatus("PMLOG") and gvarstatus("PMLOG") != "false":
         delgvar("PMLOG")
     if gvarstatus("GRPLOG") and gvarstatus("GRPLOG") != "false":
@@ -157,12 +144,10 @@ async def startupmessage():
         if BOTLOG:
             zzz = bot.me
             Zname = f"{zzz.first_name} {zzz.last_name}" if zzz.last_name else zzz.first_name
-            Zid = bot.uid
-            # رسالة الترحيب المبسطة
             try:
                 await zedub.tgbot.send_message(
                     BOTLOG_CHATID,
-                    f"**⌔ مرحبـاً عـزيـزي** {Zname} 🫂\n**⌔ تـم تشغـيل سـورس زدثــون (Kalvari Ed.) 🧸♥️**\n**⌔ التنصيب الخاص بـك .. بنجـاح ✅**"
+                    f"**⌔ تـم تشغـيل سـورس زدثــون (نسخة مايكي) بنجـاح ✅**"
                 )
             except:
                 pass
@@ -173,22 +158,10 @@ async def startupmessage():
         msg_details = list(get_item_collectionlist("restart_update"))
         if msg_details:
             msg_details = msg_details[0]
-    except Exception as e:
-        LOGS.error(e)
-        return None
-    try:
-        if msg_details:
             await zedub.check_testcases()
             message = await zedub.get_messages(msg_details[0], ids=msg_details[1])
             text = message.text + "\n\n**•⎆┊تـم اعـادة تشغيـل السـورس بنجــاح 🧸♥️**"
             await zedub.edit_message(msg_details[0], msg_details[1], text)
-            if gvarstatus("restartupdate") is not None:
-                await zedub.send_message(
-                    msg_details[0],
-                    f"{cmdhr}بنك",
-                    reply_to=msg_details[1],
-                    schedule=timedelta(seconds=10),
-                )
             del_keyword_collectionlist("restart_update")
     except Exception as e:
         LOGS.error(e)
@@ -196,10 +169,6 @@ async def startupmessage():
 
 
 async def add_bot_to_logger_group(chat_id):
-    """
-    To add bot to logger groups
-    """
-    # ... (الكود الأصلي هنا كان سليم، تركناه كما هو)
     bot_details = await zedub.tgbot.get_me()
     try:
         await zedub(
@@ -237,18 +206,13 @@ async def add_bot_to_logger_group(chat_id):
             LOGS.error(str(e))
 
 
-# ✂️✂️✂️ عملية الإخصاء الكبرى ✂️✂️✂️
-# تم تفريغ هذه الدوال تماماً لتسريع الإقلاع ومنع الانضمام الإجباري
-
+# دوال فارغة لمنع الاشتراك الإجباري
 async def saves():
-    # لا قنوات، لا وجع راس.
-    pass 
+    pass
 
 async def supscrips():
-    # لا روابط، لا انتظار.
-    pass 
+    pass
 
-# -----------------------------------
 
 async def load_plugins(folder, extfolder=None):
     """
@@ -270,12 +234,12 @@ async def load_plugins(folder, extfolder=None):
             shortname = path1.stem
             pluginname = shortname.replace(".py", "")
             try:
+                # هنا التعديل: VPS_NOLOAD صار معرف فوق، فما راح يكرش
                 if (pluginname not in Config.NO_LOAD) and (
                     pluginname not in VPS_NOLOAD
                 ):
-                    # هنا كان الكود الأصلي، عدلناه ليتوافق مع تعديلاتنا السابقة في __init__
                     flag = True
-                    retry_count = 0 # غيرنا الاسم هنا كمان احتياط
+                    retry_count = 0 
                     while flag:
                         try:
                             load_module(
@@ -298,7 +262,7 @@ async def load_plugins(folder, extfolder=None):
             except Exception as e:
                 if shortname not in failure:
                     failure.append(shortname)
-                os.remove(Path(f"{plugin_path}/{shortname}.py"))
+                # os.remove(Path(f"{plugin_path}/{shortname}.py"))
                 LOGS.info(
                     f"لا يمكنني تحميل {shortname} بسبب الخطأ {e}\nمجلد القاعده {plugin_path}"
                 )
@@ -312,7 +276,6 @@ async def load_plugins(folder, extfolder=None):
 
 
 async def verifyLoggerGroup():
-    # ... (تركنا التحقق من المجموعات كما هو لأنه مفيد)
     flag = False
     if BOTLOG:
         try:
@@ -341,13 +304,13 @@ async def verifyLoggerGroup():
             )
     else:
         try:
-            descript = "لا تقم بحذف هذه المجموعة (سجل الكاشف)."
+            descript = "لا تقم بحذف هذه المجموعة."
             photozed = await zedub.upload_file(file="zlzl/zilzal/logozed.jpg")
             _, groupid = await create_supergroup(
-                "سجل زدثون", zedub, Config.TG_BOT_USERNAME, descript, photozed
+                "مجمـوعـة السجـل زدثـــون", zedub, Config.TG_BOT_USERNAME, descript, photozed
             )
             addgvar("PRIVATE_GROUP_BOT_API_ID", groupid)
-            print("تم إنشاء مجموعة السجل.")
+            print("تم انشاء مجموعة السجل.")
             flag = True
         except Exception as e:
             print(str(e))
@@ -360,19 +323,25 @@ async def verifyLoggerGroup():
                     LOGS.info(
                         " الصلاحيات غير كافيه لأرسال الرسالئل في مجموعه فار ااـ PM_LOGGER_GROUP_ID."
                     )
+                if entity.default_banned_rights.invite_users:
+                    LOGS.info(
+                        "لا تمتلك صلاحيات اضافه اعضاء في مجموعة فار الـ  PM_LOGGER_GROUP_ID."
+                    )
         except ValueError:
-            LOGS.error("PM_LOGGER_GROUP_ID لم يتم العثور على قيمه هذا الفار.")
+            LOGS.error("PM_LOGGER_GROUP_ID لم يتم العثور على قيمه هذا الفار . تاكد من أنه صحيح .")
+        except TypeError:
+            LOGS.error("PM_LOGGER_GROUP_ID قيمه هذا الفار خطا. تاكد من أنه صحيح.")
         except Exception as e:
             LOGS.error("حدث خطأ اثناء التعرف على فار PM_LOGGER_GROUP_ID.\n" + str(e))
     else:
         try:
-            descript = "مجموعة التخزين (الخاص)."
+            descript = "لا تقم بحذف هذه المجموعة."
             photozed = await zedub.upload_file(file="zlzl/zilzal/logozed.jpg")
             _, groupid = await create_supergroup(
-                "تخزين زدثون", zedub, Config.TG_BOT_USERNAME, descript, photozed
+                "مجمـوعـة التخـزين", zedub, Config.TG_BOT_USERNAME, descript, photozed
             )
             addgvar("PM_LOGGER_GROUP_ID", groupid)
-            print("تم إنشاء مجموعة التخزين.")
+            print("تم عمل المجموعة التخزين بنجاح واضافة الفارات اليه.")
             flag = True
             if flag:
                 executable = sys.executable.replace(" ", "\\ ")
@@ -384,7 +353,6 @@ async def verifyLoggerGroup():
 
 
 async def install_externalrepo(repo, branch, cfolder):
-    # ... (نفس الكود الأصلي)
     zedREPO = repo
     rpath = os.path.join(cfolder, "requirements.txt")
     if zedBRANCH := branch:
