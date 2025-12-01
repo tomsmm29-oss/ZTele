@@ -15,6 +15,9 @@ class Config(object):
     # الجلسة (أهم شي)
     STRING_SESSION = os.environ.get("STRING_SESSION", None)
     
+
+			# تعديل مايكي: إضافة معرف البوت غصب عشان الانلاين يشتغل
+    TG_BOT_USERNAME =    os.environ.get("TG_BOT_USERNAME", None)
     # قاعدة البيانات
     DB_URI = os.environ.get("DATABASE_URL", None) or os.environ.get("DB_URI", None)
     
