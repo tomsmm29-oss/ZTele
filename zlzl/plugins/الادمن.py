@@ -378,11 +378,6 @@ async def zed_unpin_cmd(event): # اسم فريد
 
 
 
-from telethon.tl.functions.users import GetFullUserRequest
-from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
-from telethon.utils import get_display_name
-from datetime import datetime
 
 # --- ☢️ أمـر الآيـدي الشيطـاني (ZedThon Devil ID) ☢️ ---
 @zedub.zed_cmd(pattern="(?:ايدي|ا|ايديي)(?: |$)(.*)")
