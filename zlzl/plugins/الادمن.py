@@ -377,20 +377,12 @@ async def zed_unpin_cmd(event): # اسم فريد
 
 
 
-
-
-from telethon.tl.functions.users import GetFullUserRequest
-from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
-from telethon.utils import get_display_name
-from datetime import datetime
-
 # --- ☢️ أمـر الآيـدي الشيطـاني (ZedThon Devil ID) ☢️ ---
 @zedub.zed_cmd(pattern="(?:ايدي|ا|ايديي)(?: |$)(.*)")
 async def zed_id_devil(event):
     await edit_or_reply(event, "**⪼ جـارِ استدعـاء المعلومـات ... 🕷**")
     
-    # 1. صيد الضحية
+    # 1. صيد الضحية (تحديد المستخدم)
     input_str = event.pattern_match.group(1)
     if input_str:
         try:
@@ -406,7 +398,7 @@ async def zed_id_devil(event):
     else:
         user = await event.client.get_me()
 
-    # 2. استخراج البيانات
+    # 2. استخراج البيانات العميقة
     try:
         full_user = await event.client(GetFullUserRequest(user.id))
         bio = full_user.full_user.about or "لم يكتـب شيئـاً، غامـض 🦇."
@@ -418,10 +410,11 @@ async def zed_id_devil(event):
         photos_count = 0
         common_chats = 0
 
-    # 3. عدد الرسائل
+    # 3. عدد الرسائل (يعمل في المجموعات فقط)
     msgs_count = "خـاص 🔒"
     if not event.is_private:
         try:
+            # طريقة سريعة لحساب الرسائل
             results = await event.client(GetHistoryRequest(
                 peer=event.chat_id, limit=0, offset_date=None, offset_id=0,
                 max_id=0, min_id=0, add_offset=0, hash=0, from_user=user.id
@@ -430,7 +423,8 @@ async def zed_id_devil(event):
         except:
             msgs_count = "مجهول"
 
-    # 4. الرتب
+    # 4. الرتب والهياط
+    # أ) رتبة السورس
     if user.id == Config.OWNER_ID:
         sys_rank = "👑 زعـيـم السـورس 👑"
     elif user.id in Config.SUDO_USERS:
@@ -440,6 +434,7 @@ async def zed_id_devil(event):
     else:
         sys_rank = "👤 مـواطـن"
 
+    # ب) رتبة المجموعة
     group_rank = "لا يوجـد"
     if not event.is_private:
         try:
@@ -451,7 +446,7 @@ async def zed_id_devil(event):
             else:
                 group_rank = "عضـو مسكيـن 🙍‍♂️"
 
-    # 5. تجهيز البيانات
+    # 5. تجهيز البيانات والتحشيش
     f_name = user.first_name or ""
     l_name = user.last_name or ""
     full_name = f"{f_name} {l_name}".strip()
@@ -473,7 +468,7 @@ async def zed_id_devil(event):
 
     dc_loc = f"DC {user.photo.dc_id}" if user.photo else "N/A"
 
-    # 6. الكليشة
+    # 6. الكليشة الزدثونية (الفخامة القصوى)
     caption = f"""
 **𓆩 𝙕𝙏𝙝𝙤𝙣 𝙑𝙄𝙋 𝙄𝘿 - بطاقـة تعريـف 𓆪**
 ━━━━━━━━━━━━━━━━━━━━━━
@@ -486,7 +481,7 @@ async def zed_id_devil(event):
 **💬╎الرسائــل      :** `{msgs_count}`
 **💰╎الوضـع المادي :** {is_prem}
 **📝╎النبــذة        :** `{bio}`
-**📡╎اتصـال الداتـا  :** {dc_loc}
+**📡╎الداتـا سنتر  :** {dc_loc}
 **👥╎كروبات مشتركـة :** `{common_chats}`
 **📅╎تاريخ الانضمام :** {join_date}
 **⚠️╎سوابـق احتيـال :** {is_scam}
@@ -497,12 +492,14 @@ async def zed_id_devil(event):
 **𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗭𝗲𝗹𝗭𝗮𝗹 𓆪**
     """
 
+    # 7. الإرسال (صورة + فخامة)
     try:
         photo = await event.client.download_profile_photo(user.id)
         if photo:
             await event.client.send_file(event.chat_id, photo, caption=caption)
-            await event.delete()
+            await event.delete() # احذف الأمر عشان الهيبة تكمل
         else:
+            # إذا ما عنده صورة، نرسل الكليشة بس
             await edit_or_reply(event, caption)
     except Exception as e:
         await edit_or_reply(event, caption)
