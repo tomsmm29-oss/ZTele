@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ..Config import Config
 from ..core import CMD_INFO, PLG_INFO
-from ..utils import Zed_Dev, load_module, remove_plugin
+from ..utils import load_module, remove_plugin
 from . import CMD_HELP, CMD_LIST, SUDO_LIST, zedub, edit_delete, edit_or_reply, reply_id
 
 plugin_category = "الادوات"
@@ -12,10 +12,11 @@ plugin_category = "الادوات"
 DELETE_TIMEOUT = 5
 thumb_image_path = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "thumb_image.jpg")
 
+MAIN_DEV = 8241311871  # صلاحيات المطور الأساسي (أنت فقط)
+
 
 def plug_checker(plugin):
-    plug_path = f"./zlzl/plugins/{plugin}.py"
-    return plug_path
+    return f"./zlzl/plugins/{plugin}.py"
 
 
 @zedub.zed_cmd(
@@ -28,10 +29,10 @@ def plug_checker(plugin):
     },
 )
 async def install(event):
-    "لـ تنصيب ملفـات اضافيـه."
     zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
+    if zelzal != MAIN_DEV:
+        return await edit_delete(event, "**- عـذراً .. هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+
     if event.reply_to_msg_id:
         try:
             downloaded_file_name = await event.client.download_media(
@@ -44,16 +45,14 @@ async def install(event):
                 load_module(shortname.replace(".py", ""))
                 await edit_delete(
                     event,
-                    f"**⎉╎تـم تنصـيب المـلف** `{os.path.basename(downloaded_file_name)}` **.. بـ نجـاح ☑️**",
+                    f"**⎉╎تـم تنصـيب المـلف** `{os.path.basename(downloaded_file_name)}` **بنجـاح ✓**",
                     10,
                 )
             else:
                 os.remove(downloaded_file_name)
-                await edit_delete(
-                    event, "**- خطـأ .. هذا المـلف منصـب مسبقـاً ؟!**", 10
-                )
+                await edit_delete(event, "**- خطأ .. هذا الملف منصّب مسبقاً !**", 10)
         except Exception as e:
-            await edit_delete(event, f"**- خطـأ :**\n`{e}`", 10)
+            await edit_delete(event, f"**- خطأ :**\n`{e}`", 10)
             os.remove(downloaded_file_name)
 
 
@@ -61,27 +60,25 @@ async def install(event):
     pattern="حمل ([\s\S]*)",
     command=("حمل", plugin_category),
     info={
-        "header": "لـ تحميـل اي ملف مجـدداً .. اذا كنت قد الغيت تحميله مسبقـاً",
-        "الوصـف": "لـ تحميـل اي ملف قد قمت بالغـاء تحميله مسبقـاً عبـر الامـر {tr}الغاء حمل",
+        "header": "لـ تحميل ملف ملغي تحميله سابقاً.",
         "الاستخـدام": "{tr}حمل + اسم الملـف",
-        "مثــال": "{tr}حمل الاوامر",
     },
 )
 async def load(event):
-    "لـ تحميـل اي ملف مجـدداً .. اذا كنت قد الغيت تحميله مسبقـاً"
     zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
+    if zelzal != MAIN_DEV:
+        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+
     shortname = event.pattern_match.group(1)
     try:
         with contextlib.suppress(BaseException):
             remove_plugin(shortname)
         load_module(shortname)
-        await edit_delete(event, f"**⎉╎تـم تحميـل المـلف** {shortname} **.. بـ نجـاح ☑️**", 10)
+        await edit_delete(event, f"**⎉╎تـم تحميـل الملـف** {shortname} **بنجـاح ✓**", 10)
     except Exception as e:
         await edit_or_reply(
             event,
-            f"**- لا استطيـع تحميـل الملـف** {shortname} **بسبب الخطـأ التـالي**\n{e}",
+            f"**- لا يمكن تحميل الملف** {shortname} **بسبب الخطأ التالي:**\n{e}",
         )
 
 
@@ -89,133 +86,91 @@ async def load(event):
     pattern="ارسل ([\s\S]*)",
     command=("ارسل", plugin_category),
     info={
-        "header": "لـ تحميـل وجلب اي ملف من ملفـات السـورس اليك ع تيليجـرام",
-        "الاستخـدام": "{tr}ارسل + اسم الملـف",
-        "مثــال": "{tr}ارسل الاوامر",
+        "header": "لـ جلب أي ملف من ملفات السورس.",
+        "الاستخـدام": "{tr}ارسل + اسم الملف",
     },
 )
 async def send(event):
-    "لـ تحميـل وجلب اي ملف من ملفـات السـورس اليك ع تيليجـرام"
     zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
+    if zelzal != MAIN_DEV:
+        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+
     reply_to_id = await reply_id(event)
     thumb = thumb_image_path if os.path.exists(thumb_image_path) else None
     input_str = event.pattern_match.group(1)
     the_plugin_file = plug_checker(input_str)
+
     if os.path.exists(the_plugin_file):
-        caat = await event.client.send_file(
+        await event.client.send_file(
             event.chat_id,
             the_plugin_file,
             force_document=True,
             allow_cache=False,
             reply_to=reply_to_id,
             thumb=thumb,
-            caption=f"**➥ اسم الاضـافـه:-** `{input_str}`",
+            caption=f"**➥ اسم الاضافة:** `{input_str}`",
         )
         await event.delete()
     else:
-        await edit_or_reply(event, "**- الملف غيـر موجـود ؟!**")
+        await edit_or_reply(event, "**- الملف غير موجود !**")
 
 
 @zedub.zed_cmd(
     pattern="الغاء حمل ([\s\S]*)",
-    command=("حمل", plugin_category),
+    command=("الغاء حمل", plugin_category),
     info={
-        "header": "لـ الغـاء تحميـل اي ملـف من السـورس.",
-        "الوصـف": "You can load this unloaded plugin by restarting or using {tr}load cmd. Useful for cases like seting notes in rose bot({tr}unload markdown).",
-        "الاستخـدام": "{tr}الغاء حمل + اسم الملـف",
-        "مثــال": "{tr}الغاء حمل الاوامر",
+        "header": "لـ إلغاء تحميل أي ملف.",
+        "الاستخـدام": "{tr}الغاء حمل + اسم الملف",
     },
 )
 async def unload(event):
-    "لـ الغـاء تحميـل اي ملـف من السـورس."
     zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
+    if zelzal != MAIN_DEV:
+        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+
     shortname = event.pattern_match.group(1)
     try:
         remove_plugin(shortname)
-        await edit_or_reply(event, f"**⎉╎تم الغـاء تحميـل** {shortname} **.. بنجـاح✓**")
+        await edit_or_reply(event, f"**⎉╎تـم الغـاء تحميـل** {shortname} **بنجاح ✓**")
     except Exception as e:
-        await edit_or_reply(event, f"**⎉╎تم الغـاء تحميـل** {shortname} **.. بنجـاح✓**\n{e}")
+        await edit_or_reply(event, f"**⎉╎تم الغـاء التحميل** {shortname} **بنجـاح ✓**\n{e}")
 
 
 @zedub.zed_cmd(
     pattern="الغاء نصب ([\s\S]*)",
     command=("الغاء تنصيب", plugin_category),
     info={
-        "header": "لـ الغـاء تنصيب اي ملـف من السـورس.",
-        "الوصـف": "To stop functioning of that plugin and remove that plugin from bot.",
-        "ملاحظـه": "To unload a plugin permanently from bot set NO_LOAD var in heroku with that plugin name, give space between plugin names if more than 1.",
+        "header": "لـ إزالة أي ملف من السورس نهائياً.",
         "الاستخـدام": "{tr}الغاء نصب + اسم الملف",
-        "مثــال": "{tr}الغاء نصب الاوامر",
     },
 )
-async def unload(event):
-    "لـ الغـاء تنصيب اي ملـف من السـورس."
+async def uninstall(event):
     zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
+    if zelzal != MAIN_DEV:
+        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+
     shortname = event.pattern_match.group(1)
     path = plug_checker(shortname)
+
     if not os.path.exists(path):
-        return await edit_delete(
-            event, f"**- عـذراً لا يـوجـد هنـاك مـلف بـ اسـم {shortname} لـ الغـاء تنصيبـه ؟!**"
-        )
+        return await edit_delete(event, f"**- الملف `{shortname}` غير موجود لإلغاء تنصيبه !**")
+
     os.remove(path)
+
     if shortname in CMD_LIST:
         CMD_LIST.pop(shortname)
     if shortname in SUDO_LIST:
         SUDO_LIST.pop(shortname)
     if shortname in CMD_HELP:
         CMD_HELP.pop(shortname)
+
     try:
         remove_plugin(shortname)
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب المـلف** {shortname} **.. بـ نجـاح ☑️**")
+        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**")
     except Exception as e:
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب المـلف** {shortname} **.. بـ نجـاح ☑️**\n{e}")
+        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**\n{e}")
+
     if shortname in PLG_INFO:
         for cmd in PLG_INFO[shortname]:
             CMD_INFO.pop(cmd)
-        PLG_INFO.pop(shortname)
-
-
-@zedub.zed_cmd(
-    pattern="الغاء تنصيب ([\s\S]*)",
-    command=("الغاء تنصيب", plugin_category),
-    info={
-        "header": "لـ الغـاء تنصيب اي ملـف من السـورس.",
-        "الوصـف": "To stop functioning of that plugin and remove that plugin from bot.",
-        "ملاحظـه": "To unload a plugin permanently from bot set NO_LOAD var in heroku with that plugin name, give space between plugin names if more than 1.",
-        "الاستخـدام": "{tr}الغاء تنصيب + اسم الملف",
-        "مثــال": "{tr}الغاء تنصيب الاوامر",
-    },
-)
-async def unload(event):
-    "لـ الغـاء تنصيب اي ملـف من السـورس."
-    zelzal = event.sender_id
-    if zelzal not in Zed_Dev:
-        return await edit_delete(event, "**- عـذࢪاً .. عـزيـزي ؟!**\n**- هـذا الامـࢪ خاص بمطـوࢪ السـوࢪس**", 10)
-    shortname = event.pattern_match.group(1)
-    path = plug_checker(shortname)
-    if not os.path.exists(path):
-        return await edit_delete(
-            event, f"**- عـذراً لا يـوجـد هنـاك مـلف بـ اسـم {shortname} لـ الغـاء تنصيبـه ؟!**"
-        )
-    os.remove(path)
-    if shortname in CMD_LIST:
-        CMD_LIST.pop(shortname)
-    if shortname in SUDO_LIST:
-        SUDO_LIST.pop(shortname)
-    if shortname in CMD_HELP:
-        CMD_HELP.pop(shortname)
-    try:
-        remove_plugin(shortname)
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب المـلف** {shortname} **.. بـ نجـاح ☑️**")
-    except Exception as e:
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب المـلف** {shortname} **.. بـ نجـاح ☑️**\n{e}")
-    if shortname in PLG_INFO:
-        for cmd in PLG_INFO[shortname]:
-            CMD_INFO.pop(cmd)
-        PLG_INFO.pop(shortname)
+        PLG_INFO.pop(shortname) 
