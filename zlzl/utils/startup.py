@@ -64,7 +64,7 @@ if ENV:
 elif os.path.exists("config.py"):
     VPS_NOLOAD = ["heroku"]
 
-bot = my_refz_bot
+bot = zedub
 DEV = 8241311871
 
 async def autovars():
