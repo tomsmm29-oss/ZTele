@@ -376,12 +376,11 @@ async def zed_unpin_cmd(event): # اسم فريد
 
 
 
-
 # --- ☢️ أمـر الآيـدي الشيطـاني (ZedThon Devil ID) ☢️ ---
 @zedub.zed_cmd(pattern="(?:ايدي|ا|ايديي)(?: |$)(.*)")
 async def zed_id_devil(event):
     await edit_or_reply(event, "**⪼ جـارِ استدعـاء المعلومـات ... 🕷**")
-    
+
     # 1. صيد الضحية (تحديد المستخدم)
     input_str = event.pattern_match.group(1)
     if input_str:
@@ -445,19 +444,21 @@ async def zed_id_devil(event):
                 group_rank = "رافـع خشمه (مشـرف) 👮‍♂️"
             else:
                 group_rank = "عضـو مسكيـن 🙍‍♂️"
+        except:
+            group_rank = "لا يوجـد"
 
     # 5. تجهيز البيانات والتحشيش
     f_name = user.first_name or ""
     l_name = user.last_name or ""
     full_name = f"{f_name} {l_name}".strip()
     username = f"@{user.username}" if user.username else "بـدون يـوزر"
-    
+
     # الهياط والكوميديا
     is_prem = "غنـي 🤑💎" if getattr(user, 'premium', False) else "فقيـر (مطفر) 💸"
     is_scam = "نصـاب (اهرب) 🏃‍♂️" if user.scam else "نظيـف ✨"
     is_rest = "مكلبـش (مقيد) ⛓️" if user.restricted else "حـر طليـق 🕊️"
     is_verif = "موثـق ✅" if user.verified else "غير موثق"
-    
+
     # تخمين تاريخ الانضمام (تقريبي بناء على الآيدي)
     if user.id < 1000000000:
         join_date = "قديـم جـداً (ديناصور) 🦖"
@@ -499,7 +500,7 @@ async def zed_id_devil(event):
             await event.client.send_file(event.chat_id, photo, caption=caption)
             await event.delete() # احذف الأمر عشان الهيبة تكمل
         else:
-            # إذا ما عنده صورة، نرسل الكليشة بس
             await edit_or_reply(event, caption)
     except Exception as e:
         await edit_or_reply(event, caption)
+        
