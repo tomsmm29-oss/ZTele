@@ -377,109 +377,143 @@ async def zed_unpin_cmd(event): # اسم فريد
 
 
 
-# --- ☢️ أمـر الآيـدي الإمبـراطـوري (ZThon Royal ID) ☢️ ---
+
+from telethon.tl.functions.users import GetFullUserRequest
+from telethon.tl.functions.messages import GetHistoryRequest
+from telethon.tl.types import ChannelParticipantAdmin, ChannelParticipantCreator
+from telethon.utils import get_display_name
+from datetime import datetime
+
+# --- ☢️ أمـر الآيـدي الشيطـاني (ZedThon Devil ID) ☢️ ---
 @zedub.zed_cmd(pattern="(?:ايدي|ا|ايديي)(?: |$)(.*)")
-async def zed_id_royal(event):
-    await edit_or_reply(event, "**⪼ جـارِ جلـب المعلومـات ... ↻**")
+async def zed_id_devil(event):
+    await edit_or_reply(event, "**⪼ جـارِ استدعـاء المعلومـات ... 🕷**")
     
-    # 1. تحديد الهدف (أنا، بالرد، أو باليوزر)
+    # 1. صيد الضحية (تحديد المستخدم)
     input_str = event.pattern_match.group(1)
     if input_str:
         try:
             user = await event.client.get_entity(input_str)
         except:
-            return await edit_delete(event, "**❌ عـذراً، لـم يتم العثـور عـلى المستخـدم.**", 5)
+            return await edit_delete(event, "**❌ هـذا المستخـدم في عالـم آخـر (غير موجود).**", 5)
     elif event.reply_to_msg_id:
         r_msg = await event.get_reply_message()
         if r_msg.sender_id:
             user = await event.client.get_entity(r_msg.sender_id)
         else:
-            return await edit_delete(event, "**❌ لا يمكـن جلـب معلومـات هـذا الكائـن.**", 5)
+            return await edit_delete(event, "**❌ شبـح! لا يمكـن جلـب معلوماتـه.**", 5)
     else:
         user = await event.client.get_me()
 
-    # 2. جلب المعلومات العميقة (Full Data)
+    # 2. استخراج البيانات العميقة
     try:
         full_user = await event.client(GetFullUserRequest(user.id))
-        bio = full_user.full_user.about or "لا يوجـد نبـذة تعريفيـة."
-        # تنظيف البايو الطويل عشان الشكل
-        bio = bio.replace("\n", " ")[:60] + "..." if len(bio) > 60 else bio
+        # النبذة (Bio)
+        bio = full_user.full_user.about or "لم يكتـب شيئـاً، غامـض 🦇."
+        bio = bio.replace("\n", " ")[:50] + "..." if len(bio) > 50 else bio
+        # عدد الصور
+        photos_count = full_user.full_user.profile_photo.count if hasattr(full_user.full_user, 'profile_photo') and full_user.full_user.profile_photo else 0
+        # المجموعات المشتركة
+        common_chats = full_user.full_user.common_chats_count
     except:
-        bio = "غير متوفر"
+        bio = "بيانات مشفرة"
+        photos_count = 0
+        common_chats = 0
 
-    # 3. عدد الرسائل في المجموعة الحالية
-    try:
-        if not event.is_private:
-            msgs_count = (await event.client.get_messages(event.chat_id, from_user=user.id, limit=0)).total
-        else:
-            msgs_count = "خـاص"
-    except:
-        msgs_count = "غير معروف"
+    # 3. عدد الرسائل (يعمل في المجموعات فقط)
+    msgs_count = "خـاص 🔒"
+    if not event.is_private:
+        try:
+            # طريقة سريعة لحساب الرسائل
+            results = await event.client(GetHistoryRequest(
+                peer=event.chat_id, limit=0, offset_date=None, offset_id=0,
+                max_id=0, min_id=0, add_offset=0, hash=0, from_user=user.id
+            ))
+            msgs_count = results.count
+        except:
+            msgs_count = "مجهول"
 
-    # 4. التحقق من الرتبة (في السورس + في المجموعة)
+    # 4. الرتب والهياط
     # أ) رتبة السورس
     if user.id == Config.OWNER_ID:
-        sys_rank = "👑 مـالك السـورس 👑"
+        sys_rank = "👑 زعـيـم السـورس 👑"
     elif user.id in Config.SUDO_USERS:
-        sys_rank = "👮‍♂️ مطـور مساعـد"
+        sys_rank = "👮‍♂️ نائـب الزعيـم"
     elif user.bot:
-        sys_rank = "🤖 بـوت"
+        sys_rank = "🤖 خـادم آلـي"
     else:
-        sys_rank = "👤 عضـو"
+        sys_rank = "👤 مـواطـن"
 
-    # ب) رتبة المجموعة (إذا كنا في مجموعة)
-    group_rank = "غير متوفر"
+    # ب) رتبة المجموعة
+    group_rank = "لا يوجـد"
     if not event.is_private:
         try:
             participant = await event.client.get_permissions(event.chat_id, user.id)
             if participant.is_creator:
-                group_rank = "منشـئ المجموعـة 🌟"
+                group_rank = "الـرأس الكبيـرة (المنشئ) 🌟"
             elif participant.is_admin:
-                group_rank = "مشـرف 👮‍♂️"
+                group_rank = "رافـع خشمه (مشـرف) 👮‍♂️"
             else:
-                group_rank = "عضـو فقـط 👤"
-        except:
-            group_rank = "غير معروف"
+                group_rank = "عضـو مسكيـن 🙍‍♂️"
 
-    # 5. تجهيز البيانات (فخامة الأسماء)
+    # 5. تجهيز البيانات والتحشيش
     f_name = user.first_name or ""
     l_name = user.last_name or ""
     full_name = f"{f_name} {l_name}".strip()
-    username = f"@{user.username}" if user.username else "لا يوجـد"
+    username = f"@{user.username}" if user.username else "بـدون يـوزر"
     
-    # خصائص الحساب
-    is_prem = "نعـم 💎" if getattr(user, 'premium', False) else "كـلا"
-    is_scam = "⚠️ نعم (احذر)" if user.scam else "كـلا ✓"
-    is_rest = "🚫 نعم" if user.restricted else "كـلا ✓"
-    dc_loc = f"DC {user.photo.dc_id}" if user.photo else "غير معروف"
+    # الهياط والكوميديا
+    is_prem = "غنـي 🤑💎" if getattr(user, 'premium', False) else "فقيـر (مطفر) 💸"
+    is_scam = "نصـاب (اهرب) 🏃‍♂️" if user.scam else "نظيـف ✨"
+    is_rest = "مكلبـش (مقيد) ⛓️" if user.restricted else "حـر طليـق 🕊️"
+    is_verif = "موثـق ✅" if user.verified else "غير موثق"
+    
+    # حالة الاتصال (Last Seen)
+    from telethon.tl.types import UserStatusOnline, UserStatusOffline, UserStatusRecently
+    if isinstance(user.status, UserStatusOnline):
+        status = "متصـل الآن 🟢"
+    elif isinstance(user.status, UserStatusOffline):
+        status = f"خامـل 💤"
+    elif isinstance(user.status, UserStatusRecently):
+        status = "قريبـاً 🟡"
+    else:
+        status = "مخفـي 👻"
 
-    # 6. الكليشة الزدثونية (التصميم النهائي)
+    dc_loc = f"DC {user.photo.dc_id}" if user.photo else "N/A"
+
+    # 6. الكليشة الزدثونية (الفخامة القصوى)
     caption = f"""
-**🪪 ¦ بطـاقـة معلومـات شخصيـة**
+**𓆩 𝙕𝙏𝙝𝙤𝙣 𝙑𝙄𝙋 𝙄𝘿 - بطاقـة تعريـف 𓆪**
 ━━━━━━━━━━━━━━━━━━━━━━
-**⚜️╎الاســم      :** `{full_name}`
-**🎟╎الآيــدي      :** `{user.id}`
-**🌀╎المعــرف     :** {username}
-**🎖╎رتبة السـورس :** {sys_rank}
-**🏷╎رتبة الكـروب  :** {group_rank}
-**💬╎الرسـائـل     :** `{msgs_count}`
-**💎╎بريميــوم     :** {is_prem}
-**📝╎النبــذة       :** `{bio}`
-**📡╎الداتــا سنتر  :** {dc_loc}
-**⚠️╎حسـاب محتـال :** {is_scam}
-**🚫╎حسـاب مقيـد  :** {is_rest}
+**⚜️╎الاســم       :** `{full_name}`
+**🎟╎الآيــدي       :** `{user.id}`
+**🌀╎المعــرف      :** {username}
+**🎖╎الرتبــة       :** {sys_rank}
+**🏷╎المنصــب      :** {group_rank}
+**📸╎الصــور       :** `{photos_count}`
+**💬╎الرسائــل      :** `{msgs_count}`
+**💰╎الوضـع المادي :** {is_prem}
+**📝╎النبــذة        :** `{bio}`
+**📡╎اتصـال الداتـا  :** {dc_loc}
+**👥╎كروبات مشتركـة :** `{common_chats}`
+**👻╎حالـة الظهـور  :** {status}
+**⚠️╎سوابـق احتيـال :** {is_scam}
+**🚫╎قيـود امنيــة   :** {is_rest}
+**💠╎التوثيــق      :** {is_verif}
 **🔗╎الرابـط الدائـم :** [اضغـط هنـا](tg://user?id={user.id})
 ━━━━━━━━━━━━━━━━━━━━━━
-**𓆩 𝗦𝗼𝘂𝗿𝗰𝗲 𝗭𝗧𝗵𝗼𝗻 - 𝗭𝗲𝗹𝗭𝗮𝗹 𓆪**
+**𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗭𝗲𝗹𝗭𝗮𝗹 𓆪**
     """
 
-    # 7. الإرسال (صورة أو نص)
+    # 7. الإرسال (صورة + فخامة)
     try:
         photo = await event.client.download_profile_photo(user.id)
         if photo:
             await event.client.send_file(event.chat_id, photo, caption=caption)
-            await event.delete()
+            await event.delete() # احذف الأمر عشان الهيبة تكمل
         else:
+            # إذا ما عنده صورة، نرسل الكليشة بس
             await edit_or_reply(event, caption)
     except Exception as e:
         await edit_or_reply(event, caption)
+        
