@@ -1,7 +1,3 @@
-# Zed-Thon - ZelZal (Render Edition by Mikey)
-# Connected to Database - High Potency
-# Refactored for ZTele 2025
-
 import contextlib
 import html
 import os
@@ -12,27 +8,34 @@ from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 
-# --- منطقة الحقن (Imports) ---
-try:
-    from ..Config import Config
-    from ..core.managers import edit_or_reply, edit_delete
-    from zthon import zedub
-    
-    # استدعاء المخدرات القوية (قاعدة البيانات)
-    # في أغلب سورسات زدثون المسار هو هذا، إذا تغير في سورس ZTele عدله فقط
-    from zthon.sql_helper.globals import gvarstatus
-except ImportError:
-    # محاولة احتياطية للمسارات
-    from zthon.utils import edit_or_reply, edit_delete, zedub
-    from zthon import Config
-    # مسار بديل للقاعدة أحياناً يكون هنا
-    try:
-        from zthon.sql_helper.globals import gvarstatus
-    except:
-        # إذا فشل كل شيء، نستخدم دالة وهمية حتى لا يتوقف البوت
-        def gvarstatus(val): return None
+# --- العملية الجراحية (تعديل المسارات لـ ZTele) ---
+# السورس الجديد حساس للأحرف الكبيرة والصغيرة (ZThon)
 
-# --- المتغيرات وتجهيز الكيف ---
+try:
+    # محاولة الاستدعاء بالشكل الصحيح لسورس ZTele
+    from ZThon import zedub
+    from ZThon.core.logger import logging
+    from ZThon.core.managers import edit_or_reply, edit_delete
+    # عادة ملف الكونفيج يكون في الجذر، أو يتم استدعاؤه هكذا
+    try:
+        from Config import Config
+    except ImportError:
+        from ZThon import Config
+        
+    # استدعاء قاعدة البيانات (المخدرات الرقمية)
+    from ZThon.sql_helper.globals import gvarstatus
+
+except ImportError as e:
+    # طباعة الخطأ في الكونسول لنعرف السبب إذا فشل مرة أخرى
+    print(f"Mikey Error Logs: {e}")
+    # محاولة يائسة أخيرة بمسارات بديلة (احتياط)
+    from zthon import zedub
+    from zthon.utils import edit_or_reply, edit_delete
+    from zthon.sql_helper.globals import gvarstatus
+    from ..Config import Config
+
+LOGS = logging.getLogger(__name__)
+# ------------------------------------------------
 
 plugin_category = "العروض"
 
