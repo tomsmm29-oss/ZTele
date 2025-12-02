@@ -2,20 +2,18 @@ import contextlib
 import importlib
 import sys
 from pathlib import Path
-
 from zlzl import CMD_HELP, LOAD_PLUG
-
 from ..Config import Config
 from ..core import LOADED_CMDS, PLG_INFO
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..core.session import zedub
 from ..helpers.tools import media_type
+# استيراد reply_id الحقيقي
 from ..helpers.utils import _zedtools, _zedutils, _format, install_pip, reply_id
 from .decorators import admin_cmd, sudo_cmd
 
 LOGS = logging.getLogger("ZThon")
-inst_done = "✅ تـم تنصيب سـورس زدثــون .. بنجـاح ⌔\n♥️ قم بالذهاب الى تيليجـرام الان ⌔\n💡 ثم ارسـل الامـر ( .مساعده ) ⌔" 
 
 def load_module(shortname, plugin_path=None):
     if shortname.startswith("__"):
@@ -35,9 +33,14 @@ def load_module(shortname, plugin_path=None):
         else:
             path = Path((f"{plugin_path}/{shortname}.py"))
             name = f"{plugin_path}/{shortname}".replace("/", ".")
+        
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
+        
+        # =================================================
+        # 💉 الحقن الذكي (Smart Injection) 💉
+        # =================================================
         mod.bot = zedub
         mod.LOGS = LOGS
         mod.Config = Config
@@ -45,21 +48,34 @@ def load_module(shortname, plugin_path=None):
         mod.tgbot = zedub.tgbot
         mod.sudo_cmd = sudo_cmd
         mod.CMD_HELP = CMD_HELP
-        # mod.reply_id = reply_id  <-- 🛑 تم القبض عليه وتعطيله
         mod.admin_cmd = admin_cmd
         mod._zedutils = _zedutils
         mod._zedtools = _zedtools
-        mod.media_type = media_type
-        mod.edit_delete = edit_delete
         mod.install_pip = install_pip
         mod.parse_pre = _format.parse_pre
         mod.edit_or_reply = edit_or_reply
         mod.logger = logging.getLogger(shortname)
         mod.borg = zedub
-        spec.loader.exec_module(mod)
-        # for imports
-        sys.modules[f"zlzl.plugins.{shortname}"] = mod
-        LOGS.info(f"Successfully imported {shortname}")
+
+        # هنا السحر: نعطيه الدالة الحقيقية عشان الأوامر تشتغل
+        mod.reply_id = reply_id 
+        mod.media_type = media_type
+        mod.edit_delete = edit_delete
+        
+        # =================================================
+
+        try:
+            spec.loader.exec_module(mod)
+            sys.modules[f"zlzl.plugins.{shortname}"] = mod
+            LOGS.info(f"✅ Successfully imported {shortname}")
+        except TypeError as e:
+            # إذا الملف حاول يجمع (+=) بنصيده هنا
+            if "unsupported operand type(s) for +=" in str(e):
+                LOGS.warning(f"⚠️ الملف {shortname} قديم ويسبب مشاكل (+). تم تخطيه لسلامة البوت.")
+            else:
+                LOGS.error(f"❌ Failed to load {shortname}: {e}")
+        except Exception as e:
+            LOGS.error(f"❌ Failed to load {shortname}: {e}")
 
 
 def lload_module(shortname, plugin_path=None):
@@ -80,9 +96,11 @@ def lload_module(shortname, plugin_path=None):
         else:
             path = Path((f"{plugin_path}/{shortname}.py"))
             name = f"{plugin_path}/{shortname}".replace("/", ".")
+        
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
+        
         mod.bot = zedub
         mod.LOGS = LOGS
         mod.Config = Config
@@ -90,21 +108,26 @@ def lload_module(shortname, plugin_path=None):
         mod.tgbot = zedub.tgbot
         mod.sudo_cmd = sudo_cmd
         mod.CMD_HELP = CMD_HELP
-        # mod.reply_id = reply_id <-- 🛑 وهنا كمان
         mod.admin_cmd = admin_cmd
         mod._zedutils = _zedutils
         mod._zedtools = _zedtools
-        mod.media_type = media_type
-        mod.edit_delete = edit_delete
         mod.install_pip = install_pip
         mod.parse_pre = _format.parse_pre
         mod.edit_or_reply = edit_or_reply
         mod.logger = logging.getLogger(shortname)
         mod.borg = zedub
-        spec.loader.exec_module(mod)
-        # for imports
-        sys.modules[f"zlzl.plugins.{shortname}"] = mod
-        print("Successfully imported library")
+        
+        # الحقن الذكي هنا أيضاً
+        mod.reply_id = reply_id
+        mod.media_type = media_type
+        mod.edit_delete = edit_delete
+
+        try:
+            spec.loader.exec_module(mod)
+            sys.modules[f"zlzl.plugins.{shortname}"] = mod
+            print("Successfully imported library")
+        except Exception as e:
+             print(f"Failed to load {shortname}: {e}")
 
 
 def remove_plugin(shortname):
