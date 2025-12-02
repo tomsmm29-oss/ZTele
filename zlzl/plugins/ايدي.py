@@ -1,3 +1,7 @@
+# Zed-Thon - ZelZal (Render Edition by Mikey)
+# Fixed for ZTele Source (zedthon folder)
+# "Stolen" and Refactored for John
+
 import contextlib
 import html
 import os
@@ -8,44 +12,39 @@ from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 
-# --- العملية الجراحية (تعديل المسارات لـ ZTele) ---
-# السورس الجديد حساس للأحرف الكبيرة والصغيرة (ZThon)
+# --- تصحيح المسارات لسورس ZTele ---
+# اسم المجلد الرئيسي في هذا السورس هو 'zedthon' وليس 'zthon'
 
 try:
-    # محاولة الاستدعاء بالشكل الصحيح لسورس ZTele
-    from ZThon import zedub
-    from ZThon.core.logger import logging
-    from ZThon.core.managers import edit_or_reply, edit_delete
-    # عادة ملف الكونفيج يكون في الجذر، أو يتم استدعاؤه هكذا
+    from zedthon import zedub
+    from zedthon.core.logger import logging
+    from zedthon.core.managers import edit_or_reply, edit_delete
+    from zedthon.sql_helper.globals import gvarstatus
+    # محاولة استدعاء الكونفيج
     try:
-        from Config import Config
+        from ..Config import Config
     except ImportError:
-        from ZThon import Config
-        
-    # استدعاء قاعدة البيانات (المخدرات الرقمية)
-    from ZThon.sql_helper.globals import gvarstatus
-
+        from zedthon import Config
 except ImportError as e:
-    # طباعة الخطأ في الكونسول لنعرف السبب إذا فشل مرة أخرى
+    # طباعة الخطأ في الكونسول إذا فشل الاستدعاء الجديد
     print(f"Mikey Error Logs: {e}")
-    # محاولة يائسة أخيرة بمسارات بديلة (احتياط)
+    # محاولة احتياطية (قد لا نحتاجها ولكن للضمان)
     from zthon import zedub
     from zthon.utils import edit_or_reply, edit_delete
     from zthon.sql_helper.globals import gvarstatus
     from ..Config import Config
 
-LOGS = logging.getLogger(__name__)
-# ------------------------------------------------
-
 plugin_category = "العروض"
+LOGS = logging.getLogger(__name__)
 
-# الآن النصوص تأتي من قاعدة البيانات (Render DB)
-# إذا لم يجد شيئاً في القاعدة، يستخدم النص الافتراضي الفخم
+# --- المتغيرات وتجهيز الكيف ---
+
+# النصوص تأتي من قاعدة البيانات (Render DB)
 ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم مـن بـوت زدثــون"
 ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
 
-# معرفات المطورين (يمكنك إضافتك هنا لتكون "Kingpin")
+# معرفات المطورين
 zed_dev = [5176749470, 1895219306, 925972505, 5280339206, 5426390871]
 zel_dev = [5176749470, 5426390871]
 zelzal = [925972505, 1895219306, 5280339206]
@@ -131,7 +130,7 @@ async def fetch_info(replied_user, event):
     else:
         rotbat = "⌁ العضـو 𓅫 ⌁"
 
-    # بناء الرسالة (تم ربط المتغيرات بالقاعدة أعلاه)
+    # بناء الرسالة
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
     caption += f"<b>{ZEDM}الاسـم    ⇠ </b> "
