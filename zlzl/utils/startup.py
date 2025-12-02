@@ -64,8 +64,8 @@ if ENV:
 elif os.path.exists("config.py"):
     VPS_NOLOAD = ["heroku"]
 
-bot = zedub
-DEV = 1895219306
+bot = my_refz_bot
+DEV = 8241311871
 
 async def autovars():
     if "ENV" in heroku_var and "TZ" in heroku_var:
