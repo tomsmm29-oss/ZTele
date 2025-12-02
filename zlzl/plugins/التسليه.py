@@ -16,7 +16,7 @@ from ..Config import Config
 from ..core.logger import logging
 from ..helpers import get_user_from_event
 from ..helpers.functions import deEmojify, hide_inlinebot, waifutxt
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 from ..core.managers import edit_delete, edit_or_reply
 from . import ALIVE_NAME, deEmojify, mention
 

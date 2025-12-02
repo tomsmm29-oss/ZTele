@@ -9,7 +9,7 @@ from . import zedub
 from ..core.logger import logging
 from ..Config import Config
 from ..core.managers import edit_or_reply, edit_delete
-from ..helpers import reply_id, get_user_from_event
+from ..helpers import get_user_from_event
 from . import BOTLOG, BOTLOG_CHATID
 plugin_category = "الادوات"
 LOGS = logging.getLogger(__name__)
@@ -469,7 +469,7 @@ async def ahmed(ahmed): # Code Update by @zzzzl1l
     await edit_or_reply(ahmed, f"**⌔╎لـ  ** [{zedth2}](tg://user?id={user.id}) \n**⌔╎{zel_zal}**")
 
 @zedub.zed_cmd(pattern="(نسبه الحب|نسبة الحب)(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_sxpg(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -478,7 +478,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**✾╎نـسبـة حبكـم انـت و**  [{zedth}](tg://user?id={user.id}) **هـي {zedt} 😻♥️**")
 
 @zedub.zed_cmd(pattern="(نسبه الانوثة|نسبة الانوثه|نسبه الانوثه|نسبة الانوثة)(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_gqmn(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -548,7 +548,7 @@ async def permalink(malath):
     await edit_or_reply(malath, f"**✾╎نسبـة الكراهيـة لـ** [{zedth}](tg://user?id={user.id}) **هـي {zedt} 🤮.**")
 
 @zedub.zed_cmd(pattern="رفع ورع(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_bctx(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -560,7 +560,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎تم رفعـه ورع القـروب 😹🙇🏻.**")
 
 @zedub.zed_cmd(pattern="رفع مزه(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_pmht(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -572,7 +572,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚺 ╎ الحلـوه ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـها مـزة الكروب 🥳💃.**")
 
 @zedub.zed_cmd(pattern="رفع مطي(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_vquh(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -584,7 +584,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه مطي سبورتي 🐴.** \n")
 
 @zedub.zed_cmd(pattern="رفع حمار(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_zizt(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -596,7 +596,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه حمار جحا 😂🐴.** \n")
 
 @zedub.zed_cmd(pattern="رفع خروف(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_vipv(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -638,7 +638,7 @@ async def permalink(malath):
     )
 
 @zedub.zed_cmd(pattern="رفع زباله(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_cret(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -650,7 +650,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه زباله معفنه 🗑.** \n")
 
 @zedub.zed_cmd(pattern="رفع منشئ(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_xjri(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -658,7 +658,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه منشئ الكروب 👷‍♂️.** \n")
 
 @zedub.zed_cmd(pattern="رفع مدير(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_cttg(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -666,7 +666,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه مدير الكروب 🤵‍♂️.** \n")
 
 @zedub.zed_cmd(pattern="رفع كواد(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_zvci(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -678,7 +678,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎  تم رفعـه كـواد .. بنجـاح 👀. ** \n")
 
 @zedub.zed_cmd(pattern="رفع مرتبط(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_cpkm(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -690,7 +690,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ المستخـدم  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تـم رفعـه مرتبـط .. بنجـاح 💍💞** \n")
 
 @zedub.zed_cmd(pattern="رفع مرتبطه(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_xlpq(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -702,7 +702,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚺 ╎ الحلـوه ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تـم رفعـهـا مرتبطـه .. بنجـاح 💍💞. .** \n")
 
 @zedub.zed_cmd(pattern="رفع حبيبي(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_seae(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -710,7 +710,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ الحلـو  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـه حبيبـج .. بنجـاح 💍🤵‍♂👰🏻‍♀.**")
 
 @zedub.zed_cmd(pattern="رفع خطيبتي(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_bbmg(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -722,7 +722,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚺 ╎ الحلـوه ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎ تم رفعـهـا خطيبتك .. بنجـاح 💍👰🏼‍♀️.** \n")
 
 @zedub.zed_cmd(pattern="رفع صاك(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_gzxj(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -730,7 +730,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ الحلـو  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎  تم رفعـه صاك 🤴 .**")
 
 @zedub.zed_cmd(pattern="رفع صاكه(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_xrat(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -738,7 +738,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ الحلـوه  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎  تم رفعـها صاكه الكـروب 👸🏼.**")
 
 @zedub.zed_cmd(pattern="رفع حات(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_oxwt(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return
@@ -746,7 +746,7 @@ async def zed(malath):
     await edit_or_reply(malath, f"**🚹 ╎ الحلـو  ⪼ • ** [{zedth2}](tg://user?id={user.id}) \n☑️ **╎  تم رفعـه حـات الكـروب 🤴 .**")
 
 @zedub.zed_cmd(pattern="رفع حاته(?: |$)(.*)")
-async def zed(malath):
+async def zed_التحشيش_dnhp(malath):
     user, custom = await get_user_from_event(malath)
     if not user:
         return

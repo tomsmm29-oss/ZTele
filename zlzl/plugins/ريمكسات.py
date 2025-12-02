@@ -49,7 +49,7 @@ async def remaxzedthon(zedrm):
         "الاستـخـدام": "{tr}ريمكس + كلمـة",
     },
 )
-async def zed(event):
+async def zed_ريمكسات_hkjl(event):
     if event.fwd_from:
         return
     zedr = event.pattern_match.group(1)

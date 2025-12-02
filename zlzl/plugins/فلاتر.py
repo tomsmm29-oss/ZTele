@@ -21,7 +21,7 @@ from ..helpers.functions import (
     mirror_file,
     solarize,
 )
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 from ..sql_helper.globals import addgvar, gvarstatus
 
 plugin_category = "الادوات"

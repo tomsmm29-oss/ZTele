@@ -20,7 +20,7 @@ from telethon.tl.types import (
 from . import zedub
 
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 from . import BOTLOG, BOTLOG_CHATID
 
 plugin_category = "الادوات"

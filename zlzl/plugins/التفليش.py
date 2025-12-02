@@ -35,7 +35,7 @@ from ..core.managers import edit_delete, edit_or_reply
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from ..sql_helper.echo_sql import addecho, get_all_echos, get_echos, is_echo, remove_all_echos, remove_echo, remove_echos
 from ..helpers import readable_time
-from ..helpers.utils import reply_id, _format
+# # from ..helpers.utils import _format
 from ..utils import is_admin
 from . import BOTLOG, BOTLOG_CHATID
 

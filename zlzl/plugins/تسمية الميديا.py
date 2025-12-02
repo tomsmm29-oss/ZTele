@@ -9,8 +9,8 @@ from . import zedub
 
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id
-from . import progress, reply_id
+# # from ..helpers.utils import reply_id
+from . import progress
 
 thumb_image_path = Config.TMP_DOWNLOAD_DIRECTORY + "thumb_image.jpg"
 

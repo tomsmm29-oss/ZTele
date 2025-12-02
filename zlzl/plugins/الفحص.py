@@ -18,7 +18,7 @@ from . import StartTime, zedub, zedversion
 from ..Config import Config
 from ..core.managers import edit_or_reply
 from ..helpers.functions import zedalive, check_data_base_heal_th, get_readable_time
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 from ..sql_helper.globals import gvarstatus
 
 plugin_category = "العروض"

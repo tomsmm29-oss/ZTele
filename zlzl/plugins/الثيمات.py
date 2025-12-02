@@ -10,7 +10,7 @@ import random
 
 from . import zedub
 from ..core.managers import edit_or_reply
-from ..helpers.utils import reply_id as rd 
+# # from ..helpers.utils import reply_id as rd 
 from ..helpers import get_user_from_event
 from zedthon.malath.theem import *
 
@@ -322,9 +322,9 @@ async def stsfanan(zed):
 
 
 @zedub.zed_cmd(pattern="ثيمات")
-async def zed(zelzal):
+async def zed_الثيمات_etwo(zelzal):
     await edit_or_reply(zelzal, ZL)
 
 @zedub.zed_cmd(pattern="الثيمات")
-async def zed(zelzal):
+async def zed_الثيمات_mmnp(zelzal):
     await edit_or_reply(zelzal, ZL)

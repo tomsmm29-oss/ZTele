@@ -28,7 +28,7 @@ from . import zedub
 
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply as eor
-from ..helpers import reply_id, get_user_from_event
+from ..helpers import get_user_from_event
 from ..sql_helper.globals import addgvar, gvarstatus
 from . import *
 

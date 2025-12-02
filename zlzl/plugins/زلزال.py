@@ -22,7 +22,7 @@ from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from . import zedub
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 
 
 #الملـف كتابـة زلـزال الهيبـه ⤶ @zzzzl1l خاص بسـورس ⤶ 𝙕𝙏𝙝𝙤𝙣
@@ -183,7 +183,7 @@ async def linkapk(event):
 #الملف متعوب عليه So تخمط وماتذكـر المصـدر == اهينـك
 #ها خماط رمضان وتخمط hhhhhhh
 @zedub.zed_cmd(pattern="فلم ([\s\S]*)")
-async def zed(event):
+async def zed_زلزال_wnhu(event):
     if event.fwd_from:
         return
     zedr = event.pattern_match.group(1)

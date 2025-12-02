@@ -20,7 +20,7 @@ from random import choice
 from . import ALIVE_NAME
 from ..helpers import fonts as emojify
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id, get_user_from_event, _format
+# # from ..helpers.utils import get_user_from_event, _format
 from . import deEmojify
 # EMOJI CONSTANTS
 DART_E_MOJI = "🎯"

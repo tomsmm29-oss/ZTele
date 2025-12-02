@@ -25,7 +25,7 @@ from . import zedub
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers import reply_id
-from ..helpers.utils import _format, get_user_from_event, reply_id 
+from ..helpers.utils import _format, get_user_from_event 
 from . import BOTLOG, BOTLOG_CHATID, mention, progress
 
 LOGS = logging.getLogger(__name__)

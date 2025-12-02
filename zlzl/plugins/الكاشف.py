@@ -10,7 +10,7 @@ from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl.functions.contacts import UnblockRequest as unblock
 from . import zedub
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 
 ZelzalPH_cmd = (
     "𓆩 [𝗦𝗼𝘂𝗿𝗰𝗲 𝗭𝗧𝗵𝗼𝗻 📲 - كـاشـف الارقـام العربيــة](t.me/ZThon) 𓆪\n\n"

@@ -53,7 +53,7 @@ from . import zedub
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers import reply_id
-from ..helpers.utils import _format, get_user_from_event, reply_id
+from ..helpers.utils import _format, get_user_from_event
 from ..helpers import media_type
 from ..helpers.google_image_download import googleimagesdownload
 from ..helpers.tools import media_type
@@ -1121,7 +1121,7 @@ async def count(event):
 
 
 @zedub.zed_cmd(pattern="الرابط ?(.*)")
-async def zed(event):
+async def zed_المجموعه_chgh(event):
     zedevent = await edit_or_reply(event, "**⇜ جـارِ جلـب رابـط المجموعـه ⇜**")
     chat = await event.get_chat()
     try:
@@ -1134,14 +1134,14 @@ async def zed(event):
 
 
 @zedub.zed_cmd(pattern="رسائلي$")
-async def zed(event):
+async def zed_المجموعه_imcw(event):
     zzm = "me"
     a = await bot.get_messages(event.chat_id, 0, from_user=zzm)
     await edit_or_reply(event, f"**⎉╎لديـك هنـا ⇽**  `{a.total}`  **رسـالـه 📩**")
 
 
 @zedub.zed_cmd(pattern="رسائله ?(.*)")
-async def zed(event):
+async def zed_المجموعه_xwkg(event):
     k = await event.get_reply_message()
     if k:
         a = await bot.get_messages(event.chat_id, 0, from_user=k.sender_id)
@@ -1155,7 +1155,7 @@ async def zed(event):
 
 
 @zedub.zed_cmd(pattern="(الرسائل|رسائل) ?(.*)")
-async def zed(event):
+async def zed_المجموعه_aqmd(event):
     k = await event.get_reply_message()
     if k:
         a = await bot.get_messages(event.chat_id, 0, from_user=k.sender_id)

@@ -7,7 +7,7 @@ from . import zedub
 
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id
+# # from ..helpers.utils import reply_id
 from . import convert_toimage, convert_tosticker
 
 plugin_category = "الادوات"
