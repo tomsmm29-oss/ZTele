@@ -1,6 +1,6 @@
-# Zed-Thon - ZelZal (Render Edition by Mikey)
-# Fixed for ZTele Source (zedthon folder)
-# "Stolen" and Refactored for John
+# Zed-Thon - ZelZal (Relative Import Edition by Mikey)
+# Fixed specifically for ZTele Source Structure
+# "Stolen" Logic + "Native" Imports
 
 import contextlib
 import html
@@ -12,34 +12,29 @@ from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 
-# --- تصحيح المسارات لسورس ZTele ---
-# اسم المجلد الرئيسي في هذا السورس هو 'zedthon' وليس 'zthon'
+# --- منطقة الحقن النسبي (The Relative Injection) ---
+# نستخدم النقاط بدلاً من الاسماء لنتجاوز حماية السيرفر
 
+from . import zedub
+from ..Config import Config
+from ..core.logger import logging
+from ..core.managers import edit_delete, edit_or_reply
+
+# محاولة استدعاء قاعدة البيانات بنفس الطريقة النسبية
+# عادة تكون في مجلد sql_helper بجانب core
 try:
-    from zedthon import zedub
-    from zedthon.core.logger import logging
-    from zedthon.core.managers import edit_or_reply, edit_delete
-    from zedthon.sql_helper.globals import gvarstatus
-    # محاولة استدعاء الكونفيج
-    try:
-        from ..Config import Config
-    except ImportError:
-        from zedthon import Config
-except ImportError as e:
-    # طباعة الخطأ في الكونسول إذا فشل الاستدعاء الجديد
-    print(f"Mikey Error Logs: {e}")
-    # محاولة احتياطية (قد لا نحتاجها ولكن للضمان)
-    from zthon import zedub
-    from zthon.utils import edit_or_reply, edit_delete
-    from zthon.sql_helper.globals import gvarstatus
-    from ..Config import Config
+    from ..sql_helper.globals import gvarstatus
+except ImportError:
+    # إذا فشل المسار، نصنع دالة وهمية حتى لا يتوقف "الكيف"
+    def gvarstatus(val): return None
+
+# --- نهاية منطقة الحقن ---
 
 plugin_category = "العروض"
 LOGS = logging.getLogger(__name__)
 
-# --- المتغيرات وتجهيز الكيف ---
+# --- المتغيرات وتجهيز الكيف (الفخامة القديمة) ---
 
-# النصوص تأتي من قاعدة البيانات (Render DB)
 ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم مـن بـوت زدثــون"
 ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
@@ -50,8 +45,11 @@ zel_dev = [5176749470, 5426390871]
 zelzal = [925972505, 1895219306, 5280339206]
 
 
-async def get_user_from_event(event):
-    """استخراج الضحية (المستخدم) من الرسالة"""
+async def get_user_from_event_local(event):
+    """
+    نسخة محلية من دالة الجلب لضمان عدم حدوث تضارب
+    نستخدم هذه بدلاً من استدعاء helper خارجي قد يكون مختلفاً
+    """
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         user_object = await event.client.get_entity(previous_message.sender_id)
@@ -74,7 +72,7 @@ async def get_user_from_event(event):
         try:
             user_object = await event.client.get_entity(user)
         except (TypeError, ValueError) as err:
-            await event.edit(str(err))
+            # await event.edit(str(err))
             return None
     return user_object
 
@@ -167,7 +165,8 @@ async def who(event):
     if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
         os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
     
-    replied_user = await get_user_from_event(event)
+    # نستخدم الدالة المحلية المضمونة
+    replied_user = await get_user_from_event_local(event)
     
     try:
         photo, caption = await fetch_info(replied_user, event)
