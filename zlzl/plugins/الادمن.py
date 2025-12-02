@@ -374,133 +374,166 @@ async def zed_unpin_cmd(event): # اسم فريد
         return await edit_delete(event, NO_PERM, 5)
 
 
+from telethon.tl.functions.users import GetFullUserRequest
+from telethon.tl.functions.photos import GetUserPhotosRequest
+from telethon.tl.types import MessageEntityMentionName
+import contextlib
+import os
 
+# --- إعدادات الآيدي الفخم (ZedThon Style) ---
+ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم مـن بـوت زدثــون"
+ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
+ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
+zelzal = (925972505, 1895219306, 5280339206)
 
-# --- ☢️ أمـر الآيـدي الشيطـاني (ZedThon Devil ID) ☢️ ---
-@zedub.zed_cmd(pattern="(?:ايدي|ا|ايديي)(?: |$)(.*)")
-async def zed_id_devil(event):
-    await edit_or_reply(event, "**⪼ جـارِ استدعـاء المعلومـات ... 🕷**")
-
-    # 1. صيد الضحية (تحديد المستخدم)
-    input_str = event.pattern_match.group(1)
-    if input_str:
-        try:
-            user = await event.client.get_entity(input_str)
-        except:
-            return await edit_delete(event, "**❌ هـذا المستخـدم في عالـم آخـر (غير موجود).**", 5)
-    elif event.reply_to_msg_id:
-        r_msg = await event.get_reply_message()
-        if r_msg.sender_id:
-            user = await event.client.get_entity(r_msg.sender_id)
-        else:
-            return await edit_delete(event, "**❌ شبـح! لا يمكـن جلـب معلوماتـه.**", 5)
-    else:
-        user = await event.client.get_me()
-
-    # 2. استخراج البيانات العميقة
+async def fetch_info(replied_user, event):
+    """Get details from the User object."""
     try:
-        full_user = await event.client(GetFullUserRequest(user.id))
-        bio = full_user.full_user.about or "لم يكتـب شيئـاً، غامـض 🦇."
-        bio = bio.replace("\n", " ")[:50] + "..." if len(bio) > 50 else bio
-        photos_count = full_user.full_user.profile_photo.count if hasattr(full_user.full_user, 'profile_photo') and full_user.full_user.profile_photo else 0
-        common_chats = full_user.full_user.common_chats_count
+        FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
     except:
-        bio = "بيانات مشفرة"
-        photos_count = 0
-        common_chats = 0
+        return None, "تعذر جلب المعلومات الكاملة"
 
-    # 3. عدد الرسائل (يعمل في المجموعات فقط)
-    msgs_count = "خـاص 🔒"
-    if not event.is_private:
-        try:
-            # طريقة سريعة لحساب الرسائل
-            results = await event.client(GetHistoryRequest(
-                peer=event.chat_id, limit=0, offset_date=None, offset_id=0,
-                max_id=0, min_id=0, add_offset=0, hash=0, from_user=user.id
-            ))
-            msgs_count = results.count
-        except:
-            msgs_count = "مجهول"
-
-    # 4. الرتب والهياط
-    # أ) رتبة السورس
-    if user.id == Config.OWNER_ID:
-        sys_rank = "👑 زعـيـم السـورس 👑"
-    elif user.id in Config.SUDO_USERS:
-        sys_rank = "👮‍♂️ نائـب الزعيـم"
-    elif user.bot:
-        sys_rank = "🤖 خـادم آلـي"
-    else:
-        sys_rank = "👤 مـواطـن"
-
-    # ب) رتبة المجموعة
-    group_rank = "لا يوجـد"
-    if not event.is_private:
-        try:
-            participant = await event.client.get_permissions(event.chat_id, user.id)
-            if participant.is_creator:
-                group_rank = "الـرأس الكبيـرة (المنشئ) 🌟"
-            elif participant.is_admin:
-                group_rank = "رافـع خشمه (مشـرف) 👮‍♂️"
-            else:
-                group_rank = "عضـو مسكيـن 🙍‍♂️"
-        except:
-            group_rank = "لا يوجـد"
-
-    # 5. تجهيز البيانات والتحشيش
-    f_name = user.first_name or ""
-    l_name = user.last_name or ""
-    full_name = f"{f_name} {l_name}".strip()
-    username = f"@{user.username}" if user.username else "بـدون يـوزر"
-
-    # الهياط والكوميديا
-    is_prem = "غنـي 🤑💎" if getattr(user, 'premium', False) else "فقيـر (مطفر) 💸"
-    is_scam = "نصـاب (اهرب) 🏃‍♂️" if user.scam else "نظيـف ✨"
-    is_rest = "مكلبـش (مقيد) ⛓️" if user.restricted else "حـر طليـق 🕊️"
-    is_verif = "موثـق ✅" if user.verified else "غير موثق"
-
-    # تخمين تاريخ الانضمام (تقريبي بناء على الآيدي)
-    if user.id < 1000000000:
-        join_date = "قديـم جـداً (ديناصور) 🦖"
-    elif user.id < 5000000000:
-        join_date = "مخضـرم (وسط) 🦅"
-    else:
-        join_date = "جديـد (ورع) 👶"
-
-    dc_loc = f"DC {user.photo.dc_id}" if user.photo else "N/A"
-
-    # 6. الكليشة الزدثونية (الفخامة القصوى)
-    caption = f"""
-**𓆩 𝙕𝙏𝙝𝙤𝙣 𝙑𝙄𝙋 𝙄𝘿 - بطاقـة تعريـف 𓆪**
-━━━━━━━━━━━━━━━━━━━━━━
-**⚜️╎الاســم       :** `{full_name}`
-**🎟╎الآيــدي       :** `{user.id}`
-**🌀╎المعــرف      :** {username}
-**🎖╎الرتبــة       :** {sys_rank}
-**🏷╎المنصــب      :** {group_rank}
-**📸╎الصــور       :** `{photos_count}`
-**💬╎الرسائــل      :** `{msgs_count}`
-**💰╎الوضـع المادي :** {is_prem}
-**📝╎النبــذة        :** `{bio}`
-**📡╎الداتـا سنتر  :** {dc_loc}
-**👥╎كروبات مشتركـة :** `{common_chats}`
-**📅╎تاريخ الانضمام :** {join_date}
-**⚠️╎سوابـق احتيـال :** {is_scam}
-**🚫╎قيـود امنيــة   :** {is_rest}
-**💠╎التوثيــق      :** {is_verif}
-**🔗╎الرابـط الدائـم :** [اضغـط هنـا](tg://user?id={user.id})
-━━━━━━━━━━━━━━━━━━━━━━
-**𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗭𝗲𝗹𝗭𝗮𝗹 𓆪**
-    """
-
-    # 7. الإرسال (صورة + فخامة)
+    replied_user_profile_photos = await event.client(
+        GetUserPhotosRequest(user_id=replied_user.id, offset=42, max_id=0, limit=80)
+    )
+    replied_user_profile_photos_count = "لا يـوجـد بروفـايـل"
     try:
-        photo = await event.client.download_profile_photo(user.id)
-        if photo:
-            await event.client.send_file(event.chat_id, photo, caption=caption)
-            await event.delete() # احذف الأمر عشان الهيبة تكمل
-        else:
-            await edit_or_reply(event, caption)
-    except Exception as e:
-        await edit_or_reply(event, caption)
+        replied_user_profile_photos_count = replied_user_profile_photos.count
+    except:
+        pass
         
+    user_id = replied_user.id
+    first_name = replied_user.first_name
+    full_name = FullUser.private_forward_name
+    common_chat = FullUser.common_chats_count
+    username = replied_user.username
+    user_bio = FullUser.about
+    
+    # التحقق من البريميوم (طريقة حديثة)
+    try:
+        zilzal = replied_user.premium
+    except:
+        zilzal = False
+
+    # تحميل الصورة
+    photo = await event.client.download_profile_photo(
+        user_id,
+        Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
+        download_big=True,
+    )
+    
+    first_name = first_name.replace("\u2060", "") if first_name else ("هذا المستخدم ليس له اسم أول")
+    full_name = full_name or first_name
+    username = "@{}".format(username) if username else ("لا يـوجـد")
+    user_bio = "لا يـوجـد" if not user_bio else user_bio
+
+    # الرتب (محدثة لتتوافق مع سورسنا)
+    if user_id == Config.OWNER_ID:
+        rotbat = "⌁ مـالك الحساب 𓀫 ⌁"
+    elif user_id in Config.SUDO_USERS:
+        rotbat = "⌁ مطـور مسـاعـد 𐏕⌁"
+    elif user_id in zelzal:
+        rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁"
+    else:
+        rotbat = "⌁ العضـو 𓅫 ⌁"
+
+    # بناء الكليشة الفخمة
+    caption = f"<b> {ZED_TEXT} </b>\n"
+    caption += f"ٴ<b>{ZEDF}</b>\n"
+    caption += f"<b>{ZEDM}الاسـم    ⇠ </b> "
+    caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
+    caption += f"\n<b>{ZEDM}المعـرف  ⇠  {username}</b>"
+    caption += f"\n<b>{ZEDM}الايـدي   ⇠ </b> <code>{user_id}</code>\n"
+    caption += f"<b>{ZEDM}الرتبـــه   ⇠ {rotbat} </b>\n"
+    
+    if zilzal:
+        caption += f"<b>{ZEDM}الحسـاب ⇠  بـريميـوم 🌟</b>\n"
+    
+    caption += f"<b>{ZEDM}الصـور    ⇠ </b> {replied_user_profile_photos_count}\n"
+    
+    if user_id != (await event.client.get_me()).id:
+        caption += f"<b>{ZEDM}الـمجموعات المشتـركة ⇠ </b> {common_chat} \n"
+    
+    caption += f"<b>{ZEDM}البايـو     ⇠  {user_bio}</b> \n"
+    caption += f"ٴ<b>{ZEDF}</b>"
+    
+    return photo, caption
+
+# --- دالة واحدة للأمر (.ايدي و .ا) ---
+@zedub.zed_cmd(pattern="(?:ايدي|ا)(?: |$)(.*)")
+async def zed_who_cmd(event):
+    "Gets info of an user"
+    zed = await edit_or_reply(event, "⇆")
+    if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
+        os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
+        
+    replied_user = await get_user_from_event(event) # نستخدم دالتنا الموجودة في الملف
+    if not replied_user:
+        return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص ؟!**")
+
+    try:
+        photo, caption = await fetch_info(replied_user, event)
+    except (AttributeError, TypeError) as e:
+        return await edit_or_reply(zed, f"**- خطأ:** {e}")
+
+    message_id_to_reply = event.message.reply_to_msg_id
+    if not message_id_to_reply:
+        message_id_to_reply = None
+
+    try:
+        if photo:
+            await event.client.send_file(
+                event.chat_id,
+                photo,
+                caption=caption,
+                link_preview=False,
+                force_document=False,
+                reply_to=message_id_to_reply,
+                parse_mode="html",
+            )
+            if not photo.startswith("http"):
+                os.remove(photo)
+            await zed.delete()
+        else:
+            await zed.edit(caption, parse_mode="html")
+    except TypeError:
+        await zed.edit(caption, parse_mode="html")
+
+# --- أمر صورته (إضافي) ---
+@zedub.zed_cmd(pattern="صورته(?:\s|$)([\s\S]*)")
+async def zed_poto_cmd(event):
+    "To get user or group profile pic"
+    uid = "".join(event.raw_text.split(maxsplit=1)[1:])
+    user = await event.get_reply_message()
+    chat = event.input_chat
+    if user and user.sender:
+        photos = await event.client.get_profile_photos(user.sender)
+        u = True
+    else:
+        photos = await event.client.get_profile_photos(chat)
+        u = False
+    
+    if uid.strip() == "":
+        uid = 1
+        if int(uid) > (len(photos)):
+            return await edit_delete(event, "**- لا يـوجـد هنـاك صـور لهـذا الشخـص ؟! **")
+        send_photos = await event.client.download_media(photos[uid - 1])
+        await event.client.send_file(event.chat_id, send_photos)
+    elif uid.strip() == "الكل":
+        if len(photos) > 0:
+            await event.client.send_file(event.chat_id, photos)
+        else:
+            return await edit_delete(event, "**- لا يـوجـد صـور.**")
+    else:
+        try:
+            uid = int(uid)
+            if uid <= 0: return await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
+        except:
+            return await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
+            
+        if int(uid) > (len(photos)):
+            return await edit_delete(event, "**- لا يـوجـد هنـاك صـور لهـذا الشخـص ؟! **")
+
+        send_photos = await event.client.download_media(photos[uid - 1])
+        await event.client.send_file(event.chat_id, send_photos)
+    await event.delete()
