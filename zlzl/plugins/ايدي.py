@@ -1,5 +1,5 @@
-# Zed-Thon - ZelZal (Ultimate Clone 2025 by Mikey)
-# "Stolen" Logic + Exact Replica Visuals + Deep Data Fetching
+# Zed-Thon - ZelZal (Exact Carbon Copy 2025 by Mikey)
+# "Stolen" Visuals (Pixels match) + Force Data Fetch
 # Relative Imports for ZTele
 
 import contextlib
@@ -15,7 +15,7 @@ from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import ChannelParticipantsAdmins
 
-# --- منطقة الحقن النسبي (The Relative Injection) ---
+# --- منطقة الحقن النسبي ---
 from . import zedub
 from ..Config import Config
 from ..core.logger import logging
@@ -30,8 +30,8 @@ except ImportError:
 plugin_category = "العروض"
 LOGS = logging.getLogger(__name__)
 
-# --- النصوص الفخمة (نسخ لصق من السورس الأصلي) ---
-# لاحظ المسافات والمد (ـ) للحفاظ على الشكل
+# --- النصوص الفخمة (نسخ كربوني من السورس الأصلي) ---
+# تم ضبط المسافات والتطويل (ـ) بدقة مجهرية
 ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم سـورس زدثــون"
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
 
@@ -41,33 +41,19 @@ zel_dev = [5176749470, 5426390871]
 zelzal = [925972505, 1895219306, 5280339206]
 
 def get_real_looking_date(user_id):
-    """
-    توليد تاريخ (سنة-شهر-يوم) يبدو حقيقياً 100% بناءً على الآيدي
-    """
+    """توليد تاريخ مطابق للأصلي (سنة-شهر-يوم)"""
     uid_str = str(user_id)
+    if len(uid_str) < 9: year = "2016"
+    elif uid_str.startswith("1"): year = random.choice(["2017", "2018"])
+    elif uid_str.startswith("5"): year = random.choice(["2020", "2021"])
+    elif uid_str.startswith("6"): year = "2023"
+    elif uid_str.startswith("7"): year = "2024"
+    elif uid_str.startswith("8"): year = "2025"
+    else: year = "2024"
     
-    # تحديد السنة بدقة بناءً على الآيدي
-    if len(uid_str) < 9:
-        year = "2016"
-    elif uid_str.startswith("1"):
-        year = random.choice(["2017", "2018", "2019"])
-    elif uid_str.startswith("5"):
-        year = random.choice(["2020", "2021", "2022"])
-    elif uid_str.startswith("6"):
-        year = "2023"
-    elif uid_str.startswith("7"):
-        year = "2024"
-    elif uid_str.startswith("8"):
-        year = "2025"
-    else:
-        year = "2024"
-    
-    # نستخدم الآيدي كـ Seed عشان التاريخ يثبت لنفس الشخص
     random.seed(int(uid_str))
     month = random.randint(1, 12)
     day = random.randint(1, 28)
-    
-    # تنسيق التاريخ ليظهر (YYYY-MM-DD)
     return f"{year}-{month:02d}-{day:02d}"
 
 async def get_user_from_event_local(event):
@@ -97,115 +83,113 @@ async def get_user_from_event_local(event):
     return user_object
 
 async def fetch_info(replied_user, event):
-    """جلب التفاصيل وحشوها في اللوحة المطابقة للأصل"""
+    """الشفط الإجباري للمعلومات مع التنسيق الكربوني"""
     
-    # 1. جلب المعلومات الكاملة (Force Fetch)
+    # 1. شفط المعلومات الكاملة (Bio & Common Chats)
+    # نستخدم InputUser لضمان دقة الطلب
     try:
-        full_user_req = await event.client(GetFullUserRequest(replied_user.id))
+        user_input = await event.client.get_input_entity(replied_user.id)
+        full_user_req = await event.client(GetFullUserRequest(user_input))
         FullUser = full_user_req.full_user
     except:
-        FullUser = None
+        # محاولة ثانية في حال الفشل
+        try:
+            full_user_req = await event.client(GetFullUserRequest(replied_user.id))
+            FullUser = full_user_req.full_user
+        except:
+            FullUser = None
 
-    # 2. جلب الصور
+    # 2. شفط الصور (العدد الحقيقي)
     try:
         photos = await event.client.get_profile_photos(replied_user.id)
         photos_count = len(photos)
     except:
         photos_count = 0
 
-    # 3. حساب عدد الرسائل والتفاعل (بأسماء السورس القديم)
-    msg_count = 0
-    interaction_rank = "غير معروف ☁️"
+    # 3. حساب الرسائل (فقط داخل المجموعات)
+    msg_count = "0"
+    interaction_rank = "لا ينطبق"
     
     if event.is_group:
         try:
-            # طريقة سريعة للعد
+            # طريقة Count السريعة
             results = await event.client.get_messages(
                 event.chat_id, 
                 from_user=replied_user.id, 
                 limit=0
             )
-            msg_count = results.total
+            count = results.total
+            msg_count = f"{count}" # رقم فقط بدون إضافات
             
-            # نفس المسميات بالمللي
-            if msg_count == 0:
-                interaction_rank = "أصنام 🗿"
-            elif msg_count < 50:
-                interaction_rank = "عابر سبيل 🚶"
-            elif msg_count < 100:
-                interaction_rank = "ماشي الحال 🏄🏻‍♂"
-            elif msg_count < 500:
-                interaction_rank = "متفاعل 🔥"
-            else:
-                interaction_rank = "ملك التفاعل 🎖"
+            # تقييم التفاعل (نفس المصطلحات)
+            if count == 0: interaction_rank = "أصنام 🗿"
+            elif count < 50: interaction_rank = "عابر سبيل 🚶"
+            elif count < 100: interaction_rank = "ماشي الحال 🏄🏻‍♂"
+            elif count < 500: interaction_rank = "متفاعل 🔥"
+            else: interaction_rank = "ملك التفاعل 🎖"
         except:
-            msg_count = "مخفي"
-            interaction_rank = "لا يمكن الحساب"
-    else:
-        msg_count = "0"
-        interaction_rank = "لا ينطبق"
-
-    # 4. تجهيز البيانات الأساسية
+            pass
+    
+    # 4. تجهيز البيانات
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
-    
     full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
     full_name = full_name or first_name
     
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
     
-    # البايو (كامل وبدون كسر السطور)
+    # البايو - المحاولة المستميتة لجلبه
     user_bio = "لا يـوجـد"
     if FullUser and FullUser.about:
-        user_bio = FullUser.about.replace("\n", " ")
-        # لو طويل جداً نقصره سيكا عشان الشكل العام ميبوظش، بس هو بيسحب كله
-        if len(user_bio) > 60: 
-            user_bio = user_bio[:60] + "..."
+        user_bio = FullUser.about.replace("\n", " ") # إزالة الأسطر للحفاظ على الشكل
+        if len(user_bio) > 40: # تقصير بسيط لو طويل جداً
+            user_bio = user_bio[:40] + "..."
 
-    # المجموعات المشتركة
+    # المجموعات المشتركة - إجبارية الظهور
     common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
     
-    # تاريخ الانشاء (YYYY-MM-DD)
+    # التاريخ
     creation_date = get_real_looking_date(user_id)
 
-    # تحميل الصورة الشخصية
+    # تحميل الصورة
     photo = await event.client.download_profile_photo(
         user_id,
         Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
         download_big=True,
     )
 
-    # 5. منطق الرتب (Rank Logic) - نفس الرموز بالضبط
+    # 5. الرتب (نفس الرموز)
     me_id = (await event.client.get_me()).id
-    if user_id in zelzal:
-        rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
-    elif user_id in zel_dev:
-        rotbat = "⌁ مطـور مسـاعـد 𐏕⌁" 
-    elif user_id == me_id and user_id not in zed_dev:
-        rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
-    else:
-        rotbat = "العضـو 𓅫"
+    if user_id in zelzal: rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
+    elif user_id in zel_dev: rotbat = "⌁ مطـور مسـاعـد 𐏕⌁" 
+    elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
+    else: rotbat = "العضـو 𓅫"
 
-    # 6. بناء اللوحة الفنية (نفس الخط والمسافات والأسهم)
+    # 6. بناء اللوحة (تطابق 100% مع الصورة المطلوبة)
+    # ركز في المسافات والتطويل (ـ)
+    
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
     
-    # لاحظ: استخدام مسافات خاصة لمحاكاة الشكل في الصورة
     caption += f"<b>✦ الاســم    ⤎  </b>"
     caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
     
     caption += f"\n<b>✦ اليـوزر    ⤎  {username}</b>"
-    caption += f"\n<b>✦ الايـدي    ⤎  </b><code>{user_id}</code>\n"
+    caption += f"\n<b>✦ الايـدي    ⤎  {user_id}</b>\n"
     caption += f"<b>✦ الرتبــه    ⤎  {rotbat} </b>\n"
     
-    caption += f"<b>✦ الصـور    ⤎  </b>{photos_count}\n"
-    caption += f"<b>✦ الرسائل   ⤎  </b>{msg_count}  💌\n"
+    caption += f"<b>✦ الصـور    ⤎  {photos_count}</b>\n"
+    caption += f"<b>✦ الرسائل   ⤎  {msg_count}  💌</b>\n"
     caption += f"<b>✦ التفاعل   ⤎  {interaction_rank}</b>\n"
     
     if user_id != me_id:
-        caption += f"<b>✦ الـمجموعات المشتـركة ⤎  </b>{common_chat} \n"
-        
+        # لاحظ التطويل هنا: الـمجموعات المشتـركة
+        caption += f"<b>✦ الـمجموعات المشتـركة ⤎  {common_chat}</b> \n"
+    
+    # التاريخ باليوم والشهر والسنة
     caption += f"<b>✦ الإنشـاء   ⤎  {creation_date}  🗓</b>\n"
+    
+    # البايو بدون سهم (حسب الصورة الأصلية) وبمسافة
     caption += f"<b>✦ البايـو      {user_bio}</b> \n"
     
     caption += f"ٴ<b>{ZEDF}</b>"
@@ -217,7 +201,7 @@ async def fetch_info(replied_user, event):
     pattern="ايدي(?: |$)(.*)",
     command=("ايدي", plugin_category),
     info={
-        "header": "لـ عـرض معلومـات الشخـص بستايل فخـم وتاريخ كامل",
+        "header": "نسخـة كربونيـة مـن ايدي زدثـون الأصـلي",
         "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
     },
 )
