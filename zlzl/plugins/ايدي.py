@@ -1,6 +1,7 @@
-# Zed-Thon - ZelZal (ChatGPT Fix Edition 2025 by Mikey)
-# Fixed Bio Fetching using users[0].about as requested
-# Exact Visual Replica + Relative Imports for ZTele
+# Zed-Thon - ZelZal (Final Fusion 2025 by Mikey)
+# Logic: Based on user's working snippet (Direct ID Fetch)
+# Visuals: Exact Carbon Copy of ZedThon Original
+# Relative Imports for ZTele
 
 import contextlib
 import html
@@ -56,7 +57,7 @@ def get_real_looking_date(user_id):
     return f"{year}-{month:02d}-{day:02d}"
 
 async def get_user_from_event_local(event):
-    """استخراج المستخدم بدقة"""
+    """استخراج المستخدم"""
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         if previous_message.forward:
@@ -80,33 +81,32 @@ async def get_user_from_event_local(event):
 
 async def fetch_info(replied_user, event):
     """
-    تطبيق حل الـ ChatGPT + الحفاظ على الهيكل القديم
+    استخدام الطريقة المضمونة من السورس الآخر لجلب البايو
     """
     
-    # 1. تحديث الكيان وطلب المعلومات
+    # 1. سحب المعلومات الكاملة (نفس كودك بالظبط)
     try:
-        fresh_user_entity = await event.client.get_entity(replied_user.id)
-        full_req = await event.client(GetFullUserRequest(fresh_user_entity))
-        FullUser = full_req.full_user
-    except Exception:
+        # دي الجملة السحرية اللي إنت جبتها
+        FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
+    except Exception as e:
+        # LOGS.info(str(e))
         FullUser = None
-        full_req = None
 
-    # 2. استخراج البايو (الحل السحري الجديد)
+    # 2. استخراج البايو
     user_bio = "لا يـوجـد"
-    if full_req and full_req.users:
-        # هنا الزتونة: البايو موجود في قائمة users وليس FullUser
-        if hasattr(full_req.users[0], 'about') and full_req.users[0].about:
-            user_bio = full_req.users[0].about
+    if FullUser:
+        user_bio = FullUser.about or "لا يـوجـد"
 
-    # تنظيف البايو
+    # تنظيف البايو (إزالة السطور الزائدة للشكل الجمالي)
     if user_bio != "لا يـوجـد":
         user_bio = user_bio.replace("\n", " ")
         if len(user_bio) > 40: 
             user_bio = user_bio[:40] + "..."
 
     # 3. المجموعات المشتركة
-    common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
+    common_chat = 0
+    if FullUser:
+        common_chat = FullUser.common_chats_count
 
     # 4. الصور
     try:
@@ -137,10 +137,11 @@ async def fetch_info(replied_user, event):
         except:
             pass
 
-    # 6. تجهيز النصوص
+    # 6. تجهيز البيانات النصية
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
     
+    # محاولة جلب الاسم الكامل من FullUser
     full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
     if not full_name: full_name = first_name
     
@@ -163,7 +164,7 @@ async def fetch_info(replied_user, event):
     elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
     else: rotbat = "العضـو 𓅫"
 
-    # --- بناء اللوحة ---
+    # --- بناء اللوحة (نفس الفخامة المطلوبة) ---
     
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
@@ -184,7 +185,7 @@ async def fetch_info(replied_user, event):
 
     caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
     
-    # البايو (تم الإصلاح)
+    # البايو (تم استخدام طريقتك في الجلب)
     caption += f"<b>✦ البايـو      {user_bio}</b> \n" 
     
     caption += f"ٴ<b>{ZEDF}</b>"
