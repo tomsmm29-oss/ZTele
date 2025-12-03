@@ -1,42 +1,36 @@
-# Zed-Thon - ZelZal (Relative Import Edition by Mikey)
-# Fixed specifically for ZTele Source Structure
-# "Stolen" Logic + "Native" Imports
+# Zed-Thon - ZelZal (Luxury Edition 2025 by Mikey)
+# "Stolen" Logic + New Statistics + Relative Imports
+# Matches the exact requested "Fakhama" design
 
 import contextlib
 import html
 import os
 import base64
+from datetime import datetime
 from requests import get
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
+from telethon.tl.types import ChannelParticipantsAdmins
 
 # --- منطقة الحقن النسبي (The Relative Injection) ---
-# نستخدم النقاط بدلاً من الاسماء لنتجاوز حماية السيرفر
-
 from . import zedub
 from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 
-# محاولة استدعاء قاعدة البيانات بنفس الطريقة النسبية
-# عادة تكون في مجلد sql_helper بجانب core
+# محاولة استدعاء قاعدة البيانات
 try:
     from ..sql_helper.globals import gvarstatus
 except ImportError:
-    # إذا فشل المسار، نصنع دالة وهمية حتى لا يتوقف "الكيف"
     def gvarstatus(val): return None
-
-# --- نهاية منطقة الحقن ---
 
 plugin_category = "العروض"
 LOGS = logging.getLogger(__name__)
 
-# --- المتغيرات وتجهيز الكيف (الفخامة القديمة) ---
-
-ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم مـن بـوت زدثــون"
-ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
+# --- النصوص الفخمة (كما طلبت بالضبط) ---
+ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم سـورس زدثــون"
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
 
 # معرفات المطورين
@@ -44,12 +38,27 @@ zed_dev = [5176749470, 1895219306, 925972505, 5280339206, 5426390871]
 zel_dev = [5176749470, 5426390871]
 zelzal = [925972505, 1895219306, 5280339206]
 
+def get_creation_date(user_id):
+    """
+    خوارزمية مايكي لتقدير تاريخ إنشاء الحساب بناءً على الآيدي
+    """
+    uid_str = str(user_id)
+    # هذه تقديرات تقريبية بناءً على تاريخ التليجرام
+    if len(uid_str) < 9:
+        return "2015-2016 🕰"
+    if uid_str.startswith("1"):
+        return "2019-2020 🗓"
+    if uid_str.startswith("5"):
+        return "2021-2022 🗓"
+    if uid_str.startswith("6"):
+        return "2023 🗓"
+    if uid_str.startswith("7"):
+        return "2024 🗓"
+    if uid_str.startswith("8"):
+        return "2025 🗓"
+    return "قـديم جـداً 🦕"
 
 async def get_user_from_event_local(event):
-    """
-    نسخة محلية من دالة الجلب لضمان عدم حدوث تضارب
-    نستخدم هذه بدلاً من استدعاء helper خارجي قد يكون مختلفاً
-    """
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         user_object = await event.client.get_entity(previous_message.sender_id)
@@ -71,54 +80,87 @@ async def get_user_from_event_local(event):
             return user_obj
         try:
             user_object = await event.client.get_entity(user)
-        except (TypeError, ValueError) as err:
-            # await event.edit(str(err))
+        except (TypeError, ValueError):
             return None
     return user_object
 
-
 async def fetch_info(replied_user, event):
-    """جلب التفاصيل وحشوها في الرسالة"""
-    try:
-        FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
-    except:
-        FullUser = replied_user
-
-    try:
-        replied_user_profile_photos = await event.client(
-            GetUserPhotosRequest(user_id=replied_user.id, offset=42, max_id=0, limit=80)
-        )
-        replied_user_profile_photos_count = replied_user_profile_photos.count
-    except:
-        replied_user_profile_photos_count = "لا يـوجـد"
-
-    user_id = replied_user.id
-    first_name = replied_user.first_name
-    full_name = getattr(FullUser, 'private_forward_name', first_name)
-    common_chat = getattr(FullUser, 'common_chats_count', 0)
-    username = replied_user.username
-    user_bio = getattr(FullUser, 'about', "لا يـوجـد")
+    """جلب التفاصيل وحشوها في اللوحة الفخمة"""
     
-    # فحص البريميوم
+    # 1. جلب المعلومات الكاملة (Bio, Common Chats)
     try:
-        zilzal_premium = (await event.client.get_entity(user_id)).premium
+        full_user_req = await event.client(GetFullUserRequest(replied_user.id))
+        FullUser = full_user_req.full_user
     except:
-        zilzal_premium = False
+        FullUser = None
 
+    # 2. جلب الصور
+    try:
+        photos = await event.client.get_profile_photos(replied_user.id)
+        photos_count = len(photos)
+    except:
+        photos_count = 0
+
+    # 3. حساب عدد الرسائل والتفاعل (حصري لمايكي)
+    # يعمل فقط داخل المجموعات
+    msg_count = 0
+    interaction_rank = "غير معروف ☁️"
+    if event.is_group:
+        try:
+            # نبحث عن عدد الرسائل (Count only) ليكون سريعاً
+            results = await event.client.get_messages(
+                event.chat_id, 
+                from_user=replied_user.id, 
+                limit=0
+            )
+            msg_count = results.total
+            
+            # تقييم التفاعل
+            if msg_count == 0:
+                interaction_rank = "أصنام 🗿"
+            elif msg_count < 50:
+                interaction_rank = "عابر سبيل 🚶"
+            elif msg_count < 200:
+                interaction_rank = "ماشي الحال 🏄🏻‍♂"
+            elif msg_count < 500:
+                interaction_rank = "متفاعل 🔥"
+            else:
+                interaction_rank = "ملك التفاعل 🎖"
+        except:
+            msg_count = "مخفي"
+            interaction_rank = "لا يمكن الحساب"
+    else:
+        msg_count = "خاص"
+        interaction_rank = "لا ينطبق"
+
+    # 4. تجهيز البيانات الأساسية
+    user_id = replied_user.id
+    first_name = replied_user.first_name or "بدون اسم"
+    # نحاول جلب الاسم الكامل من الريكويست الكامل
+    full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
+    full_name = full_name or first_name # تأكيد
+    
+    username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
+    
+    # البايو
+    user_bio = getattr(FullUser, 'about', "لا يـوجـد") if FullUser else "لا يـوجـد"
+    user_bio = user_bio.replace("\n", " ") if user_bio else "لا يـوجـد" # إزالة النزول لسطر جديد لتنسيق أجمل
+
+    # المجموعات المشتركة
+    common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
+    
+    # تاريخ الانشاء التقريبي
+    creation_date = get_creation_date(user_id)
+
+    # تحميل الصورة الشخصية
     photo = await event.client.download_profile_photo(
         user_id,
         Config.TMP_DOWNLOAD_DIRECTORY + str(user_id) + ".jpg",
         download_big=True,
     )
 
-    first_name = first_name.replace("\u2060", "") if first_name else "بدون اسم"
-    full_name = full_name or first_name
-    username = "@{}".format(username) if username else "لا يـوجـد"
-    user_bio = "لا يـوجـد" if not user_bio else user_bio
-
-    # منطق الرتب (Logic)
+    # 5. منطق الرتب (Rank Logic)
     me_id = (await event.client.get_me()).id
-    
     if user_id in zelzal:
         rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
     elif user_id in zel_dev:
@@ -128,24 +170,27 @@ async def fetch_info(replied_user, event):
     else:
         rotbat = "⌁ العضـو 𓅫 ⌁"
 
-    # بناء الرسالة
+    # 6. بناء اللوحة الفنية (نفس التنسيق المطلوب)
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
-    caption += f"<b>{ZEDM}الاسـم    ⇠ </b> "
+    
+    caption += f"<b>✦ الاســم    ⤎ </b> "
     caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
-    caption += f"\n<b>{ZEDM}المعـرف  ⇠  {username}</b>"
-    caption += f"\n<b>{ZEDM}الايـدي   ⇠ </b> <code>{user_id}</code>\n"
-    caption += f"<b>{ZEDM}الرتبـــه   ⇠ {rotbat} </b>\n"
     
-    if zilzal_premium or user_id in zelzal:
-        caption += f"<b>{ZEDM}الحسـاب ⇠  بـريميـوم 🌟</b>\n"
+    caption += f"\n<b>✦ اليـوزر    ⤎  {username}</b>"
+    caption += f"\n<b>✦ الايـدي    ⤎ </b> <code>{user_id}</code>\n"
+    caption += f"<b>✦ الرتبــه    ⤎ {rotbat} </b>\n"
     
-    caption += f"<b>{ZEDM}الصـور    ⇠ </b> {replied_user_profile_photos_count}\n"
+    caption += f"<b>✦ الصـور    ⤎ </b> {photos_count}\n"
+    caption += f"<b>✦ الرسائل   ⤎ </b> {msg_count}  💌\n"
+    caption += f"<b>✦ التفاعل   ⤎  {interaction_rank}</b>\n"
     
     if user_id != me_id:
-        caption += f"<b>{ZEDM}الـمجموعات المشتـركة ⇠ </b> {common_chat} \n"
+        caption += f"<b>✦ الـمجموعات المشتـركة ⤎ </b> {common_chat} \n"
+        
+    caption += f"<b>✦ الإنشـاء   ⤎  {creation_date}</b>\n"
+    caption += f"<b>✦ البايـو     ⤎  {user_bio}</b> \n"
     
-    caption += f"<b>{ZEDM}البايـو     ⇠  {user_bio}</b> \n"
     caption += f"ٴ<b>{ZEDF}</b>"
     
     return photo, caption
@@ -155,7 +200,7 @@ async def fetch_info(replied_user, event):
     pattern="ايدي(?: |$)(.*)",
     command=("ايدي", plugin_category),
     info={
-        "header": "لـ عـرض معلومـات الشخـص",
+        "header": "لـ عـرض معلومـات الشخـص بستايل فخـم",
         "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
     },
 )
@@ -165,7 +210,6 @@ async def who(event):
     if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
         os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
     
-    # نستخدم الدالة المحلية المضمونة
     replied_user = await get_user_from_event_local(event)
     
     try:
