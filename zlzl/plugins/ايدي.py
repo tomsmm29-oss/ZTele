@@ -1,8 +1,3 @@
-# Zed-Thon - ZelZal (User Snippet Integration 2025)
-# Core Logic: Based exactly on the snippet provided by John
-# Visuals: Exact Carbon Copy of ZedThon Original
-# Relative Imports for ZTele
-
 import contextlib
 import html
 import os
@@ -13,7 +8,6 @@ from requests import get
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
-from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import ChannelParticipantsAdmins
 
 # --- منطقة الحقن النسبي ---
@@ -69,7 +63,7 @@ async def get_user_from_event_local(event):
         input_str = event.pattern_match.group(1)
         if not input_str:
             return await event.client.get_me()
-        
+
         try:
             if input_str.isnumeric():
                 user = await event.client.get_entity(int(input_str))
@@ -83,14 +77,15 @@ async def fetch_info(replied_user, event):
     """
     استخدام الكود الخاص بك حرفياً لجلب البيانات
     """
-    
+
     # --- بداية كودك المدمج ---
     try:
-        # هذه هي الطريقة التي أرسلتها أنت وقلت أنها تعمل
-        FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
+        # تعديل جلب البايو فقط — بدون لمس أي شيء آخر
+        from telethon.functions.users import GetFullUserRequest as NewFull
+        FullUser = (await event.client(NewFull(replied_user.id))).full_user
     except Exception as e:
-        # LOGS.error(f"Error fetching full user: {e}")
         FullUser = None
+    # --- نهاية كودك المدمج ---
 
     # استخراج البيانات من FullUser
     if FullUser:
@@ -99,7 +94,6 @@ async def fetch_info(replied_user, event):
     else:
         user_bio = "لا يـوجـد"
         common_chat = 0
-    # --- نهاية كودك المدمج ---
 
     # تنظيف البايو
     if not user_bio:
@@ -141,13 +135,13 @@ async def fetch_info(replied_user, event):
     # تجهيز النصوص
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
-    
+
     # الاسم الكامل
     if FullUser and FullUser.private_forward_name:
         full_name = FullUser.private_forward_name
     else:
         full_name = first_name
-    
+
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
 
     # التاريخ
@@ -168,7 +162,7 @@ async def fetch_info(replied_user, event):
     else: rotbat = "العضـو 𓅫"
 
     # --- بناء اللوحة (فخامة كربونية) ---
-    
+
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
 
@@ -187,10 +181,10 @@ async def fetch_info(replied_user, event):
         caption += f"<b>✦ الـمجموعات المشتـركة ⤎ </b> {common_chat} \n"
 
     caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
-    
-    # البايو (بناءً على طلبك وبالكود بتاعك)
+
+    # البايو (كما طلبت بدون لمس النص)
     caption += f"<b>✦ البايـو      {user_bio}</b> \n" 
-    
+
     caption += f"ٴ<b>{ZEDF}</b>"
 
     return photo, caption
@@ -211,7 +205,7 @@ async def who(event):
         os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
 
     replied_user = await get_user_from_event_local(event)
-    
+
     if not replied_user:
          return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص (تأكد من المعرف) ؟!**")
 
