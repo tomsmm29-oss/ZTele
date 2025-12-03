@@ -1,5 +1,5 @@
-# Zed-Thon - ZelZal (Exact Carbon Copy 2025 by Mikey)
-# "Stolen" Visuals (Pixels match) + Force Data Fetch
+# Zed-Thon - ZelZal (Final Gold Edition 2025 by Mikey)
+# Fixed Bold Font Issue + Absolute Bio Fetch + Argument Support
 # Relative Imports for ZTele
 
 import contextlib
@@ -30,8 +30,7 @@ except ImportError:
 plugin_category = "العروض"
 LOGS = logging.getLogger(__name__)
 
-# --- النصوص الفخمة (نسخ كربوني من السورس الأصلي) ---
-# تم ضبط المسافات والتطويل (ـ) بدقة مجهرية
+# --- النصوص الفخمة ---
 ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم سـورس زدثــون"
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
 
@@ -50,56 +49,61 @@ def get_real_looking_date(user_id):
     elif uid_str.startswith("7"): year = "2024"
     elif uid_str.startswith("8"): year = "2025"
     else: year = "2024"
-    
+
     random.seed(int(uid_str))
     month = random.randint(1, 12)
     day = random.randint(1, 28)
     return f"{year}-{month:02d}-{day:02d}"
 
 async def get_user_from_event_local(event):
+    """دالة محسنة لجلب المستخدم سواء بالرد أو بالمعرف"""
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
-        user_object = await event.client.get_entity(previous_message.sender_id)
+        if previous_message.forward:
+            replied_user = await event.client.get_entity(previous_message.forward.sender_id)
+        else:
+            replied_user = await event.client.get_entity(previous_message.sender_id)
+        return replied_user
     else:
-        user = event.pattern_match.group(1)
-        if user.isnumeric():
-            user = int(user)
-        if not user:
-            self_user = await event.client.get_me()
-            user = self_user.id
-        if event.message.entities:
-            probable_user_mention_entity = event.message.entities[0]
-            if isinstance(probable_user_mention_entity, MessageEntityMentionName):
-                user_id = probable_user_mention_entity.user_id
-                user_obj = await event.client.get_entity(user_id)
-                return user_obj
-        if isinstance(user, int) or user.startswith("@"):
-            user_obj = await event.client.get_entity(user)
-            return user_obj
+        input_str = event.pattern_match.group(1)
+        if not input_str:
+            return await event.client.get_me()
+        
         try:
-            user_object = await event.client.get_entity(user)
-        except (TypeError, ValueError):
-            return None
-    return user_object
+            if input_str.isnumeric():
+                user = await event.client.get_entity(int(input_str))
+            else:
+                user = await event.client.get_entity(input_str)
+            return user
+        except:
+            # محاولة أخيرة لو فشل الجلب العادي
+            try:
+                user = await event.client.get_input_entity(input_str)
+                return user
+            except:
+                return None
 
 async def fetch_info(replied_user, event):
-    """الشفط الإجباري للمعلومات مع التنسيق الكربوني"""
-    
-    # 1. شفط المعلومات الكاملة (Bio & Common Chats)
-    # نستخدم InputUser لضمان دقة الطلب
-    try:
-        user_input = await event.client.get_input_entity(replied_user.id)
-        full_user_req = await event.client(GetFullUserRequest(user_input))
-        FullUser = full_user_req.full_user
-    except:
-        # محاولة ثانية في حال الفشل
-        try:
-            full_user_req = await event.client(GetFullUserRequest(replied_user.id))
-            FullUser = full_user_req.full_user
-        except:
-            FullUser = None
+    """الشفط الإجباري للمعلومات"""
 
-    # 2. شفط الصور (العدد الحقيقي)
+    # 1. شفط المعلومات الكاملة (Bio & Common Chats)
+    # الإصلاح الجذري للبايو: استخدام InputEntity
+    try:
+        # نحول المستخدم لـ InputEntity عشان الطلب يكون دقيق
+        if hasattr(replied_user, 'id'):
+             target = replied_user.id
+        else:
+             target = replied_user
+             
+        full_user_req = await event.client(GetFullUserRequest(target))
+        FullUser = full_user_req.full_user
+        # تحديث الكائن بالمستخدم الكامل لضمان وجود البيانات
+        replied_user = full_user_req.users[0] 
+    except Exception as e:
+        # print(f"Error fetching full user: {e}") 
+        FullUser = None
+
+    # 2. شفط الصور
     try:
         photos = await event.client.get_profile_photos(replied_user.id)
         photos_count = len(photos)
@@ -109,19 +113,17 @@ async def fetch_info(replied_user, event):
     # 3. حساب الرسائل (فقط داخل المجموعات)
     msg_count = "0"
     interaction_rank = "لا ينطبق"
-    
+
     if event.is_group:
         try:
-            # طريقة Count السريعة
             results = await event.client.get_messages(
                 event.chat_id, 
                 from_user=replied_user.id, 
                 limit=0
             )
             count = results.total
-            msg_count = f"{count}" # رقم فقط بدون إضافات
-            
-            # تقييم التفاعل (نفس المصطلحات)
+            msg_count = f"{count}"
+
             if count == 0: interaction_rank = "أصنام 🗿"
             elif count < 50: interaction_rank = "عابر سبيل 🚶"
             elif count < 100: interaction_rank = "ماشي الحال 🏄🏻‍♂"
@@ -129,25 +131,32 @@ async def fetch_info(replied_user, event):
             else: interaction_rank = "ملك التفاعل 🎖"
         except:
             pass
-    
+
     # 4. تجهيز البيانات
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
     full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
     full_name = full_name or first_name
-    
+
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
-    
-    # البايو - المحاولة المستميتة لجلبه
+
+    # البايو - الإصلاح النهائي
     user_bio = "لا يـوجـد"
-    if FullUser and FullUser.about:
-        user_bio = FullUser.about.replace("\n", " ") # إزالة الأسطر للحفاظ على الشكل
-        if len(user_bio) > 40: # تقصير بسيط لو طويل جداً
+    if FullUser:
+        # محاولة الوصول للبايو بطرق مختلفة حسب نسخة المكتبة
+        if hasattr(FullUser, 'about') and FullUser.about:
+            user_bio = FullUser.about
+        elif hasattr(FullUser, 'bot_info') and FullUser.bot_info: # للبوتات
+            user_bio = FullUser.bot_info.description or "لا يـوجـد"
+            
+    if user_bio != "لا يـوجـد":
+        user_bio = user_bio.replace("\n", " ") # إزالة الأسطر
+        if len(user_bio) > 40: 
             user_bio = user_bio[:40] + "..."
 
-    # المجموعات المشتركة - إجبارية الظهور
+    # المجموعات المشتركة
     common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
-    
+
     # التاريخ
     creation_date = get_real_looking_date(user_id)
 
@@ -158,42 +167,38 @@ async def fetch_info(replied_user, event):
         download_big=True,
     )
 
-    # 5. الرتب (نفس الرموز)
+    # 5. الرتب
     me_id = (await event.client.get_me()).id
     if user_id in zelzal: rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
     elif user_id in zel_dev: rotbat = "⌁ مطـور مسـاعـد 𐏕⌁" 
     elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
     else: rotbat = "العضـو 𓅫"
 
-    # 6. بناء اللوحة (تطابق 100% مع الصورة المطلوبة)
-    # ركز في المسافات والتطويل (ـ)
+    # 6. بناء اللوحة (إصلاح الخط الغامق)
+    # تم وضع </b> بعد السهم مباشرة في كل سطر
     
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
-    
-    caption += f"<b>✦ الاســم    ⤎  </b>"
+
+    caption += f"<b>✦ الاســم    ⤎ </b>" # تم قفل البولد هنا
     caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
-    
-    caption += f"\n<b>✦ اليـوزر    ⤎  {username}</b>"
-    caption += f"\n<b>✦ الايـدي    ⤎  {user_id}</b>\n"
-    caption += f"<b>✦ الرتبــه    ⤎  {rotbat} </b>\n"
-    
-    caption += f"<b>✦ الصـور    ⤎  {photos_count}</b>\n"
-    caption += f"<b>✦ الرسائل   ⤎  {msg_count}  💌</b>\n"
-    caption += f"<b>✦ التفاعل   ⤎  {interaction_rank}</b>\n"
-    
+
+    caption += f"\n<b>✦ اليـوزر    ⤎ </b> {username}" # تم قفل البولد هنا
+    caption += f"\n<b>✦ الايـدي    ⤎ </b> <code>{user_id}</code>\n" # تم قفل البولد هنا
+    caption += f"<b>✦ الرتبــه    ⤎ </b> {rotbat} \n" # تم قفل البولد هنا
+
+    caption += f"<b>✦ الصـور    ⤎ </b> {photos_count}\n"
+    caption += f"<b>✦ الرسائل   ⤎ </b> {msg_count}  💌\n"
+    caption += f"<b>✦ التفاعل   ⤎ </b> {interaction_rank}\n"
+
     if user_id != me_id:
-        # لاحظ التطويل هنا: الـمجموعات المشتـركة
-        caption += f"<b>✦ الـمجموعات المشتـركة ⤎  {common_chat}</b> \n"
-    
-    # التاريخ باليوم والشهر والسنة
-    caption += f"<b>✦ الإنشـاء   ⤎  {creation_date}  🗓</b>\n"
-    
-    # البايو بدون سهم (حسب الصورة الأصلية) وبمسافة
-    caption += f"<b>✦ البايـو      {user_bio}</b> \n"
+        caption += f"<b>✦ الـمجموعات المشتـركة ⤎ </b> {common_chat} \n"
+
+    caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
+    caption += f"<b>✦ البايـو      {user_bio}</b> \n" # البايو خليته بولد عشان يبقى واضح لوحده زي الصورة أحيانا، لو عايزه رفيع شيل الـ b
     
     caption += f"ٴ<b>{ZEDF}</b>"
-    
+
     return photo, caption
 
 
@@ -210,18 +215,21 @@ async def who(event):
     zed = await edit_or_reply(event, "⇆")
     if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
         os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
-    
+
     replied_user = await get_user_from_event_local(event)
     
+    if not replied_user:
+        return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص (تأكد من المعرف) ؟!**")
+
     try:
         photo, caption = await fetch_info(replied_user, event)
     except (AttributeError, TypeError) as e:
-        return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص ؟!**")
-    
+        return await edit_or_reply(zed, f"**- حدث خطأ أثناء جلب البيانات: {e}**")
+
     message_id_to_reply = event.message.reply_to_msg_id
     if not message_id_to_reply:
         message_id_to_reply = None
-    
+
     try:
         if photo:
             await event.client.send_file(
@@ -279,7 +287,7 @@ async def potocmd(event):
     else:
         photos = await event.client.get_profile_photos(chat)
         u = False
-    
+
     if uid.strip() == "":
         uid = 1
         if len(photos) == 0:
@@ -290,7 +298,7 @@ async def potocmd(event):
             )
         send_photos = await event.client.download_media(photos[uid - 1])
         await event.client.send_file(event.chat_id, send_photos)
-    
+
     elif uid.strip() == "الكل":
         if len(photos) > 0:
             await event.client.send_file(event.chat_id, photos)
