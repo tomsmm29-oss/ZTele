@@ -1,7 +1,6 @@
-# Zed-Thon - ZelZal (Absolute Fetch 2025 by Mikey)
-# Force Server Request for Bio & Common Chats
-# Fixed Font Weight & Layout to match original perfectly
-# Relative Imports for ZTele
+# Zed-Thon - ZelZal (Invasive Bio Fetch 2025 by Mikey)
+# Direct Server Request - No Caching - Raw Data Extraction
+# Exact Visual Replica of ZedThon Original
 
 import contextlib
 import html
@@ -36,7 +35,7 @@ ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات ال
 ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
 
 # معرفات المطورين
-zed_dev = [5176749470, 8241311871 , 925972505, 5280339206, 5426390871]
+zed_dev = [5176749470, 1895219306, 925972505, 5280339206, 5426390871]
 zel_dev = [5176749470, 5426390871]
 zelzal = [925972505, 1895219306, 5280339206]
 
@@ -57,7 +56,7 @@ def get_real_looking_date(user_id):
     return f"{year}-{month:02d}-{day:02d}"
 
 async def get_user_from_event_local(event):
-    """دالة قوية لاستخراج المستخدم"""
+    """استخراج المستخدم بدقة"""
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         if previous_message.forward:
@@ -81,40 +80,56 @@ async def get_user_from_event_local(event):
 
 async def fetch_info(replied_user, event):
     """
-    الشفط الإجباري (Force Fetch)
-    نقوم بتحويل المستخدم إلى InputUser لضمان عدم الاعتماد على الكاش
+    الشفط الاقتحامي (Invasive Fetch)
+    نستخدم الرقم المباشر لضرب السيرفر في مقتل واستخراج البايو
     """
     
-    # 1. محاولة الحصول على الـ InputUser الصحيح
+    # 1. شفط المعلومات الكاملة
     try:
-        # هذه الخطوة مهمة جداً لضمان جلب البيانات الحديثة
-        user_input = await event.client.get_input_entity(replied_user.id)
+        # بنبعت الـ ID خام عشان نتجاهل الكاش
+        req = await event.client(GetFullUserRequest(replied_user.id))
+        FullUser = req.full_user
         
-        # الطلب من السيرفر مباشرة
-        full_user_req = await event.client(GetFullUserRequest(user_input))
-        FullUser = full_user_req.full_user
-        
-        # تحديث كائن المستخدم بالبيانات الجديدة
-        if full_user_req.users:
-            replied_user = full_user_req.users[0]
-            
+        # تحديث كائن المستخدم الأساسي من الرد
+        if req.users:
+            replied_user = req.users[0]
     except Exception as e:
-        # LOGS.info(f"Bio Fetch Error: {e}") 
-        # محاولة احتياطية
-        try:
-             full_user_req = await event.client(GetFullUserRequest(replied_user.id))
-             FullUser = full_user_req.full_user
-        except:
-             FullUser = None
+        # LOGS.error(f"Failed to fetch full user: {e}")
+        FullUser = None
 
-    # 2. شفط الصور
+    # 2. استخراج البايو (عملية جراحية)
+    user_bio = "لا يـوجـد"
+    if FullUser:
+        # الطريقة الأولى: البحث في الحقل about المباشر
+        if hasattr(FullUser, 'about') and FullUser.about:
+            user_bio = FullUser.about
+        # الطريقة الثانية: لو كان بوت أو فيه وصف مخفي
+        elif hasattr(FullUser, 'bot_info') and FullUser.bot_info:
+             if FullUser.bot_info.description:
+                 user_bio = FullUser.bot_info.description
+        # الطريقة الثالثة: بحث في القاموس الداخلي (للأمان)
+        elif hasattr(FullUser, 'to_dict'):
+            d = FullUser.to_dict()
+            if 'about' in d and d['about']:
+                user_bio = d['about']
+
+    # تنظيف البايو
+    if user_bio != "لا يـوجـد":
+        user_bio = user_bio.replace("\n", " ")
+        if len(user_bio) > 40: 
+            user_bio = user_bio[:40] + "..."
+
+    # 3. المجموعات المشتركة
+    common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
+
+    # 4. الصور
     try:
         photos = await event.client.get_profile_photos(replied_user.id)
         photos_count = len(photos)
     except:
         photos_count = 0
 
-    # 3. حساب الرسائل (فقط داخل المجموعات)
+    # 5. رسائل المجموعة
     msg_count = "0"
     interaction_rank = "لا ينطبق"
 
@@ -136,30 +151,12 @@ async def fetch_info(replied_user, event):
         except:
             pass
 
-    # 4. تجهيز البيانات
+    # 6. تجهيز النصوص
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
     full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
     full_name = full_name or first_name
-
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
-
-    # البايو - سحب مباشر من الكائن الكامل
-    user_bio = "لا يـوجـد"
-    if FullUser:
-        if hasattr(FullUser, 'about') and FullUser.about:
-            user_bio = FullUser.about
-        
-    if user_bio != "لا يـوجـد":
-        user_bio = user_bio.replace("\n", " ")
-        if len(user_bio) > 40: 
-            user_bio = user_bio[:40] + "..."
-
-    # المجموعات المشتركة - سحب مباشر
-    common_chat = 0
-    if FullUser:
-         if hasattr(FullUser, 'common_chats_count'):
-             common_chat = FullUser.common_chats_count
 
     # التاريخ
     creation_date = get_real_looking_date(user_id)
@@ -171,16 +168,14 @@ async def fetch_info(replied_user, event):
         download_big=True,
     )
 
-    # 5. الرتب
+    # الرتب
     me_id = (await event.client.get_me()).id
     if user_id in zelzal: rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
     elif user_id in zel_dev: rotbat = "⌁ مطـور مسـاعـد 𐏕⌁" 
     elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
     else: rotbat = "العضـو 𓅫"
 
-    # 6. بناء اللوحة (ضبط الخط الرفيع بدقة)
-    # ملاحظة: تم التأكد من إغلاق التاغ </b> بعد السهم مباشرة
-
+    # --- بناء اللوحة (تطابق تام مع طلبك) ---
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
 
@@ -196,11 +191,11 @@ async def fetch_info(replied_user, event):
     caption += f"<b>✦ التفاعل   ⤎ </b> {interaction_rank}\n"
 
     if user_id != me_id:
-        # تم إضافة مسافة صغيرة بعد الرقم لتفادي الالتصاق
         caption += f"<b>✦ الـمجموعات المشتـركة ⤎ </b> {common_chat} \n"
 
     caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
-    # البايو تم إزالة البولد عنه ليكون رفيعاً ومتناسقاً
+    
+    # البايو رفيع وبدون أي علامات إضافية
     caption += f"<b>✦ البايـو      {user_bio}</b> \n" 
     
     caption += f"ٴ<b>{ZEDF}</b>"
@@ -230,7 +225,6 @@ async def who(event):
     try:
         photo, caption = await fetch_info(replied_user, event)
     except (AttributeError, TypeError) as e:
-        # LOGS.error(str(e))
         return await edit_or_reply(zed, "**- حدث خطأ غير متوقع، حاول مرة أخرى!**")
 
     message_id_to_reply = event.message.reply_to_msg_id
