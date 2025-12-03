@@ -1,5 +1,5 @@
-# Zed-Thon - ZelZal (Final Fusion 2025 by Mikey)
-# Logic: Based on user's working snippet (Direct ID Fetch)
+# Zed-Thon - ZelZal (User Snippet Integration 2025)
+# Core Logic: Based exactly on the snippet provided by John
 # Visuals: Exact Carbon Copy of ZedThon Original
 # Relative Imports for ZTele
 
@@ -11,7 +11,7 @@ import random
 from datetime import datetime
 from requests import get
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
-from telethon.tl.types import MessageEntityMentionName, InputUser
+from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import ChannelParticipantsAdmins
@@ -81,41 +81,42 @@ async def get_user_from_event_local(event):
 
 async def fetch_info(replied_user, event):
     """
-    استخدام الطريقة المضمونة من السورس الآخر لجلب البايو
+    استخدام الكود الخاص بك حرفياً لجلب البيانات
     """
     
-    # 1. سحب المعلومات الكاملة (نفس كودك بالظبط)
+    # --- بداية كودك المدمج ---
     try:
-        # دي الجملة السحرية اللي إنت جبتها
+        # هذه هي الطريقة التي أرسلتها أنت وقلت أنها تعمل
         FullUser = (await event.client(GetFullUserRequest(replied_user.id))).full_user
     except Exception as e:
-        # LOGS.info(str(e))
+        # LOGS.error(f"Error fetching full user: {e}")
         FullUser = None
 
-    # 2. استخراج البايو
-    user_bio = "لا يـوجـد"
+    # استخراج البيانات من FullUser
     if FullUser:
-        user_bio = FullUser.about or "لا يـوجـد"
+        user_bio = FullUser.about
+        common_chat = FullUser.common_chats_count
+    else:
+        user_bio = "لا يـوجـد"
+        common_chat = 0
+    # --- نهاية كودك المدمج ---
 
-    # تنظيف البايو (إزالة السطور الزائدة للشكل الجمالي)
-    if user_bio != "لا يـوجـد":
+    # تنظيف البايو
+    if not user_bio:
+        user_bio = "لا يـوجـد"
+    else:
         user_bio = user_bio.replace("\n", " ")
         if len(user_bio) > 40: 
             user_bio = user_bio[:40] + "..."
 
-    # 3. المجموعات المشتركة
-    common_chat = 0
-    if FullUser:
-        common_chat = FullUser.common_chats_count
-
-    # 4. الصور
+    # الصور
     try:
         photos = await event.client.get_profile_photos(replied_user.id)
         photos_count = len(photos)
     except:
         photos_count = 0
 
-    # 5. رسائل المجموعة
+    # رسائل المجموعة
     msg_count = "0"
     interaction_rank = "لا ينطبق"
 
@@ -137,13 +138,15 @@ async def fetch_info(replied_user, event):
         except:
             pass
 
-    # 6. تجهيز البيانات النصية
+    # تجهيز النصوص
     user_id = replied_user.id
     first_name = replied_user.first_name or "بدون اسم"
     
-    # محاولة جلب الاسم الكامل من FullUser
-    full_name = getattr(FullUser, 'private_forward_name', first_name) if FullUser else first_name
-    if not full_name: full_name = first_name
+    # الاسم الكامل
+    if FullUser and FullUser.private_forward_name:
+        full_name = FullUser.private_forward_name
+    else:
+        full_name = first_name
     
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
 
@@ -164,7 +167,7 @@ async def fetch_info(replied_user, event):
     elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
     else: rotbat = "العضـو 𓅫"
 
-    # --- بناء اللوحة (نفس الفخامة المطلوبة) ---
+    # --- بناء اللوحة (فخامة كربونية) ---
     
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
@@ -185,7 +188,7 @@ async def fetch_info(replied_user, event):
 
     caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
     
-    # البايو (تم استخدام طريقتك في الجلب)
+    # البايو (بناءً على طلبك وبالكود بتاعك)
     caption += f"<b>✦ البايـو      {user_bio}</b> \n" 
     
     caption += f"ٴ<b>{ZEDF}</b>"
