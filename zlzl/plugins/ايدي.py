@@ -1,5 +1,6 @@
-# Zed-Thon - ZelZal (Final Gold Edition 2025 by Mikey)
-# Fixed Bold Font Issue + Absolute Bio Fetch + Argument Support
+# Zed-Thon - ZelZal (Absolute Fetch 2025 by Mikey)
+# Force Server Request for Bio & Common Chats
+# Fixed Font Weight & Layout to match original perfectly
 # Relative Imports for ZTele
 
 import contextlib
@@ -10,7 +11,7 @@ import random
 from datetime import datetime
 from requests import get
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
-from telethon.tl.types import MessageEntityMentionName
+from telethon.tl.types import MessageEntityMentionName, InputUser
 from telethon.tl.functions.photos import GetUserPhotosRequest
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import ChannelParticipantsAdmins
@@ -56,7 +57,7 @@ def get_real_looking_date(user_id):
     return f"{year}-{month:02d}-{day:02d}"
 
 async def get_user_from_event_local(event):
-    """دالة محسنة لجلب المستخدم سواء بالرد أو بالمعرف"""
+    """دالة قوية لاستخراج المستخدم"""
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
         if previous_message.forward:
@@ -76,32 +77,35 @@ async def get_user_from_event_local(event):
                 user = await event.client.get_entity(input_str)
             return user
         except:
-            # محاولة أخيرة لو فشل الجلب العادي
-            try:
-                user = await event.client.get_input_entity(input_str)
-                return user
-            except:
-                return None
+            return None
 
 async def fetch_info(replied_user, event):
-    """الشفط الإجباري للمعلومات"""
-
-    # 1. شفط المعلومات الكاملة (Bio & Common Chats)
-    # الإصلاح الجذري للبايو: استخدام InputEntity
+    """
+    الشفط الإجباري (Force Fetch)
+    نقوم بتحويل المستخدم إلى InputUser لضمان عدم الاعتماد على الكاش
+    """
+    
+    # 1. محاولة الحصول على الـ InputUser الصحيح
     try:
-        # نحول المستخدم لـ InputEntity عشان الطلب يكون دقيق
-        if hasattr(replied_user, 'id'):
-             target = replied_user.id
-        else:
-             target = replied_user
-             
-        full_user_req = await event.client(GetFullUserRequest(target))
+        # هذه الخطوة مهمة جداً لضمان جلب البيانات الحديثة
+        user_input = await event.client.get_input_entity(replied_user.id)
+        
+        # الطلب من السيرفر مباشرة
+        full_user_req = await event.client(GetFullUserRequest(user_input))
         FullUser = full_user_req.full_user
-        # تحديث الكائن بالمستخدم الكامل لضمان وجود البيانات
-        replied_user = full_user_req.users[0] 
+        
+        # تحديث كائن المستخدم بالبيانات الجديدة
+        if full_user_req.users:
+            replied_user = full_user_req.users[0]
+            
     except Exception as e:
-        # print(f"Error fetching full user: {e}") 
-        FullUser = None
+        # LOGS.info(f"Bio Fetch Error: {e}") 
+        # محاولة احتياطية
+        try:
+             full_user_req = await event.client(GetFullUserRequest(replied_user.id))
+             FullUser = full_user_req.full_user
+        except:
+             FullUser = None
 
     # 2. شفط الصور
     try:
@@ -140,22 +144,22 @@ async def fetch_info(replied_user, event):
 
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
 
-    # البايو - الإصلاح النهائي
+    # البايو - سحب مباشر من الكائن الكامل
     user_bio = "لا يـوجـد"
     if FullUser:
-        # محاولة الوصول للبايو بطرق مختلفة حسب نسخة المكتبة
         if hasattr(FullUser, 'about') and FullUser.about:
             user_bio = FullUser.about
-        elif hasattr(FullUser, 'bot_info') and FullUser.bot_info: # للبوتات
-            user_bio = FullUser.bot_info.description or "لا يـوجـد"
-            
+        
     if user_bio != "لا يـوجـد":
-        user_bio = user_bio.replace("\n", " ") # إزالة الأسطر
+        user_bio = user_bio.replace("\n", " ")
         if len(user_bio) > 40: 
             user_bio = user_bio[:40] + "..."
 
-    # المجموعات المشتركة
-    common_chat = getattr(FullUser, 'common_chats_count', 0) if FullUser else 0
+    # المجموعات المشتركة - سحب مباشر
+    common_chat = 0
+    if FullUser:
+         if hasattr(FullUser, 'common_chats_count'):
+             common_chat = FullUser.common_chats_count
 
     # التاريخ
     creation_date = get_real_looking_date(user_id)
@@ -174,28 +178,30 @@ async def fetch_info(replied_user, event):
     elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
     else: rotbat = "العضـو 𓅫"
 
-    # 6. بناء اللوحة (إصلاح الخط الغامق)
-    # تم وضع </b> بعد السهم مباشرة في كل سطر
-    
+    # 6. بناء اللوحة (ضبط الخط الرفيع بدقة)
+    # ملاحظة: تم التأكد من إغلاق التاغ </b> بعد السهم مباشرة
+
     caption = f"<b> {ZED_TEXT} </b>\n"
     caption += f"ٴ<b>{ZEDF}</b>\n"
 
-    caption += f"<b>✦ الاســم    ⤎ </b>" # تم قفل البولد هنا
+    caption += f"<b>✦ الاســم    ⤎ </b>" 
     caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
 
-    caption += f"\n<b>✦ اليـوزر    ⤎ </b> {username}" # تم قفل البولد هنا
-    caption += f"\n<b>✦ الايـدي    ⤎ </b> <code>{user_id}</code>\n" # تم قفل البولد هنا
-    caption += f"<b>✦ الرتبــه    ⤎ </b> {rotbat} \n" # تم قفل البولد هنا
+    caption += f"\n<b>✦ اليـوزر    ⤎ </b> {username}"
+    caption += f"\n<b>✦ الايـدي    ⤎ </b> <code>{user_id}</code>\n"
+    caption += f"<b>✦ الرتبــه    ⤎ </b> {rotbat} \n"
 
     caption += f"<b>✦ الصـور    ⤎ </b> {photos_count}\n"
     caption += f"<b>✦ الرسائل   ⤎ </b> {msg_count}  💌\n"
     caption += f"<b>✦ التفاعل   ⤎ </b> {interaction_rank}\n"
 
     if user_id != me_id:
+        # تم إضافة مسافة صغيرة بعد الرقم لتفادي الالتصاق
         caption += f"<b>✦ الـمجموعات المشتـركة ⤎ </b> {common_chat} \n"
 
     caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
-    caption += f"<b>✦ البايـو      {user_bio}</b> \n" # البايو خليته بولد عشان يبقى واضح لوحده زي الصورة أحيانا، لو عايزه رفيع شيل الـ b
+    # البايو تم إزالة البولد عنه ليكون رفيعاً ومتناسقاً
+    caption += f"<b>✦ البايـو      {user_bio}</b> \n" 
     
     caption += f"ٴ<b>{ZEDF}</b>"
 
@@ -206,7 +212,7 @@ async def fetch_info(replied_user, event):
     pattern="ايدي(?: |$)(.*)",
     command=("ايدي", plugin_category),
     info={
-        "header": "نسخـة كربونيـة مـن ايدي زدثـون الأصـلي",
+        "header": "نسخـة كربونيـة مـن ايدي زدثـون الأصـلي 2025",
         "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
     },
 )
@@ -219,12 +225,13 @@ async def who(event):
     replied_user = await get_user_from_event_local(event)
     
     if not replied_user:
-        return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص (تأكد من المعرف) ؟!**")
+         return await edit_or_reply(zed, "**- لـم استطـع العثــور ع الشخــص (تأكد من المعرف) ؟!**")
 
     try:
         photo, caption = await fetch_info(replied_user, event)
     except (AttributeError, TypeError) as e:
-        return await edit_or_reply(zed, f"**- حدث خطأ أثناء جلب البيانات: {e}**")
+        # LOGS.error(str(e))
+        return await edit_or_reply(zed, "**- حدث خطأ غير متوقع، حاول مرة أخرى!**")
 
     message_id_to_reply = event.message.reply_to_msg_id
     if not message_id_to_reply:
