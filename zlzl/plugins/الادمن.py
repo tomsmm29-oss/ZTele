@@ -676,7 +676,7 @@ async def unpin(event):
     groups_only=True,
     require_admin=True,
 )
-# async def _iundlt(event):  # sourcery no-metrics
+ async def _iundlt(event):  # sourcery no-metrics
     "لـ جـلب آخـر الرسـائـل المحـذوفـه مـن الاحـداث بـ العـدد"
     zedevent = await edit_or_reply(event, "**- جـاري البحث عـن آخـر الاحداث انتظــر ...🔍**")
     flag = event.pattern_match.group(1)
