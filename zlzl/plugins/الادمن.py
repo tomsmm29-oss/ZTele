@@ -100,7 +100,8 @@ KICK = gvarstatus("Z_KICK") or "طرد"
     groups_only=True,
     require_admin=True,
 )
-# async def set_group_photo(event):  # sourcery no-metrics
+ async def set_group_photo(event):  
+# sourcery no-metrics
     "لـ وضـع صــوره لـ المجمـوعـه"
     flag = (event.pattern_match.group(1)).strip()
     if flag == "وضع":
