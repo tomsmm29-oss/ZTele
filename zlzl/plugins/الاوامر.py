@@ -372,7 +372,7 @@ async def callback_handler_22_713(event):
     zilzal = [[Button.inline("رجــوع", data=b"aahmed")]]
     await event.edit(text, buttons=zilzal, link_preview=False)
 
---- أوامر معلومات السورس الإضافية (تم تصحيح الدوال) ---
+#--- أوامر معلومات السورس الإضافية (تم تصحيح الدوال) ---
 
 @zedub.tgbot.on(events.InlineQuery)
 @check_owner
@@ -440,7 +440,7 @@ async def zed_command_29_799(event):
         await event.delete()
     except: pass
 
---- دالة مساعدة لجلب المستخدم (لأوامر الشرح) ---
+#--- دالة مساعدة لجلب المستخدم (لأوامر الشرح) ---
 
 async def get_user_from_event(event):
     if event.reply_to_msg_id:
