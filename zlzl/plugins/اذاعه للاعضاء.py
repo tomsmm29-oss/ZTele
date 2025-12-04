@@ -8,7 +8,7 @@ from telethon.errors import UserAdminInvalidError
 from telethon import events
 from telethon.tl.functions.channels import GetParticipantRequest
 
-from zthon import zedub
+from . import zedub
 
 from ..Config import Config
 from ..core.logger import logging
