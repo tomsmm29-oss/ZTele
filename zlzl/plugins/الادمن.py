@@ -1,3 +1,6 @@
+import requests
+import asyncio
+from ..Config import Config
 import contextlib
 
 from telethon.errors import (
@@ -19,7 +22,7 @@ from telethon.tl.types import (
 )
 from telethon.utils import get_display_name
 
-from zthon import zedub
+from . import zedub
 
 from ..core.data import _sudousers_list
 from ..core.logger import logging
@@ -97,7 +100,7 @@ KICK = gvarstatus("Z_KICK") or "طرد"
     groups_only=True,
     require_admin=True,
 )
-async def set_group_photo(event):  # sourcery no-metrics
+# async def set_group_photo(event):  # sourcery no-metrics
     "لـ وضـع صــوره لـ المجمـوعـه"
     flag = (event.pattern_match.group(1)).strip()
     if flag == "وضع":
@@ -672,7 +675,7 @@ async def unpin(event):
     groups_only=True,
     require_admin=True,
 )
-async def _iundlt(event):  # sourcery no-metrics
+# async def _iundlt(event):  # sourcery no-metrics
     "لـ جـلب آخـر الرسـائـل المحـذوفـه مـن الاحـداث بـ العـدد"
     zedevent = await edit_or_reply(event, "**- جـاري البحث عـن آخـر الاحداث انتظــر ...🔍**")
     flag = event.pattern_match.group(1)
