@@ -100,8 +100,8 @@ KICK = gvarstatus("Z_KICK") or "طرد"
     groups_only=True,
     require_admin=True,
 )
- async def set_group_photo(event):  
-# sourcery no-metrics
+async def set_group_photo(event):
+    # sourcery no-metrics
     "لـ وضـع صــوره لـ المجمـوعـه"
     flag = (event.pattern_match.group(1)).strip()
     if flag == "وضع":
@@ -135,15 +135,15 @@ KICK = gvarstatus("Z_KICK") or "طرد"
         except Exception as e:
             return await edit_delete(event, f"**- خطــأ : **`{e}`")
         process = "تم حذفهـا"
-        await edit_delete(event, "**- صورة الدردشـه {process} . . بنجـاح ✓**")
+        await edit_delete(event, f"**- صورة الدردشـه {process} . . بنجـاح ✓**")
+
     if BOTLOG:
         await event.client.send_message(
             BOTLOG_CHATID,
             "#صـورة_المجمـوعـة\n"
             f"صورة المجموعه {process} بنجاح ✓ "
             f"الدردشة: {get_display_name(await event.get_chat())}(`{event.chat_id}`)",
-        )
-
+        ) 
 
 @zedub.zed_cmd(pattern=f"{ADMZ}(?:\s|$)([\s\S]*)")
 async def promote(event):
