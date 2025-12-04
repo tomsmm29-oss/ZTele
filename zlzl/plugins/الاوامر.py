@@ -469,7 +469,7 @@ async def get_user_from_event(event):
             return None
         return user_object
 
---- أوامر الشرح (اليدوي، الفيزا، الهيروكو، التنصيب) ---#
+#--- أوامر الشرح (اليدوي، الفيزا، الهيروكو، التنصيب) ---
 
 @zedub.tgbot.on(events.InlineQuery)
 @check_owner
