@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 
 from telethon import Button, functions
+from telethon import events, Button
 from telethon.events import CallbackQuery
 from telethon.utils import get_display_name
 
