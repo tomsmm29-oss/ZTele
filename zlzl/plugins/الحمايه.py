@@ -418,10 +418,8 @@ async def do_pm_chat_action(event, chat):
             )
     except BaseException:
         return
-
-
-# Zed-Thon - ZelZal (PMPermit Part 2 - Fixed for ZTele 2025 by Mikey)
-# Actions + Event Handlers + ID Fixes
+# Zed-Thon - ZelZal (PMPermit Part 2 & 3 - Fixed for ZTele 2025 by Mikey)
+# Actions + Buttons + Events + Mock SQL
 # Visuals Preserved
 
 async def do_pm_chat_action(event, chat):
@@ -433,6 +431,7 @@ async def do_pm_chat_action(event, chat):
         PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
     except AttributeError:
         PMMESSAGE_CACHE = {}
+    
     if str(chat.id) not in PM_WARNS:
         text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
         await event.reply(text)
@@ -440,6 +439,7 @@ async def do_pm_chat_action(event, chat):
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
         return None
+        
     del PM_WARNS[str(chat.id)]
     sql.del_collection("pmwarns")
     sql.add_collection("pmwarns", PM_WARNS, {})
@@ -449,6 +449,7 @@ async def do_pm_chat_action(event, chat):
             del PMMESSAGE_CACHE[str(chat.id)]
     except Exception as e:
         LOGS.info(str(e))
+        
     sql.del_collection("pmmessagecache")
     sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
     USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
@@ -478,6 +479,7 @@ async def do_pm_enquire_action(event, chat):
         PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
     except AttributeError:
         PMMESSAGE_CACHE = {}
+        
     if str(chat.id) not in PM_WARNS:
         text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
         await event.reply(text)
@@ -485,6 +487,7 @@ async def do_pm_enquire_action(event, chat):
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
         return None
+        
     del PM_WARNS[str(chat.id)]
     sql.del_collection("pmwarns")
     sql.add_collection("pmwarns", PM_WARNS, {})
@@ -494,6 +497,7 @@ async def do_pm_enquire_action(event, chat):
             del PMMESSAGE_CACHE[str(chat.id)]
     except Exception as e:
         LOGS.info(str(e))
+        
     sql.del_collection("pmmessagecache")
     sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
     USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
@@ -524,6 +528,7 @@ async def do_pm_request_action(event, chat):
         PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
     except AttributeError:
         PMMESSAGE_CACHE = {}
+        
     if str(chat.id) not in PM_WARNS:
         text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
         await event.reply(text)
@@ -531,6 +536,7 @@ async def do_pm_request_action(event, chat):
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
         return None
+        
     del PM_WARNS[str(chat.id)]
     sql.del_collection("pmwarns")
     sql.add_collection("pmwarns", PM_WARNS, {})
@@ -540,6 +546,7 @@ async def do_pm_request_action(event, chat):
             del PMMESSAGE_CACHE[str(chat.id)]
     except Exception as e:
         LOGS.info(str(e))
+        
     sql.del_collection("pmmessagecache")
     sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
     USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
@@ -551,6 +558,55 @@ async def do_pm_request_action(event, chat):
                 \n** ⎉╎تم حظـره .. تلقائيـاً**\
                 \n** ⎉╎السـبب:** لقد اختار خيار الطلب ولكنه لم ينتظر وتم حظره تلقائيـاً 🥲😹."
     sqllist.rm_from_list("pmrequest", chat.id)
+    try:
+        if BOTLOG_CHATID:
+            return await event.client.send_message(
+                BOTLOG_CHATID,
+                the_message,
+            )
+    except BaseException:
+        return
+
+
+async def do_pm_options_action(event, chat): # تم إضافة الدالة الناقصة لضمان العمل
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except AttributeError:
+        PM_WARNS = {}
+    try:
+        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except AttributeError:
+        PMMESSAGE_CACHE = {}
+        
+    if str(chat.id) not in PM_WARNS:
+        text = "**⤶ اخـتـر احـد الخـيـارات بــدون تـڪـرار ، وهـذا هــو تـحـذيـرڪ الاخـيـر 🚸**"
+        await event.reply(text)
+        PM_WARNS[str(chat.id)] = 1
+        sql.del_collection("pmwarns")
+        sql.add_collection("pmwarns", PM_WARNS, {})
+        return None
+        
+    del PM_WARNS[str(chat.id)]
+    sql.del_collection("pmwarns")
+    sql.add_collection("pmwarns", PM_WARNS, {})
+    try:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+            del PMMESSAGE_CACHE[str(chat.id)]
+    except Exception as e:
+        LOGS.info(str(e))
+        
+    sql.del_collection("pmmessagecache")
+    sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+    USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
+
+    await event.reply(USER_BOT_WARN_ZERO)
+    await event.client(functions.contacts.BlockRequest(chat.id))
+    the_message = f"#حمـايـة_الخـاص\
+                            \n** ⎉╎المستخـدم** [{get_display_name(chat)}](tg://user?id={chat.id}) .\
+                            \n** ⎉╎تم حظـره .. تلقائيـاً**\
+                            \n** ⎉╎السبب:** لم يختر أي من الخيارات المتاحـة واستمـر بتكـرار الرسـائـل ☹️😹."
+    sqllist.rm_from_list("pmoptions", chat.id)
     try:
         if BOTLOG_CHATID:
             return await event.client.send_message(
@@ -598,15 +654,14 @@ async def on_new_private_message(event):
         return
     chat = await event.get_chat()
     
-    # تم تحديث قائمة المطورين بايديك
-    zel_dev = [8241311871, 1895219306, 925972505]
+    # تم زرع الآيدي الخاص بك
+    zel_dev = [8241311871, 5176749470, 5426390871, 925972505, 1895219306, 2095357462, 5280339206]
     
     if chat.bot or chat.verified:
         return
     if pmpermit_sql.is_approved(chat.id):
         return
-    
-    # التحقق من المطورين
+        
     if event.chat_id in zel_dev:
         reason = "**انـه احـد المطـورين 🥳♥️**"
         try:
@@ -633,10 +688,7 @@ async def on_new_private_message(event):
     if str(chat.id) in sqllist.get_collection_list("pmenquire"):
         return await do_pm_enquire_action(event, chat)
     if str(chat.id) in sqllist.get_collection_list("pmoptions"):
-        # في الكود الأصلي كان بيستدعي do_pm_options_action بس مش موجودة هنا، هنعتبرها زي الباقيين
-        # return await do_pm_options_action(event, chat)
-        # بما إنك ما بعتليش دالة do_pm_options_action، هخليه يرجع لـ do_pm_permit_action عشان الكود ما يضربش
-        pass
+        return await do_pm_options_action(event, chat)
         
     await do_pm_permit_action(event, chat)
 
@@ -683,25 +735,33 @@ async def you_dm_other(event):
         sql.del_collection("pmmessagecache")
         sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
 
+
+# --- معالجات الأزرار (Callback Handlers) ---
+# تم استخدام zedub.tgbot للتأكد من وجود البوت المساعد
+
 @zedub.tgbot.on(CallbackQuery(data=re.compile(rb"show_pmpermit_options")))
 async def on_plug_in_callback_query_handler(event):
-    if event.query.user_id == event.client.uid:
+    # التحقق من أن الضغط من نفس المستخدم
+    # ملاحظة: في الـ CallbackQuery الحدث هو event.sender_id
+    if event.sender_id == event.client.uid:
         text = "⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂"
         return await event.answer(text, cache_time=0, alert=True)
-    text = f"**⤶ حسنا عـزيزي بإمكانك اختيار احد الخيارات في الاسفل للتواصل مع :** {mention}.\n\n**⤶ اختر خيار واحد فقط لنعرف سبب قدومك الـى هنـا 🧐"
+    
+    # يجب أن يكون mention معرفاً في الجزء الأول
+    text = f"**⤶ حسنا عـزيزي بإمكانك اختيار احد الخيارات في الاسفل للتواصل.**\n\n**⤶ اختر خيار واحد فقط لنعرف سبب قدومك الـى هنـا 🧐"
     buttons = [
         (Button.inline(text="⤶ لـ إسـتـفـسـار مـعـيـن", data="to_enquire_something"),),
         (Button.inline(text="⤶ لـ طـلـب مـعـيـن", data="to_request_something"),),
         (Button.inline(text="⤶ لـ الـدردشــه فـقـط", data="to_chat_with_my_master"),),
         (Button.inline(text="⤶ لـ إزعـاجـي فـقـط", data="to_spam_my_master_inbox"),),
     ]
-    sqllist.add_to_list("pmoptions", event.query.user_id)
+    sqllist.add_to_list("pmoptions", event.sender_id)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
     except AttributeError:
         PM_WARNS = {}
-    if str(event.query.user_id) in PM_WARNS:
-        del PM_WARNS[str(event.query.user_id)]
+    if str(event.sender_id) in PM_WARNS:
+        del PM_WARNS[str(event.sender_id)]
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
     await event.edit(text, buttons=buttons)
@@ -709,91 +769,73 @@ async def on_plug_in_callback_query_handler(event):
 
 @zedub.tgbot.on(CallbackQuery(data=re.compile(rb"to_enquire_something")))
 async def on_plug_in_callback_query_handler(event):
-    if event.query.user_id == event.client.uid:
-        text = "⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂"
-        return await event.answer(text, cache_time=0, alert=True)
+    if event.sender_id == event.client.uid:
+        return await event.answer("⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂", alert=True)
     text = "**⤶ حـسـنـاً عـزيـزي ، تـم أرسـال طـلـبـڪ بـنـجـاح 📨 . لا تـقـم بـ إخـتـيـار خـيـار آخــر .**\n**⤶ سيـتـم الـرد عـلـيـڪ عـنـد تـفـرغ الـمـالـڪ .🧸🤍**"
-    sqllist.add_to_list("pmenquire", event.query.user_id)
+    sqllist.add_to_list("pmenquire", event.sender_id)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
     except AttributeError:
         PM_WARNS = {}
-    if str(event.query.user_id) in PM_WARNS:
-        del PM_WARNS[str(event.query.user_id)]
+    if str(event.sender_id) in PM_WARNS:
+        del PM_WARNS[str(event.sender_id)]
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
-    sqllist.rm_from_list("pmoptions", event.query.user_id)
+    sqllist.rm_from_list("pmoptions", event.sender_id)
     await event.edit(text)
 
 
 @zedub.tgbot.on(CallbackQuery(data=re.compile(rb"to_request_something")))
 async def on_plug_in_callback_query_handler(event):
-    if event.query.user_id == event.client.uid:
-        text = "⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂"
-        return await event.answer(text, cache_time=0, alert=True)
+    if event.sender_id == event.client.uid:
+        return await event.answer("⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂", alert=True)
     text = "**⤶ حـسـنـاً عـزيـزي .. قـمـت بـإبـلاغ مـالـڪ الـحـسـاب بـطلبـڪ**\n**⤶ عـنـدمـا يـڪـون مـالـڪ الـحـسـاب مـتـاحـاً سـوف يـقـوم بـالـرد عـلـيـڪ .. الرجـاء الإنـتـظـار ⏳**\n**⤶ لا تـڪـرر الـرسـائـل حـاليـاً لـ تـجـنـب الـحـظـر 🚷**"
-    sqllist.add_to_list("pmrequest", event.query.user_id)
+    sqllist.add_to_list("pmrequest", event.sender_id)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
     except AttributeError:
         PM_WARNS = {}
-    if str(event.query.user_id) in PM_WARNS:
-        del PM_WARNS[str(event.query.user_id)]
+    if str(event.sender_id) in PM_WARNS:
+        del PM_WARNS[str(event.sender_id)]
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
-    sqllist.rm_from_list("pmoptions", event.query.user_id)
+    sqllist.rm_from_list("pmoptions", event.sender_id)
     await event.edit(text)
 
 
 @zedub.tgbot.on(CallbackQuery(data=re.compile(rb"to_chat_with_my_master")))
 async def on_plug_in_callback_query_handler(event):
-    if event.query.user_id == event.client.uid:
-        text = "⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂"
-        return await event.answer(text, cache_time=0, alert=True)
+    if event.sender_id == event.client.uid:
+        return await event.answer("⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂", alert=True)
     text = "**⤶ بـالـطـبـع عـزيـزي يـمـكـنـك الـتـحـدث مـع مـالـك الـحـسـاب لـكـن لـيـس الان 🤷🏻‍♂\n\n⤶ نـسـتـطـيـع الـتـكـلـم فـي وقـت آخـر حـالـيـاً أنـا مـشـغـول قـلـيـلاً  - عـنـد تـفـرغـي سـأكـلـمـك بالتـأكيــد .😇🤍**"
-    sqllist.add_to_list("pmchat", event.query.user_id)
+    sqllist.add_to_list("pmchat", event.sender_id)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
     except AttributeError:
         PM_WARNS = {}
-    if str(event.query.user_id) in PM_WARNS:
-        del PM_WARNS[str(event.query.user_id)]
+    if str(event.sender_id) in PM_WARNS:
+        del PM_WARNS[str(event.sender_id)]
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
-    sqllist.rm_from_list("pmoptions", event.query.user_id)
+    sqllist.rm_from_list("pmoptions", event.sender_id)
     await event.edit(text)
 
 
 @zedub.tgbot.on(CallbackQuery(data=re.compile(rb"to_spam_my_master_inbox")))
 async def on_plug_in_callback_query_handler(event):
-    if event.query.user_id == event.client.uid:
-        text = "⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂"
-        return await event.answer(text, cache_time=0, alert=True)
-    text = "`███████▄▄███████████▄\
-         \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\
-         \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\
-         \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\
-         \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\
-         \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\
-         \n▓▓▓▓▓▓███░░░░░░░░░░░░█\
-         \n██████▀▀▀█░░░░██████▀ \
-         \n░░░░░░░░░█░░░░█\
-         \n░░░░░░░░░░█░░░█\
-         \n░░░░░░░░░░░█░░█\
-         \n░░░░░░░░░░░█░░█\
-         \n░░░░░░░░░░░░▀▀`\
-         \n**⤶ لسـت متفـرغـاً لـ تـراهـاتـك.\
-         \n\n⤶ وهـذا هـو تحذيرك الأخيـر إذا قـمـت بإرسـال رسـالة أخـرى فـ سيتـم حـظـرك تلقـائـيًـا 🚷**"
-    sqllist.add_to_list("pmspam", event.query.user_id)
+    if event.sender_id == event.client.uid:
+        return await event.answer("⤶ عـذراً سيـدي ، هـذه الـخـيـارات لـلـمـسـتـخـدم الـذي يـراسـلـك 🤷🏻‍♂", alert=True)
+    text = "**⤶ لسـت متفـرغـاً لـ تـراهـاتـك.\n\n⤶ وهـذا هـو تحذيرك الأخيـر إذا قـمـت بإرسـال رسـالة أخـرى فـ سيتـم حـظـرك تلقـائـيًـا 🚷**"
+    sqllist.add_to_list("pmspam", event.sender_id)
     try:
         PM_WARNS = sql.get_collection("pmspam").json
     except AttributeError:
         PM_WARNS = {}
-    if str(event.query.user_id) in PM_WARNS:
-        del PM_WARNS[str(event.query.user_id)]
+    if str(event.sender_id) in PM_WARNS:
+        del PM_WARNS[str(event.sender_id)]
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
-    sqllist.rm_from_list("pmoptions", event.query.user_id)
+    sqllist.rm_from_list("pmoptions", event.sender_id)
     await event.edit(text)
 
 
@@ -844,52 +886,11 @@ async def pmpermit_on(event):
             event, "** ⎉╎ امـر حمايـه الخـاص بالفعـل .. مُفعـل  🔐✅**"
         )
 
-@zedub.zed_cmd(
-    pattern="الحماية (تفعيل|تعطيل)$",
-    command=("الحماية", plugin_category),
-    info={
-        "header": "لـ تفعيـل/تعطيـل حمـايـة الخـاص لـ حسـابـك",
-        "الاسـتخـدام": "{tr}الحماية تفعيل/تعطيل",
-    },
-)
-async def pmpermit_on(event):
-    "Turn on/off pmmenu."
-    input_str = event.pattern_match.group(1)
-    if input_str == "تفعيل":
-        if gvarstatus("pmpermit") is None:
-            addgvar("pmpermit", "true")
-            await edit_delete(
-                event, "**⎉╎تـم تفعيـل امـر حمايـه الخـاص .. بنجـاح 🔕☑️...**"
-            )
-        else:
-            await edit_delete(event, "** ⎉╎ امـر حمايـه الخـاص بالفعـل .. مُفعـل  🔐✅**")
-    elif gvarstatus("pmpermit") is not None:
-        delgvar("pmpermit")
-        await edit_delete(
-            event, "**⎉╎تـم تعطيـل أمـر حمايـة الخـاص .. بنجـاح 🔔☑️...**"
-        )
-    else:
-        await edit_delete(event, "** ⎉╎ امـر حمايـه الخـاص بالفعـل .. مُعطـل 🔓✅**")
-    if input_str == "تعطيل":
-        if gvarstatus("pmmenu") is None:
-            addgvar("pmmenu", "false")
-            await edit_delete(
-                event,
-                "**⎉╎تـم تعطيـل أمـر حمايـة الخـاص .. بنجـاح 🔔☑️...**",
-            )
-        else:
-            await edit_delete(
-                event, "** ⎉╎ امـر حمايـه الخـاص بالفعـل .. مُعطـل 🔓✅**"
-            )
-    elif gvarstatus("pmmenu") is not None:
-        delgvar("pmmenu")
-        await edit_delete(
-            event, "**⎉╎تـم تفعيـل امـر حمايـه الخـاص .. بنجـاح 🔕☑️...**"
-        )
-    else:
-        await edit_delete(
-            event, "** ⎉╎ امـر حمايـه الخـاص بالفعـل .. مُفعـل  🔐✅**"
-        )
+# نفس الدالة مكررة (تم دمجها أعلاه)
+# @zedub.zed_cmd(
+#     pattern="الحماية (تفعيل|تعطيل)$",
+#     command=("الحماية", plugin_category),
+# )
 
 
 @zedub.zed_cmd(
@@ -931,16 +932,13 @@ async def approve_p_m(event):  # sourcery no-metrics
             user.id, get_display_name(user), start_date, user.username, reason
         )
         chat = user
-        if str(chat.id) in sqllist.get_collection_list("pmspam"):
-            sqllist.rm_from_list("pmspam", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmchat"):
-            sqllist.rm_from_list("pmchat", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmrequest"):
-            sqllist.rm_from_list("pmrequest", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmenquire"):
-            sqllist.rm_from_list("pmenquire", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmoptions"):
-            sqllist.rm_from_list("pmoptions", chat.id)
+        # تنظيف القوائم
+        try:
+            for lst in ["pmspam", "pmchat", "pmrequest", "pmenquire", "pmoptions"]:
+                if str(chat.id) in sqllist.get_collection_list(lst):
+                    sqllist.rm_from_list(lst, chat.id)
+        except: pass
+        
         await edit_delete(
             event,
             f"**⎉╎المستخـدم**  [{user.first_name}](tg://user?id={user.id})\n**⎉╎تـم السـمـاح لـه بـإرسـال الـرسـائـل 💬✓** \n **⎉╎ الـسـبـب ❔  :** {reason}",
@@ -1007,16 +1005,12 @@ async def tapprove_pm(event):  # sourcery no-metrics
             del PM_WARNS[str(user.id)]
         PMPERMIT_.TEMPAPPROVED.append(user.id)
         chat = user
-        if str(chat.id) in sqllist.get_collection_list("pmspam"):
-            sqllist.rm_from_list("pmspam", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmchat"):
-            sqllist.rm_from_list("pmchat", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmrequest"):
-            sqllist.rm_from_list("pmrequest", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmenquire"):
-            sqllist.rm_from_list("pmenquire", chat.id)
-        if str(chat.id) in sqllist.get_collection_list("pmoptions"):
-            sqllist.rm_from_list("pmoptions", chat.id)
+        try:
+            for lst in ["pmspam", "pmchat", "pmrequest", "pmenquire", "pmoptions"]:
+                if str(chat.id) in sqllist.get_collection_list(lst):
+                    sqllist.rm_from_list(lst, chat.id)
+        except: pass
+        
         await edit_delete(
             event,
             f"**⎉╎المستخـدم**  [{user.first_name}](tg://user?id={user.id}) is __temporarily approved to pm__\n**Reason :** __{reason}__",
