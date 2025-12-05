@@ -1,3 +1,9 @@
+
+
+# Zed-Thon - ZelZal (PMPermit Part 1 - Fixed for ZTele 2025 by Mikey)
+# Fixed Imports + SQL Handling + BlockRequest Logic
+# Visuals Preserved
+
 import random
 import re
 from datetime import datetime
@@ -6,21 +12,45 @@ from telethon import Button, functions
 from telethon.events import CallbackQuery
 from telethon.utils import get_display_name
 
-from zthon import zedub
-from zthon.core.logger import logging
-
+# --- تصحيح المسارات ---
+from . import zedub
+from ..core.logger import logging
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import _format, get_user_from_event, reply_id
-from ..sql_helper import global_collectionjson as sql
-from ..sql_helper import global_list as sqllist
-from ..sql_helper import pmpermit_sql
-from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG_CHATID, mention
+
+# محاولة استدعاء SQL مع وضع بدائل
+try:
+    from ..sql_helper import global_collectionjson as sql
+    from ..sql_helper import global_list as sqllist
+    from ..sql_helper import pmpermit_sql
+    from ..sql_helper.globals import addgvar, delgvar, gvarstatus
+except ImportError:
+    # Mock classes if SQL is missing to prevent crash
+    class MockSQL:
+        def get_collection(self, name): return self
+        @property
+        def json(self): return {}
+        def del_collection(self, name): pass
+        def add_collection(self, name, data, x): pass
+    sql = MockSQL()
+    class MockList:
+        def rm_from_list(self, name, id): pass
+    sqllist = MockList()
+    def addgvar(x, y): pass
+    def delgvar(x): pass
+    def gvarstatus(val): return None
+
+try:
+    from . import BOTLOG_CHATID, mention
+except ImportError:
+    BOTLOG_CHATID = None
+    mention = None
 
 plugin_category = "البوت"
 LOGS = logging.getLogger(__name__)
-cmdhd = Config.COMMAND_HAND_LER
+# محاولة جلب Config.COMMAND_HAND_LER بشكل آمن
+cmdhd = getattr(Config, "COMMAND_HAND_LER", ".")
 
 
 class PMPERMIT:
@@ -31,8 +61,7 @@ class PMPERMIT:
 PMPERMIT_ = PMPERMIT()
 
 
-async def do_pm_permit_action(event, chat):  # sourcery no-metrics
-    # sourcery skip: low-code-quality
+async def do_pm_permit_action(event, chat):
     reply_to_id = await reply_id(event)
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
@@ -42,27 +71,32 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
         PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
     except AttributeError:
         PMMESSAGE_CACHE = {}
+        
     me = await event.client.get_me()
-    mention = f"[{chat.first_name}](tg://user?id={chat.id})"
+    mention_user = f"[{chat.first_name}](tg://user?id={chat.id})"
     my_mention = f"[{me.first_name}](tg://user?id={me.id})"
     first = chat.first_name
     last = chat.last_name
     fullname = f"{first} {last}" if last else first
-    username = f"@{chat.username}" if chat.username else mention
+    username = f"@{chat.username}" if chat.username else mention_user
     userid = chat.id
     my_first = me.first_name
     my_last = me.last_name
     my_fullname = f"{my_first} {my_last}" if my_last else my_first
     my_username = f"@{me.username}" if me.username else my_mention
+    
     if str(chat.id) not in PM_WARNS:
         PM_WARNS[str(chat.id)] = 0
+        
     try:
-        MAX_FLOOD_IN_PMS = Config.MAX_FLOOD_IN_PMS
-    except (ValueError, TypeError):
+        MAX_FLOOD_IN_PMS = int(Config.MAX_FLOOD_IN_PMS)
+    except (ValueError, TypeError, AttributeError):
         MAX_FLOOD_IN_PMS = 6
+        
     totalwarns = MAX_FLOOD_IN_PMS + 1
     warns = PM_WARNS[str(chat.id)] + 1
     remwarns = totalwarns - warns
+    
     if PM_WARNS[str(chat.id)] >= MAX_FLOOD_IN_PMS:
         try:
             if str(chat.id) in PMMESSAGE_CACHE:
@@ -72,10 +106,11 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
                 del PMMESSAGE_CACHE[str(chat.id)]
         except Exception as e:
             LOGS.info(str(e))
+            
         custompmblock = gvarstatus("pmblock") or None
         if custompmblock is not None:
             USER_BOT_WARN_ZERO = custompmblock.format(
-                mention=mention,
+                mention=mention_user,
                 first=first,
                 last=last,
                 fullname=fullname,
@@ -92,6 +127,7 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
             )
         else:
             USER_BOT_WARN_ZERO = f"**⤶ لقـد حذرتـڪ مـسـبـقـاً مـن الـتـڪـرار 📵** \n**⤶ تـم حـظـرڪ تلقـائيـاً .. الان لا يـمـڪـنـڪ ازعـاجـي🔕**\n\n**⤶ تحيـاتـي** {my_mention}  🫡**"
+        
         msg = await event.reply(USER_BOT_WARN_ZERO)
         await event.client(functions.contacts.BlockRequest(chat.id))
         the_message = f"#حمـايـة_الخـاص\
@@ -104,16 +140,18 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
         sql.add_collection("pmwarns", PM_WARNS, {})
         sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
         try:
-            return await event.client.send_message(
-                BOTLOG_CHATID,
-                the_message,
-            )
+            if BOTLOG_CHATID:
+                return await event.client.send_message(
+                    BOTLOG_CHATID,
+                    the_message,
+                )
         except BaseException:
             return
+
     custompmpermit = gvarstatus("pmpermit_txt") or None
     if custompmpermit is not None:
         USER_BOT_NO_WARN = custompmpermit.format(
-            mention=mention,
+            mention=mention_user,
             first=first,
             last=last,
             fullname=fullname,
@@ -132,7 +170,7 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
         USER_BOT_NO_WARN = f"""ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 **- الـرد التلقـائي 〽️**
 **•─────────────────•**
 
-❞ **مرحبـاً**  {mention} ❝
+❞ **مرحبـاً**  {mention_user} ❝
 
 **⤶ قد اكـون مشغـول او غيـر موجـود حـاليـاً ؟!**
 **⤶ ❨ لديـك** {warns} **مـن** {totalwarns} **تحذيـرات ⚠️❩**
@@ -143,19 +181,23 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
         USER_BOT_NO_WARN = f"""ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 **- الـرد التلقـائي 〽️**
 **•─────────────────•**
 
-❞ **مرحبـاً**  {mention} ❝
+❞ **مرحبـاً**  {mention_user} ❝
 
 **⤶ قد اكـون مشغـول او غيـر موجـود حـاليـاً ؟!**
 **⤶ ❨ لديـك** {warns} **مـن** {totalwarns} **تحذيـرات ⚠️❩**
 **⤶ لا تقـم بـ إزعاجـي والا سـوف يتم حظـرك تلقـائياً . . .**
 
 **⤶ فقط قل سبب مجيئك وانتظـر الـرد ⏳**"""
+    
     addgvar("pmpermit_text", USER_BOT_NO_WARN)
     PM_WARNS[str(chat.id)] += 1
+    
     try:
-        if gvarstatus("pmmenu") is None:
+        # هنا نحتاج للتأكد من وجود بوت مساعد إذا كان الخيار معطل
+        bot_username = getattr(Config, "TG_BOT_USERNAME", None)
+        if gvarstatus("pmmenu") is None and bot_username:
             results = await event.client.inline_query(
-                Config.TG_BOT_USERNAME, "pmpermit"
+                bot_username, "pmpermit"
             )
             msg = await results[0].click(chat.id, reply_to=reply_to_id, hide_via=True)
         else:
@@ -181,12 +223,14 @@ async def do_pm_permit_action(event, chat):  # sourcery no-metrics
     except Exception as e:
         LOGS.error(e)
         msg = await event.reply(USER_BOT_NO_WARN)
+        
     try:
         if str(chat.id) in PMMESSAGE_CACHE:
             await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
             del PMMESSAGE_CACHE[str(chat.id)]
     except Exception as e:
         LOGS.info(str(e))
+        
     PMMESSAGE_CACHE[str(chat.id)] = msg.id
     sql.del_collection("pmwarns")
     sql.del_collection("pmmessagecache")
@@ -209,8 +253,6 @@ async def do_pm_options_action(event, chat):
         PM_WARNS[str(chat.id)] = 1
         sql.del_collection("pmwarns")
         sql.add_collection("pmwarns", PM_WARNS, {})
-        # await asyncio.sleep(5)
-        # await msg.delete()
         return None
     del PM_WARNS[str(chat.id)]
     sql.del_collection("pmwarns")
@@ -233,13 +275,151 @@ async def do_pm_options_action(event, chat):
                             \n** ⎉╎السبب:** لم يختر أي من الخيارات المتاحـة واستمـر بتكـرار الرسـائـل ☹️😹."
     sqllist.rm_from_list("pmoptions", chat.id)
     try:
-        return await event.client.send_message(
-            BOTLOG_CHATID,
-            the_message,
-        )
+        if BOTLOG_CHATID:
+            return await event.client.send_message(
+                BOTLOG_CHATID,
+                the_message,
+            )
     except BaseException:
         return
 
+
+async def do_pm_enquire_action(event, chat):
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except AttributeError:
+        PM_WARNS = {}
+    try:
+        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except AttributeError:
+        PMMESSAGE_CACHE = {}
+    if str(chat.id) not in PM_WARNS:
+        text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
+        await event.reply(text)
+        PM_WARNS[str(chat.id)] = 1
+        sql.del_collection("pmwarns")
+        sql.add_collection("pmwarns", PM_WARNS, {})
+        return None
+    del PM_WARNS[str(chat.id)]
+    sql.del_collection("pmwarns")
+    sql.add_collection("pmwarns", PM_WARNS, {})
+    try:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+            del PMMESSAGE_CACHE[str(chat.id)]
+    except Exception as e:
+        LOGS.info(str(e))
+    sql.del_collection("pmmessagecache")
+    sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+    USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
+
+    await event.reply(USER_BOT_WARN_ZERO)
+    await event.client(functions.contacts.BlockRequest(chat.id))
+    the_message = f"#حمـايـة_الخـاص\
+                \n** ⎉╎المستخـدم** [{get_display_name(chat)}](tg://user?id={chat.id}) .\
+                \n** ⎉╎تم حظـره .. تلقائيـاً**\
+                \n** ⎉╎السـبب:** لقد اختار خيار الاستفسار ولكنه لم ينتظر بعد أن تم إخباره واستمر بتكـرار الرسـائل 🥲😹."
+    sqllist.rm_from_list("pmenquire", chat.id)
+    try:
+        if BOTLOG_CHATID:
+            return await event.client.send_message(
+                BOTLOG_CHATID,
+                the_message,
+            )
+    except BaseException:
+        return
+
+
+async def do_pm_request_action(event, chat):
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except AttributeError:
+        PM_WARNS = {}
+    try:
+        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except AttributeError:
+        PMMESSAGE_CACHE = {}
+    if str(chat.id) not in PM_WARNS:
+        text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
+        await event.reply(text)
+        PM_WARNS[str(chat.id)] = 1
+        sql.del_collection("pmwarns")
+        sql.add_collection("pmwarns", PM_WARNS, {})
+        return None
+    del PM_WARNS[str(chat.id)]
+    sql.del_collection("pmwarns")
+    sql.add_collection("pmwarns", PM_WARNS, {})
+    try:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+            del PMMESSAGE_CACHE[str(chat.id)]
+    except Exception as e:
+        LOGS.info(str(e))
+    sql.del_collection("pmmessagecache")
+    sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+    USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
+
+    await event.reply(USER_BOT_WARN_ZERO)
+    await event.client(functions.contacts.BlockRequest(chat.id))
+    the_message = f"#حمـايـة_الخـاص\
+                \n** ⎉╎المستخـدم** [{get_display_name(chat)}](tg://user?id={chat.id}) .\
+                \n** ⎉╎تم حظـره .. تلقائيـاً**\
+                \n** ⎉╎السـبب:** لقد اختار خيار الطلب ولكنه لم ينتظر وتم حظره تلقائيـاً 🥲😹."
+    sqllist.rm_from_list("pmrequest", chat.id)
+    try:
+        if BOTLOG_CHATID:
+            return await event.client.send_message(
+                BOTLOG_CHATID,
+                the_message,
+            )
+    except BaseException:
+        return
+
+
+async def do_pm_chat_action(event, chat):
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except AttributeError:
+        PM_WARNS = {}
+    try:
+        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except AttributeError:
+        PMMESSAGE_CACHE = {}
+    if str(chat.id) not in PM_WARNS:
+        text = "**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌\n⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..\n⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷**"
+        await event.reply(text)
+        PM_WARNS[str(chat.id)] = 1
+        sql.del_collection("pmwarns")
+        sql.add_collection("pmwarns", PM_WARNS, {})
+        return None
+    del PM_WARNS[str(chat.id)]
+    sql.del_collection("pmwarns")
+    sql.add_collection("pmwarns", PM_WARNS, {})
+    try:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+            del PMMESSAGE_CACHE[str(chat.id)]
+    except Exception as e:
+        LOGS.info(str(e))
+    sql.del_collection("pmmessagecache")
+    sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+    USER_BOT_WARN_ZERO = "**⤶ لقـد حـذرتــڪ مـسـبـقـاً مـن تـڪـرار الـرسـائـل ...📵**\n**⤶ تـم حـظـرڪ تلقـائيـاً 🚷** \n**⤶ الـى ان يـاتـي مـالـڪ الـحـسـاب 😕**"
+
+    await event.reply(USER_BOT_WARN_ZERO)
+    await event.client(functions.contacts.BlockRequest(chat.id))
+    the_message = f"#حمـايـة_الخـاص\
+                \n** ⎉╎المستخـدم** [{get_display_name(chat)}](tg://user?id={chat.id}) .\
+                \n** ⎉╎تم حظـره .. تلقائيـاً**\
+                \n** ⎉╎السـبب:** لقد اختار خيار الدردشـه مع المالك ولكنه لم ينتظر وتم حظره تلقائيـاً 🥲😹."
+    sqllist.rm_from_list("pmchat", chat.id)
+    try:
+        if BOTLOG_CHATID:
+            return await event.client.send_message(
+                BOTLOG_CHATID,
+                the_message,
+            )
+    except BaseException:
+        return
 
 async def do_pm_enquire_action(event, chat):
     try:
