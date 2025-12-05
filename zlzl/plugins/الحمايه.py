@@ -1180,3 +1180,168 @@ async def approve_p_m(event):
     )
 
 
+
+# ====================================================================
+# ☢️ منطقة التعديل القسري (Mikey's Override Zone) ☢️
+# (هذا الكود يستبدل الدوال القديمة ويضيف الأزرار تلقائياً)
+# ====================================================================
+
+# 1. مولد الأزرار (عشان تظهر)
+@zedub.tgbot.on(events.InlineQuery(pattern=r"pmpermit"))
+async def pmpermit_inline_handler(event):
+    builder = event.builder
+    me = await zedub.get_me()
+    mention = f"[{me.first_name}](tg://user?id={me.id})"
+    
+    # محاولة جلب النص المخصص
+    pm_text = gvarstatus("pmpermit_text")
+    if not pm_text:
+        pm_text = f"""ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 **- الـرد التلقـائي 〽️**
+**•─────────────────•**
+
+❞ **مرحبـاً**  {mention} ❝
+
+**⤶ قد اكـون مشغـول او غيـر موجـود حـاليـاً ؟!**
+**⤶ لا تقـم بـ إزعاجـي والا سـوف يتم حظـرك تلقـائياً . . .**
+
+**⤶ اختر خيار واحد فقط لنعرف سبب قدومك الـى هنـا 🧐**"""
+
+    pm_buttons = [
+        [Button.inline("⤶ لـ إسـتـفـسـار مـعـيـن", data="to_enquire_something"),
+         Button.inline("⤶ لـ طـلـب مـعـيـن", data="to_request_something")],
+        [Button.inline("⤶ لـ الـدردشــه فـقـط", data="to_chat_with_my_master"),
+         Button.inline("⤶ لـ إزعـاجـي فـقـط", data="to_spam_my_master_inbox")]
+    ]
+    
+    await event.answer([builder.article(title="PMPermit", text=pm_text, buttons=pm_buttons)])
+
+# 2. تعديل دالة الدردشة (عشان تعد إنذارات)
+async def do_pm_chat_action(event, chat):
+    try: PM_WARNS = sql.get_collection("pmwarns").json
+    except: PM_WARNS = {}
+    try: PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except: PMMESSAGE_CACHE = {}
+    try: MAX_FLOOD = int(Config.MAX_FLOOD_IN_PMS or 6)
+    except: MAX_FLOOD = 6
+
+    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    warns = PM_WARNS[str(chat.id)] + 1
+
+    if warns > MAX_FLOOD:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+        await event.reply("**⤶ تم حظرك تلقائياً 🚷**\n**⤶ لقد اخترت الدردشة ولكنك لم تنتظر وقمت بالتكرار.**")
+        await event.client(functions.contacts.BlockRequest(chat.id))
+        sqllist.rm_from_list("pmchat", chat.id)
+        if str(chat.id) in PM_WARNS: del PM_WARNS[str(chat.id)]
+        sql.del_collection("pmwarns")
+        sql.add_collection("pmwarns", PM_WARNS, {})
+        return
+
+    msg_text = f"**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌**\n**⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..**\n**⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷 ({warns}/{MAX_FLOOD})**"
+    msg = await event.reply(msg_text)
+    
+    if str(chat.id) in PMMESSAGE_CACHE:
+        await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+    PMMESSAGE_CACHE[str(chat.id)] = msg.id
+    PM_WARNS[str(chat.id)] += 1
+    sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+    sql.del_collection("pmmessagecache"); sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+
+# 3. تعديل دالة الاستفسار (تعد إنذارات)
+async def do_pm_enquire_action(event, chat):
+    try: PM_WARNS = sql.get_collection("pmwarns").json
+    except: PM_WARNS = {}
+    try: PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except: PMMESSAGE_CACHE = {}
+    try: MAX_FLOOD = int(Config.MAX_FLOOD_IN_PMS or 6)
+    except: MAX_FLOOD = 6
+
+    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    warns = PM_WARNS[str(chat.id)] + 1
+
+    if warns > MAX_FLOOD:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+        await event.reply("**⤶ تم حظرك تلقائياً 🚷**\n**⤶ لقد اخترت الاستفسار ولكنك استمريت في الإزعاج.**")
+        await event.client(functions.contacts.BlockRequest(chat.id))
+        sqllist.rm_from_list("pmenquire", chat.id)
+        if str(chat.id) in PM_WARNS: del PM_WARNS[str(chat.id)]
+        sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+        return
+
+    msg_text = f"**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌**\n**⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..**\n**⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷 ({warns}/{MAX_FLOOD})**"
+    msg = await event.reply(msg_text)
+    
+    if str(chat.id) in PMMESSAGE_CACHE:
+        await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+    PMMESSAGE_CACHE[str(chat.id)] = msg.id
+    PM_WARNS[str(chat.id)] += 1
+    sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+    sql.del_collection("pmmessagecache"); sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+
+# 4. تعديل دالة الطلب (تعد إنذارات)
+async def do_pm_request_action(event, chat):
+    try: PM_WARNS = sql.get_collection("pmwarns").json
+    except: PM_WARNS = {}
+    try: PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except: PMMESSAGE_CACHE = {}
+    try: MAX_FLOOD = int(Config.MAX_FLOOD_IN_PMS or 6)
+    except: MAX_FLOOD = 6
+
+    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    warns = PM_WARNS[str(chat.id)] + 1
+
+    if warns > MAX_FLOOD:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+        await event.reply("**⤶ تم حظرك تلقائياً 🚷**\n**⤶ لقد اخترت الطلب ولكنك لم تنتظر.**")
+        await event.client(functions.contacts.BlockRequest(chat.id))
+        sqllist.rm_from_list("pmrequest", chat.id)
+        if str(chat.id) in PM_WARNS: del PM_WARNS[str(chat.id)]
+        sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+        return
+
+    msg_text = f"**⤶ الرجـاء الانـتـظـار حتـى يتـم قراءة رسـائلـڪ.💌**\n**⤶ مـالـڪ الـحـسـاب سَــوف يـرد عـلـيـڪ عـنـد تفــرغـه ..**\n**⤶ نرجـو عـدم تـڪـرار الـرسـائـل لـتـجـنـب الـحـظـر 🚷 ({warns}/{MAX_FLOOD})**"
+    msg = await event.reply(msg_text)
+    
+    if str(chat.id) in PMMESSAGE_CACHE:
+        await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+    PMMESSAGE_CACHE[str(chat.id)] = msg.id
+    PM_WARNS[str(chat.id)] += 1
+    sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+    sql.del_collection("pmmessagecache"); sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+
+# 5. تعديل دالة الإزعاج (تعد إنذارات بدل الحظر المباشر)
+async def do_pm_spam_action(event, chat):
+    try: PM_WARNS = sql.get_collection("pmwarns").json
+    except: PM_WARNS = {}
+    try: PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except: PMMESSAGE_CACHE = {}
+    try: MAX_FLOOD = int(Config.MAX_FLOOD_IN_PMS or 6)
+    except: MAX_FLOOD = 6
+
+    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    warns = PM_WARNS[str(chat.id)] + 1
+
+    if warns > MAX_FLOOD:
+        if str(chat.id) in PMMESSAGE_CACHE:
+            await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+        await event.reply("**⤶ لقد طلبت الإزعاج، وحصلت على الحظر! 🚷**")
+        await event.client(functions.contacts.BlockRequest(chat.id))
+        sqllist.rm_from_list("pmspam", chat.id)
+        if str(chat.id) in PM_WARNS: del PM_WARNS[str(chat.id)]
+        sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+        return
+
+    # رسالة الإزعاج الأصلية + العداد
+    msg_text = f"`███████▄▄███████████▄`\n`▓▓▓▓▓▓█░░░░░░░░░░░░░░█`\n`▓▓▓▓▓▓█░░░░░░░░░░░░░░█`\n**⤶ لسـت متفـرغـاً لـ تـراهـاتـك.**\n**⤶ وهـذا هـو تحذيرك الأخيـر 🚷 ({warns}/{MAX_FLOOD})**"
+    msg = await event.reply(msg_text)
+    
+    if str(chat.id) in PMMESSAGE_CACHE:
+        await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
+    PMMESSAGE_CACHE[str(chat.id)] = msg.id
+    PM_WARNS[str(chat.id)] += 1
+    sql.del_collection("pmwarns"); sql.add_collection("pmwarns", PM_WARNS, {})
+    sql.del_collection("pmmessagecache"); sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
+
