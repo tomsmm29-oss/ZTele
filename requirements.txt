@@ -78,3 +78,5 @@ youtube-search
 youtube_dl
 yt-dlp
 flask
+shazamio
+ffmpeg-python
