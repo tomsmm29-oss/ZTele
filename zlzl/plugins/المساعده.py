@@ -3,15 +3,29 @@ import re
 from telethon import Button, events
 from telethon.events import CallbackQuery
 
-# تصحيح المسار: بدل zthon بقت النقطة (.)
-from . import zedub 
-
+# --- تصحيح المسارات ---
+from . import zedub
 from ..Config import Config
 from . import mention
 
-# تصحيح مسار الكور: في الجديد الحاجات دي اتنقلت لـ managers
-# (ملحوظة: pool مبقاش ليه استخدام قوي، و check_owner هتدور عليها هنا)
+# استيراد الأساسيات الموجودة
 from ..core.managers import edit_or_reply, edit_delete
+
+# --- "الترقيعة" بتاعة مايكي عشان الـ 4000 سطر يشتغلوا ---
+# بما إن check_owner مش لاقيينها، هنكتبها هنا
+async def check_owner(event):
+    # الدالة دي بتشوف لو اللي داس ع الزرار هو صاحب البوت ولا لأ
+    if event.query.user_id == event.client.uid:
+        return True
+    
+    # لو واحد متطفل داس، بنديله الرسالة دي
+    await event.answer("مش بتاعك يا بابا، روح العب بعيد! 🖕", cache_time=0, alert=True)
+    return False
+
+# تعريف pool بـ None عشان لو طلبه ميعملش Error
+pool = None
+
+
 
 
 
