@@ -4,19 +4,26 @@ import os
 import random
 import re
 import time
+from pathlib import Path
 from uuid import uuid4
-from platform import python_version
-from telethon import Button, types, version
+
+from telethon import Button, types
 from telethon.errors import QueryIdInvalidError
 from telethon.events import CallbackQuery, InlineQuery
 from youtubesearchpython import VideosSearch
-from zlzl import zedub, zedversion, StartTime
+
+from zthon import zedub
+
 from ..Config import Config
-from ..helpers.functions import rand_key, zedalive, check_data_base_heal_th, get_readable_time
-from ..helpers.functions.utube import download_button, get_yt_video_id, get_ytthumb, result_formatter, ytsearch_data
-from ..plugins import mention
+from ..helpers.functions import rand_key
+from ..helpers.functions.utube import (
+    download_button,
+    get_yt_video_id,
+    get_ytthumb,
+    result_formatter,
+    ytsearch_data,
+)
 from ..sql_helper.globals import gvarstatus
-from . import CMD_INFO, GRP_INFO, PLG_INFO, check_owner
 from .logger import logging
 
 LOGS = logging.getLogger(__name__)
@@ -25,16 +32,11 @@ BTN_URL_REGEX = re.compile(r"(\[([^\[]+?)\]\<buttonurl:(?:/{0,2})(.+?)(:same)?\>
 MEDIA_PATH_REGEX = re.compile(r"(:?\<\bmedia:(:?(?:.*?)+)\>)")
 tr = Config.COMMAND_HAND_LER
 
-def getkey(val):
-    for key, value in GRP_INFO.items():
-        for plugin in value:
-            if val == plugin:
-                return key
-    return None
 
 def get_thumb(name):
     url = f"https://github.com/TgCatUB/CatUserbot-Resources/blob/master/Resources/Inline/{name}?raw=true"
     return types.InputWebDocument(url=url, size=0, mime_type="image/png", attributes=[])
+
 
 def ibuild_keyboard(buttons):
     keyb = []
@@ -44,6 +46,8 @@ def ibuild_keyboard(buttons):
         else:
             keyb.append([Button.url(btn[0], btn[1])])
     return keyb
+
+
 
 @zedub.tgbot.on(InlineQuery)
 async def inline_handler(event):  # sourcery no-metrics
@@ -58,7 +62,7 @@ async def inline_handler(event):  # sourcery no-metrics
     if query_user_id == Config.OWNER_ID or query_user_id in Config.SUDO_USERS:
         hmm = re.compile("troll (.*) (.*)")
         match = re.findall(hmm, query)
-        inf = re.compile("seccret (.*) (.*)")
+        inf = re.compile("secret (.*) (.*)")
         match2 = re.findall(inf, query)
         hid = re.compile("hide (.*)")
         match3 = re.findall(hid, query)
@@ -95,7 +99,7 @@ async def inline_handler(event):  # sourcery no-metrics
                     user_list.append(u.id)
                     sandy += " "
                 sandy = sandy[:-1]
-            old_msg = os.path.join("./zlzl", f"{info_type[0]}.txt")
+            old_msg = os.path.join("./zthon", f"{info_type[0]}.txt")
             try:
                 jsondata = json.load(open(old_msg))
             except Exception:
@@ -192,13 +196,92 @@ async def inline_handler(event):  # sourcery no-metrics
                         )
                     ]
                 )
+        elif string == "":
+            results = []
+            results.append(
+                builder.article(
+                    title="Hide",
+                    description="Send hidden text in chat.\nSyntax: hide",
+                    text="__Send hidden message for spoilers/quote prevention.__",
+                    thumb=get_thumb("hide.png"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Hidden Text", query="hide Text", same_peer=True
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Search",
+                    description="Search cmds & plugins\nSyntax: s",
+                    text="__Get help about a plugin or cmd.\n\nMixture of .help & .s__",
+                    thumb=get_thumb("search.jpg"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Search Help", query="s al", same_peer=True
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Secret",
+                    description="Send secret message to your friends.\nSyntax: secret @usename",
+                    text="__Send **secret message** which only you & the reciever can see.\n\nFor multiple users give space to username & use **|** to seperate text.__",
+                    thumb=get_thumb("secret.png"),
+                    buttons=[
+                        (
+                            Button.switch_inline(
+                                "Single", query="secret @username Text", same_peer=True
+                            ),
+                            Button.switch_inline(
+                                "Multiple",
+                                query="secret @username @username2 | Text",
+                                same_peer=True,
+                            ),
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Troll",
+                    description="Send troll message to your friends.\nSyntax: toll @usename",
+                    text="__Send **troll message** which everyone can see except the reciever.\n\nFor multiple users give space to username & use **|** to seperate text.__",
+                    thumb=get_thumb("troll.png"),
+                    buttons=[
+                        (
+                            Button.switch_inline(
+                                "Single", query="troll @username Text", same_peer=True
+                            ),
+                            Button.switch_inline(
+                                "Multiple",
+                                query="troll @username @username2 | Text",
+                                same_peer=True,
+                            ),
+                        )
+                    ],
+                ),
+            )
+            results.append(
+                builder.article(
+                    title="Youtube Download",
+                    description="Download videos/audios from YouTube.\nSyntax: ytdl",
+                    text="__Download videos or audios from YouTube with different options of resolutions/quality.__",
+                    thumb=get_thumb("youtube.png"),
+                    buttons=[
+                        Button.switch_inline(
+                            "Youtube-dl", query="ytdl perfect", same_peer=True
+                        )
+                    ],
+                ),
+            )
+            await event.answer(results)
         elif string == "pmpermit":
-            controlpmch = gvarstatus("pmchannel") or None
-            if controlpmch is not None:
-                zchannel = controlpmch.replace("@", "")
-                buttons = [[Button.url("⌔ قنـاتـي ⌔", f"https://t.me/{zchannel}")]]
-            else:
-                buttons = [[Button.url("𝗭𝗧𝗵𝗼𝗻", "https://t.me/ZThon")]]
+            buttons = [
+                Button.inline(text="عـرض الخيـارات", data="show_pmpermit_options"),
+            ]
             PM_PIC = gvarstatus("pmpermit_pic")
             if PM_PIC:
                 CAT = [x for x in PM_PIC.split()]
@@ -228,3 +311,33 @@ async def inline_handler(event):  # sourcery no-metrics
                     buttons=buttons,
                 )
             await event.answer([result] if result else None)
+    else:
+        buttons = [
+            (
+                Button.url("قنـاة السـورس", "https://t.me/ZedThon"),
+                Button.url(
+                    "مطـور السـورس",
+                    "https://t.me/zzzzl1l",
+                ),
+            )
+        ]
+        markup = event.client.build_reply_markup(buttons)
+        photo = types.InputWebDocument(
+            url=ZEDLOGO, size=0, mime_type="image/jpeg", attributes=[]
+        )
+        text, msg_entities = await event.client._parse_message_text(
+            "𝗗𝗲𝗽𝗹𝗼𝘆 𝘆𝗼𝘂𝗿 𝗼𝘄𝗻 𝗭𝗧𝗵𝗼𝗻.", "md"
+        )
+        result = types.InputBotInlineResult(
+            id=str(uuid4()),
+            type="photo",
+            title="𝗭𝗧𝗵𝗼𝗻 𓅛",
+            description="روابـط التنصـيب",
+            url="https://t.me/ZedThon/105",
+            thumb=photo,
+            content=photo,
+            send_message=types.InputBotInlineMessageMediaAuto(
+                reply_markup=markup, message=text, entities=msg_entities
+            ),
+        )
+        await event.answer([result] if result else None)
