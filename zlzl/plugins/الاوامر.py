@@ -9,6 +9,45 @@ import time
 from uuid import uuid4
 import sys
 import asyncio
+# ---------------------------------------------------------
+# ده الكود النضيف "الديناميكي" يا ريس
+# انسخ ده وحطه تحت الاستيرادات مباشرة
+# ---------------------------------------------------------
+
+from ..Config import Config
+
+# بنعرف المتغير ده عشان لو الملف بيستخدمه تحت
+USERID = Config.OWNER_ID or zedub.uid
+
+def check_owner(event):
+    """
+    دالة التحقق الذكية: بتسحب الأيدي من فار (OWNER_ID) في ريندر
+    يعني هتشتغل عند أي حد ينصب السورس ويبقى هو المدير أوتوماتيك
+    """
+    try:
+        # بنحدد مين اللي باعت الأمر (سواء رسالة عادية أو زرار)
+        sender_id = event.sender_id
+        
+        # تصليح عشان لو الأمر جاي من زرار (CallbackQuery)
+        if hasattr(event, 'query') and event.query:
+            sender_id = event.query.user_id
+        
+        # المقارنة بمتغيرات ريندر (Config)
+        # 1. هل هو الاونر الاساسي؟ (OWNER_ID)
+        if sender_id == Config.OWNER_ID:
+            return True
+            
+        # 2. هل هو من المطورين المساعدين؟ (SUDO_USERS)
+        if sender_id in Config.SUDO_USERS:
+            return True
+            
+    except Exception:
+        # لو حصل أي "قفلة" اعتبره مش المالك وريح دماغك
+        pass
+    
+    return False
+
+# ---------------------------------------------------------
 from validators.url import url
 from subprocess import run as runapp
 from datetime import datetime
