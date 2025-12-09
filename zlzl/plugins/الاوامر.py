@@ -1,10 +1,3 @@
-# ZedThon - zthon
-# Copyright (C) 2022 ZedThon . All Rights Reserved
-#< https://t.me/ZedThon >
-# This file is a part of < https://github.com/Zed-Thon/ZelZal/ >
-# PLease read the GNU Affero General Public License in
-# <https://www.github.com/Zed-Thon/ZelZal/blob/master/LICENSE/>.
-
 import json
 import math
 import os
@@ -19,28 +12,26 @@ import asyncio
 from validators.url import url
 from subprocess import run as runapp
 from datetime import datetime
-from pySmartDL import SmartDL
 from pathlib import Path
 from platform import python_version
-from telethon import Button, functions, events ,types, version
+from telethon import Button, functions, events, types, version
 from telethon.errors import QueryIdInvalidError
 from telethon.events import CallbackQuery, InlineQuery
 from telethon.utils import get_display_name
-from telethon.tl.types import InputMessagesFilterDocument
-from zthon import StartTime, zedub, zedversion
+from telethon.tl.types import InputMessagesFilterDocument, MessageEntityMentionName
+
+# --- استيرادات السورس والمسارات ---
+from . import StartTime, zedub, zedversion
 from ..Config import Config
 from ..helpers.functions import rand_key
-from ..core import check_owner, pool
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from ..helpers.utils import reply_id, get_user_from_event, _format
 from ..helpers.tools import media_type
 from . import media_type, progress
 from ..utils import load_module, remove_plugin
 from ..sql_helper.global_collection import add_to_collectionlist, del_keyword_collectionlist, get_collectionlist_items
-from . import SUDO_LIST, edit_delete, edit_or_reply, reply_id, BOTLOG, BOTLOG_CHATID, HEROKU_APP, mention
-
+from . import SUDO_LIST, BOTLOG, BOTLOG_CHATID, HEROKU_APP, mention
 
 LOGS = logging.getLogger(os.path.basename(__name__))
 LOGS1 = logging.getLogger(__name__)
