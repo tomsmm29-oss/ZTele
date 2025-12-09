@@ -1,6 +1,7 @@
-# Zed-Thon - ZelZal (Global Admin "The Massacre" Edition 2025 by Mikey)
-# Fixed: Real Execution using InputPeers, FloodWait Handled, Kick Fixed
-# Visuals: 100% Original "Fakhama" preserved
+# Zed-Thon - ZelZal (Global Admin Fixed for ZTele 2025 by Mikey)
+# Based on Reves/Zedthon logic, Refined for Modern Telethon
+# Fixed: Kick logic, FloodWait, Imports, SQL Mocking
+# Visuals: 100% Zedthon Fakhama
 
 import asyncio
 import contextlib
@@ -11,29 +12,29 @@ from telethon.tl.functions.channels import EditBannedRequest
 from telethon.tl.types import ChatBannedRights
 from telethon.utils import get_display_name
 
-# --- تصحيح المسارات (Relative Imports) ---
+# --- تصحيح المسارات ---
 from . import zedub
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import _format, get_user_from_event
 
-# محاولة استدعاء SQL، لو مش موجود نتخطاه (Mocking)
+# محاولة استدعاء SQL (مع Mocking للحماية)
 try:
-    from ..sql_helper import gban_sql_helper as gban_sql
-    from ..sql_helper.mute_sql import is_muted, mute, unmute
     from ..sql_helper.globals import addgvar, delgvar, gvarstatus
+    from ..sql_helper.mute_sql import is_muted, mute, unmute
+    from ..sql_helper import gban_sql_helper as gban_sql
 except ImportError:
-    # دوال وهمية عشان الملف ما يضربش لو الـ SQL ناقص
+    # دوال وهمية
     def gvarstatus(val): return None
-    class MockSQL:
+    def is_muted(id, t): return False
+    def mute(id, t): pass
+    def unmute(id, t): pass
+    class MockGban:
         def is_gbanned(self, id): return False
         def zedgban(self, id, r): pass
         def catungban(self, id): pass
         def get_all_gbanned(self): return []
-    gban_sql = MockSQL()
-    def is_muted(id, t): return False
-    def mute(id, t): pass
-    def unmute(id, t): pass
+    gban_sql = MockGban()
 
 try:
     from . import BOTLOG, BOTLOG_CHATID
@@ -41,20 +42,17 @@ except ImportError:
     BOTLOG = False
     BOTLOG_CHATID = None
 
-# --- دالة جلب المجموعات (المحرك النووي) ---
-# دي الدالة اللي بتخلي الحظر يشتغل بجد، لأنها بتجيب الكيان كامل
+# دالة لجلب المجموعات التي أنت مشرف فيها (بديلة لـ admin_groups المفقودة)
 async def admin_groups(client):
     ag = []
-    # بنلف على الحوارات المفتوحة عشان نضمن إن الكيان موجود في الكاش
     async for dialog in client.iter_dialogs():
         if dialog.is_group or dialog.is_channel:
             if dialog.is_admin or dialog.is_creator:
-                ag.append(dialog) # بنحفظ الحوار كله مش بس الايدي
+                ag.append(dialog) # نحفظ الحوار كاملاً للاستخدام كـ InputEntity
     return ag
 
 plugin_category = "الادمن"
 
-# إعدادات الحقوق (زي ما هي)
 BANNED_RIGHTS = ChatBannedRights(
     until_date=None,
     view_messages=True,
@@ -78,8 +76,8 @@ UNBAN_RIGHTS = ChatBannedRights(
     embed_links=None,
 )
 
-# قائمة المطورين (تم إضافة ايديك يا وحش)
-zel_dev = [6301863282, 6556390631, 5176749470, 5426390871, 8241311871]
+# قائمة المطورين (تم تحديثها بايديك)
+zel_dev = [8241311871, 1895219306, 925972505]
 KTMZ = gvarstatus("Z_KTM") or "كتم"
 
 
@@ -99,13 +97,12 @@ async def zedgban(event):
     user, reason = await get_user_from_event(event, zede)
     if not user:
         return
-    # حماية نفسك والمطورين
-    if user.id == (await event.client.get_me()).id:
+        
+    me_id = (await event.client.get_me()).id
+    if user.id == me_id:
         return await edit_delete(zede, "**⎉╎عـذراً ..لا استطيـع حظـࢪ نفسـي **")
     if user.id in zel_dev:
         return await edit_delete(zede, "**⎉╎عـذراً ..لا استطيـع حظـࢪ احـد المطـورين عـام **")
-    if user.id in [5257802172, 6301863282, 6556390631]:
-        return await edit_delete(zede, "**⎉╎عـذراً ..لا استطيـع حظـࢪ مطـور السـورس عـام **")
 
     if gban_sql.is_gbanned(user.id):
         await zede.edit(
@@ -113,42 +110,39 @@ async def zedgban(event):
         )
     else:
         gban_sql.zedgban(user.id, reason)
-    
-    # جلب المجموعات الحقيقية
+        
     san = await admin_groups(event.client)
     count = 0
     sandy = len(san)
     if sandy == 0:
         return await edit_delete(zede, "**⎉╎عــذراً .. يجـب ان تكــون مشـرفـاً فـي مجموعـة واحـده ع الأقــل **")
-    
+        
     await zede.edit(
         f"**⎉╎جـاري بـدء حظـر ↠** [{user.first_name}](tg://user?id={user.id}) **\n\n**⎉╎مـن ↠ {len(san)} كــروب**"
     )
     
     for dialog in san:
         try:
-            # التنفيذ الحقيقي باستخدام input_entity
+            # استخدام input_entity لضمان التنفيذ
             await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
             await asyncio.sleep(0.5)
             count += 1
         except FloodWaitError as e:
-            # لو التليجرام قال استنى، بنستنى ونكمل دعس
             await asyncio.sleep(e.seconds + 1)
             try:
                 await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
                 count += 1
             except: pass
         except BadRequestError:
-            # لو مفيش صلاحية، بنبلغ في اللوج بس
             try:
                 if BOTLOG_CHATID:
                     await event.client.send_message(
                         BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.name}(`{dialog.id}`)",
+                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
                     )
             except: pass
         except Exception: pass
-
+            
     end = datetime.now()
     zedtaken = (end - start).seconds
     if reason:
@@ -225,7 +219,7 @@ async def zedungban(event):
                 if BOTLOG_CHATID:
                     await event.client.send_message(
                         BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.name}(`{dialog.id}`)",
+                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
                     )
             except: pass
             
@@ -263,12 +257,9 @@ async def gablist(event):
     GBANNED_LIST = "- قائمـة المحظـورين عــام :\n\n"
     if len(gbanned_users) > 0:
         for a_user in gbanned_users:
-            if a_user.reason:
-                GBANNED_LIST += f"**⎉╎المستخـدم :**  [{a_user.chat_id}](tg://user?id={a_user.chat_id}) \n**⎉╎سـبب الحظـر : {a_user.reason} ** \n\n"
-            else:
-                GBANNED_LIST += (
-                    f"**⎉╎المستخـدم :**  [{a_user.chat_id}](tg://user?id={a_user.chat_id}) \n**⎉╎سـبب الحظـر : لا يـوجـد ** \n\n"
-                )
+            reason_txt = a_user.reason if hasattr(a_user, 'reason') and a_user.reason else "لا يـوجـد"
+            chat_id_txt = a_user.chat_id if hasattr(a_user, 'chat_id') else "Unknown"
+            GBANNED_LIST += f"**⎉╎المستخـدم :**  [{chat_id_txt}](tg://user?id={chat_id_txt}) \n**⎉╎سـبب الحظـر : {reason_txt} ** \n\n"
     else:
         GBANNED_LIST = "**- لايــوجـد محظــورين عــام بعــد**"
     await edit_or_reply(event, GBANNED_LIST)
@@ -284,12 +275,11 @@ async def startgmute(event):
         user, reason = await get_user_from_event(event)
         if not user:
             return
-        if user.id == (await event.client.get_me()).id:
+        me_id = (await event.client.get_me()).id
+        if user.id == me_id:
             return await edit_or_reply(event, "**- عــذࢪاً .. لايمكــنك كتــم نفســك ؟!**")
         if user.id in zel_dev:
             return await edit_or_reply(event, "**- عــذࢪاً .. لايمكــنك كتــم احـد المطـورين ؟!**")
-        if user.id in [5257802172, 6301863282, 6556390631]:
-            return await edit_or_reply(event, "**- عــذࢪاً .. لايمكــنك كتــم مطـور السـورس ؟!**")
         userid = user.id
         
     try:
@@ -336,7 +326,8 @@ async def endgmute(event):
         user, reason = await get_user_from_event(event)
         if not user:
             return
-        if user.id == (await event.client.get_me()).id:
+        me_id = (await event.client.get_me()).id
+        if user.id == me_id:
             return await edit_or_reply(event, "**- عــذࢪاً .. انت غيـر مكتـوم يامطــي ؟!**")
         userid = user.id
     try:
@@ -390,13 +381,12 @@ async def catgkick(event):
     user, reason = await get_user_from_event(event, zede)
     if not user:
         return
-    if user.id == (await event.client.get_me()).id:
+    me_id = (await event.client.get_me()).id
+    if user.id == me_id:
         return await edit_delete(zede, "**╮ ❐ ... عــذراً لا استطــيع طــرد نفســي ... ❏╰**")
     if user.id in zel_dev:
         return await edit_delete(zede, "**╮ ❐ ... عــذࢪاً .. لا استطــيع طــرد المطـورين ... ❏╰**")
-    if user.id in [5257802172, 6301863282, 6556390631]:
-        return await edit_delete(zede, "**╮ ❐ ... عــذࢪاً .. لا استطــيع طــرد مطـور السـورس ... ❏╰**")
-        
+    
     san = await admin_groups(event.client)
     count = 0
     sandy = len(san)
@@ -407,7 +397,7 @@ async def catgkick(event):
     )
     for dialog in san:
         try:
-            # حيلة الطرد: حظر ثم إلغاء حظر فوراً
+            # حيلة الطرد: حظر ثم إلغاء حظر فوراً (أضمن من kick_participant)
             await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
             await asyncio.sleep(0.5)
             await event.client(EditBannedRequest(dialog.input_entity, user.id, UNBAN_RIGHTS))
@@ -425,7 +415,7 @@ async def catgkick(event):
                 if BOTLOG_CHATID:
                     await event.client.send_message(
                         BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.name}(`{dialog.id}`)",
+                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
                     )
             except: pass
         except Exception: pass
