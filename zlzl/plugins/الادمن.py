@@ -67,6 +67,8 @@ UNBAN_RIGHTS = ChatBannedRights(
 LOGS = logging.getLogger(__name__)
 MUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=True)
 UNMUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=False)
+
+# تم زرع الآيدي هنا في قائمة المطورين
 zel_dev = (5176749470, 8241311871)
 
 plugin_category = "الادمن"
@@ -458,19 +460,15 @@ async def startmute(event):
         except Exception as e:
             return await edit_or_reply(event, f"**- خطــأ : **`{e}`")
         if reason:
-            await event.client.send_file(
-                event.chat_id,
-                KTM_IMG,
-                caption=f"**⎉╎المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**⎉╎تم كتمـه بنجـاح ☑️**\n\n**⎉╎السـبب :** {reason}",
+            await edit_or_reply(
+                event,
+                f"**⎉╎المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**⎉╎تم كتمـه بنجـاح ☑️**\n\n**⎉╎السـبب :** {reason}",
             )
-            await event.delete()
         else:
-            await event.client.send_file(
-                event.chat_id,
-                KTM_IMG,
-                caption=f"**⎉╎المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**⎉╎تم كتمـه بنجـاح ☑️**\n\n",
+            await edit_or_reply(
+                event,
+                f"**⎉╎المستخـدم :** {_format.mentionuser(user.first_name ,user.id)}  \n**⎉╎تم كتمـه بنجـاح ☑️**\n\n",
             )
-            await event.delete()
         if BOTLOG:
             await event.client.send_message(
                 BOTLOG_CHATID,
