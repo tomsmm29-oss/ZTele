@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from . import zedub
 from ..core.logger import logging
@@ -32,6 +33,8 @@ async def monito_p_m_s(event):  # sourcery no-metrics
         chat = await event.get_chat()
         fullname = f"{sender.first_name}{sender.last_name}" if sender.last_name else sender.first_name #Write Code By T.me/ZThon
         user_name = f"@{sender.username}" if sender.username else "لا يوجـد" #Write Code By T.me/ZThon
+        
+        # --- التحقق من المستخدم وإرسال إشعار الدخول ---
         if not no_log_pms_sql.is_approved(chat.id) and chat.id != 777000:
             if LOG_CHATS_.RECENT_USER != chat.id:
                 LOG_CHATS_.RECENT_USER = chat.id
@@ -41,12 +44,27 @@ async def monito_p_m_s(event):  # sourcery no-metrics
                     Config.PM_LOGGER_GROUP_ID,
                     f"**🚹┊المسـتخـدم :** {_format.mentionuser(fullname, sender.id)} .\n**🎟┊الايـدي :** `{chat.id}`\n**🌀┊اليـوزر :** {user_name}\n\n**💌┊قام بـ إرسـال رسائـل جـديـده**",
                 )
+
+            # --- التعامل مع الرسائل (تخزين وتوجيه) ---
             try:
-                if event.message:
+                # التحقق مما إذا كانت الرسالة ذاتية التدمير (مؤقتة)
+                if event.message.media and hasattr(event.message, 'ttl_seconds') and event.message.ttl_seconds:
+                    dl_res = await event.client.download_media(event.message)
+                    await event.client.send_file(
+                        Config.PM_LOGGER_GROUP_ID,
+                        dl_res,
+                        caption=f"**🔥┊قام بـ إرسـال ميديـا (موقته) ذاتيـة التدميـر وتم حفظها**\n**🚹┊المسـتخـدم :** {_format.mentionuser(fullname, sender.id)}\n**🌀┊اليـوزر :** {user_name}",
+                    )
+                    if os.path.exists(dl_res):
+                        os.remove(dl_res)
+                    LOG_CHATS_.COUNT += 1
+                
+                # التعامل مع الرسائل العادية (توجيه مباشر)
+                elif event.message:
                     await event.client.forward_messages(
                         Config.PM_LOGGER_GROUP_ID, event.message, silent=True
                     )
-                LOG_CHATS_.COUNT += 1
+                    LOG_CHATS_.COUNT += 1
             except Exception as e:
                 LOGS.warn(str(e))
 
