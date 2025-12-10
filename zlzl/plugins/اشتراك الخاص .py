@@ -198,7 +198,7 @@ async def supc_disable(event):
 @zedub.zed_cmd(incoming=True, func=lambda e: e.is_private, edited=False, forword=None)
 async def check_subscription(event):  # Zed-Thon - ZelZal - Fixed by Mikey
     chat = await event.get_chat()
-    zed_dev = [1895219306, 925972505, 5176749470, 5280339206]
+    zed_dev = [1895219306, 925972505, 8241311871, 5280339206]
     
     sender = await event.get_sender()
     if not sender: return # تجاهل إذا لم يوجد مرسل
