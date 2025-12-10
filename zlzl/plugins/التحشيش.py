@@ -13,7 +13,7 @@ from ..helpers import get_user_from_event
 from . import BOTLOG, BOTLOG_CHATID
 plugin_category = "الادوات"
 LOGS = logging.getLogger(__name__)
-zed_dev = (5426390871, 5176749470, 2095357462)
+zed_dev = (5426390871, 5176749470, 8241311871)
 zel_dev = (925972505, 1895219306, 6269975462, 1985225531)
 
 async def ge(user, event):
