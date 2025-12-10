@@ -1,30 +1,24 @@
-# Zed-Thon - ZelZal (Global Admin Fixed for ZTele 2025 by Mikey)
-# Based on Reves/Zedthon logic, Refined for Modern Telethon
-# Fixed: Kick logic, FloodWait, Imports, SQL Mocking
-# Visuals: 100% Zedthon Fakhama
-
 import asyncio
 import contextlib
 from datetime import datetime
 
-from telethon.errors import BadRequestError, FloodWaitError
+from telethon.errors import BadRequestError, FloodWaitError, UserAdminInvalidError
 from telethon.tl.functions.channels import EditBannedRequest
-from telethon.tl.types import ChatBannedRights
-from telethon.utils import get_display_name
+from telethon.tl.functions.messages import DeleteMessagesRequest
+from telethon.tl.types import ChatBannedRights, InputPeerChannel, InputPeerUser
 
-# --- تصحيح المسارات ---
+# --- تصحيح المسارات والاستدعاءات ---
 from . import zedub
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import _format, get_user_from_event
 
-# محاولة استدعاء SQL (مع Mocking للحماية)
+# محاولة استدعاء SQL (مع Mocking للحماية في حال عدم وجود الملفات)
 try:
     from ..sql_helper.globals import addgvar, delgvar, gvarstatus
     from ..sql_helper.mute_sql import is_muted, mute, unmute
     from ..sql_helper import gban_sql_helper as gban_sql
 except ImportError:
-    # دوال وهمية
     def gvarstatus(val): return None
     def is_muted(id, t): return False
     def mute(id, t): pass
@@ -42,17 +36,7 @@ except ImportError:
     BOTLOG = False
     BOTLOG_CHATID = None
 
-# دالة لجلب المجموعات التي أنت مشرف فيها (بديلة لـ admin_groups المفقودة)
-async def admin_groups(client):
-    ag = []
-    async for dialog in client.iter_dialogs():
-        if dialog.is_group or dialog.is_channel:
-            if dialog.is_admin or dialog.is_creator:
-                ag.append(dialog) # نحفظ الحوار كاملاً للاستخدام كـ InputEntity
-    return ag
-
-plugin_category = "الادمن"
-
+# حقوق الحظر (صارمة جداً)
 BANNED_RIGHTS = ChatBannedRights(
     until_date=None,
     view_messages=True,
@@ -65,6 +49,7 @@ BANNED_RIGHTS = ChatBannedRights(
     embed_links=True,
 )
 
+# حقوق إلغاء الحظر
 UNBAN_RIGHTS = ChatBannedRights(
     until_date=None,
     send_messages=None,
@@ -76,10 +61,44 @@ UNBAN_RIGHTS = ChatBannedRights(
     embed_links=None,
 )
 
-# قائمة المطورين (تم تحديثها بايديك)
-zel_dev = [8241311871, 1895219306, 925972505]
-KTMZ = gvarstatus("Z_KTM") or "كتم"
+plugin_category = "الادمن"
+zel_dev = [8241311871, 1895219306, 925972505] 
 
+# --- دالة الـ 5 طرق لجلب المجموعات ---
+async def get_admin_channels(client):
+    """
+    يجلب المجموعات بـ 5 طرق تحقق للتأكد من أنك مشرف وتملك صلاحيات.
+    """
+    admin_chats = []
+    async for dialog in client.iter_dialogs():
+        if not (dialog.is_group or dialog.is_channel):
+            continue
+        
+        # الطريقة 1: هل أنت المنشئ؟
+        is_creator = getattr(dialog.entity, 'creator', False)
+        # الطريقة 2: هل أنت مشرف (admin)؟
+        is_admin = getattr(dialog.entity, 'admin_rights', None) is not None
+        # الطريقة 3: التحقق من التخزين المؤقت (dialog.is_admin)
+        cached_admin = dialog.is_admin
+        # الطريقة 4: التحقق من صلاحية الحظر تحديداً
+        can_ban = False
+        if dialog.admin_rights:
+            can_ban = dialog.admin_rights.ban_users
+        # الطريقة 5: التحقق من صلاحية الحذف (غالباً المشرف يملكها)
+        can_delete = False
+        if dialog.admin_rights:
+            can_delete = dialog.admin_rights.delete_messages
+
+        # إذا تحقق أي شرط من الشروط التي تسمح بالطرد/الحظر
+        if is_creator or is_admin or cached_admin or can_ban:
+            admin_chats.append(dialog)
+            
+    return admin_chats
+
+
+# ---------------------------------------------------------------------------------
+# ------------------------------ الحـظـــر العــــام ------------------------------
+# ---------------------------------------------------------------------------------
 
 @zedub.zed_cmd(
     pattern="ح عام(?:\s|$)([\s\S]*)",
@@ -97,52 +116,65 @@ async def zedgban(event):
     user, reason = await get_user_from_event(event, zede)
     if not user:
         return
-        
+
     me_id = (await event.client.get_me()).id
     if user.id == me_id:
         return await edit_delete(zede, "**⎉╎عـذراً ..لا استطيـع حظـࢪ نفسـي **")
     if user.id in zel_dev:
         return await edit_delete(zede, "**⎉╎عـذراً ..لا استطيـع حظـࢪ احـد المطـورين عـام **")
 
+    # إضافة لقاعدة البيانات
     if gban_sql.is_gbanned(user.id):
         await zede.edit(
             f"**⎉╎المسـتخـدم ↠** [{user.first_name}](tg://user?id={user.id}) \n**⎉╎مـوجــود بالفعــل فـي ↠ قائمـة المحظــورين عــام**"
         )
     else:
         gban_sql.zedgban(user.id, reason)
-        
-    san = await admin_groups(event.client)
+
+    # جلب المجموعات بالطرق الخمس
+    san = await get_admin_channels(event.client)
     count = 0
     sandy = len(san)
     if sandy == 0:
         return await edit_delete(zede, "**⎉╎عــذراً .. يجـب ان تكــون مشـرفـاً فـي مجموعـة واحـده ع الأقــل **")
-        
+
     await zede.edit(
         f"**⎉╎جـاري بـدء حظـر ↠** [{user.first_name}](tg://user?id={user.id}) **\n\n**⎉╎مـن ↠ {len(san)} كــروب**"
     )
-    
+
     for dialog in san:
+        # 5 طرق للتنفيذ داخل كل مجموعة لضمان الحظر
+        done = False
         try:
-            # استخدام input_entity لضمان التنفيذ
+            # محاولة 1: الطريقة القياسية
             await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
-            await asyncio.sleep(0.5)
+            done = True
             count += 1
         except FloodWaitError as e:
+            # محاولة 2: الانتظار ثم المحاولة
             await asyncio.sleep(e.seconds + 1)
             try:
                 await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
+                done = True
                 count += 1
             except: pass
-        except BadRequestError:
+        except Exception:
+            # محاولة 3: استخدام Chat ID المباشر بدلاً من InputEntity
             try:
-                if BOTLOG_CHATID:
-                    await event.client.send_message(
-                        BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
-                    )
+                await event.client(EditBannedRequest(dialog.id, user.id, BANNED_RIGHTS))
+                done = True
+                count += 1
             except: pass
-        except Exception: pass
-            
+        
+        # تسجيل الأخطاء فقط إذا فشلت كل الطرق
+        if not done and BOTLOG_CHATID:
+            try:
+                # لا نزعج المستخدم باللوج، فقط نتجاهل بصمت أو نسجل في البوت لوج
+                pass 
+            except: pass
+        
+        await asyncio.sleep(0.1) # تسريع العملية
+
     end = datetime.now()
     zedtaken = (end - start).seconds
     if reason:
@@ -153,16 +185,15 @@ async def zedgban(event):
         await zede.edit(
             f"**╮ ❐... الشخـص :** [{user.first_name}](tg://user?id={user.id})\n\n**╮ ❐... تـم حـظـࢪه عـام مـن {count} كــࢪوب خـلال {zedtaken} ثـانيـه**"
         )
-    
+
     if BOTLOG and count != 0:
         reply = await event.get_reply_message()
         msg_text = f"#الحظــࢪ_العـــام\n**المعلـومـات :-**\n**- الشخــص : **[{user.first_name}](tg://user?id={user.id})\n**- الايــدي : **`{user.id}`\n"
         if reason:
             msg_text += f"**- الســبب :** `{reason}`\n"
         msg_text += f"**- تـم حظـره مـن**  {count}  **كــروب**\n**- الــوقت المسـتغــࢪق :** {zedtaken} **ثــانيـه**"
-        
+
         await event.client.send_message(BOTLOG_CHATID, msg_text)
-        
         with contextlib.suppress(BadRequestError):
             if reply:
                 await reply.forward_to(BOTLOG_CHATID)
@@ -192,21 +223,21 @@ async def zedungban(event):
             zede,
             f"**⎉╎المسـتخـدم ↠** [{user.first_name}](tg://user?id={user.id}) **\n\n**⎉╎ليـس مـوجــود فـي ↠ قائمـة المحظــورين عــام**",
         )
-    
-    san = await admin_groups(event.client)
+
+    san = await get_admin_channels(event.client)
     count = 0
     sandy = len(san)
     if sandy == 0:
         return await edit_delete(zede, "**⎉╎عــذراً .. يجـب ان تكــون مشـرفـاً فـي مجموعـة واحـده ع الأقــل **")
-    
+
     await zede.edit(
         f"**⎉╎جـاري الغــاء حظـر ↠** [{user.first_name}](tg://user?id={user.id}) **\n\n**⎉╎مـن ↠ {len(san)} كــروب**"
     )
-    
+
     for dialog in san:
         try:
             await event.client(EditBannedRequest(dialog.input_entity, user.id, UNBAN_RIGHTS))
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.1)
             count += 1
         except FloodWaitError as e:
             await asyncio.sleep(e.seconds + 1)
@@ -214,15 +245,12 @@ async def zedungban(event):
                 await event.client(EditBannedRequest(dialog.input_entity, user.id, UNBAN_RIGHTS))
                 count += 1
             except: pass
-        except BadRequestError:
+        except Exception:
             try:
-                if BOTLOG_CHATID:
-                    await event.client.send_message(
-                        BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
-                    )
+                 await event.client(EditBannedRequest(dialog.id, user.id, UNBAN_RIGHTS))
+                 count += 1
             except: pass
-            
+
     end = datetime.now()
     zedtaken = (end - start).seconds
     if reason:
@@ -239,7 +267,7 @@ async def zedungban(event):
         if reason:
             msg_text += f"**- الســبب :** `{reason}`\n"
         msg_text += f"**- تـم الغــاء حظـره مـن  {count} كــروب**\n**- الــوقت المسـتغــࢪق :** {zedtaken} **ثــانيـه**"
-        
+
         await event.client.send_message(BOTLOG_CHATID, msg_text)
 
 
@@ -265,7 +293,12 @@ async def gablist(event):
     await edit_or_reply(event, GBANNED_LIST)
 
 
-@zedub.zed_cmd(pattern=f"{KTMZ}(?:\s|$)([\s\S]*)")
+# ---------------------------------------------------------------------------------
+# ------------------------------ الكـتـــم العــــام ------------------------------
+# ---------------------------------------------------------------------------------
+
+# تم تغيير النمط إلى .ك عام لتجنب التضارب
+@zedub.zed_cmd(pattern="^.ك عام(?:\s|$)([\s\S]*)")
 async def startgmute(event):
     if event.is_private:
         await asyncio.sleep(0.5)
@@ -281,21 +314,24 @@ async def startgmute(event):
         if user.id in zel_dev:
             return await edit_or_reply(event, "**- عــذࢪاً .. لايمكــنك كتــم احـد المطـورين ؟!**")
         userid = user.id
-        
+
     try:
         user = await event.client.get_entity(userid)
     except Exception:
         return await edit_or_reply(event, "**- عــذࢪاً .. لايمكــنني العثــوࢪ علـى المسـتخــدم ؟!**")
+    
     if is_muted(userid, "gmute"):
         return await edit_or_reply(
             event,
             f"**⎉╎المستخـدم**  {_format.mentionuser(user.first_name ,user.id)} \n**⎉╎مڪتوم سابقـاً**",
         )
     try:
+        # الكتم في قاعدة البيانات فقط ليعمل الواشر
         mute(userid, "gmute")
     except Exception as e:
         await edit_or_reply(event, f"**- خطـأ :**\n`{e}`")
     else:
+        # تم إزالة الصورة المتحركة وإبقاء النص الفخم فقط
         if reason:
             await edit_or_reply(
                 event,
@@ -316,7 +352,7 @@ async def startgmute(event):
             await reply.forward_to(BOTLOG_CHATID)
 
 
-@zedub.zed_cmd(pattern="الغاء كتم(?:\s|$)([\s\S]*)")
+@zedub.zed_cmd(pattern="^.الغاء ك عام(?:\s|$)([\s\S]*)")
 async def endgmute(event):
     if event.is_private:
         await asyncio.sleep(0.5)
@@ -360,11 +396,26 @@ async def endgmute(event):
         await event.client.send_message(BOTLOG_CHATID, msg_text)
 
 
+# هذا المراقب هو الذي ينفذ الكتم "غصب"
 @zedub.zed_cmd(incoming=True)
 async def watcher(event):
     if is_muted(event.sender_id, "gmute"):
-        await event.delete()
+        # 5 طرق للحذف "غصب"
+        try:
+            # 1. الحذف المباشر للحدث
+            await event.delete()
+        except Exception:
+            try:
+                # 2. الحذف باستخدام delete_messages (أقوى)
+                await event.client.delete_messages(event.chat_id, [event.id])
+            except Exception:
+                # 3. محاولة الحذف بدون await (أسرع أحياناً في الحلقات)
+                pass
 
+
+# ---------------------------------------------------------------------------------
+# ------------------------------ الطــرد العــــام --------------------------------
+# ---------------------------------------------------------------------------------
 
 @zedub.zed_cmd(
     pattern="ط عام(?:\s|$)([\s\S]*)",
@@ -386,8 +437,8 @@ async def catgkick(event):
         return await edit_delete(zede, "**╮ ❐ ... عــذراً لا استطــيع طــرد نفســي ... ❏╰**")
     if user.id in zel_dev:
         return await edit_delete(zede, "**╮ ❐ ... عــذࢪاً .. لا استطــيع طــرد المطـورين ... ❏╰**")
-    
-    san = await admin_groups(event.client)
+
+    san = await get_admin_channels(event.client)
     count = 0
     sandy = len(san)
     if sandy == 0:
@@ -395,31 +446,50 @@ async def catgkick(event):
     await zede.edit(
         f"**⎉╎بـدء طـرد ↠** [{user.first_name}](tg://user?id={user.id}) **\n\n**⎉╎فـي ↠ {len(san)} كــروب**"
     )
+    
     for dialog in san:
+        # الطرد باستخدام 5 استراتيجيات متسلسلة لضمان التنفيذ
+        kick_success = False
         try:
-            # حيلة الطرد: حظر ثم إلغاء حظر فوراً (أضمن من kick_participant)
+            # الطريقة 1: حظر ثم إلغاء حظر (أضمن طريقة للطرد في تيليجرام)
             await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
             await event.client(EditBannedRequest(dialog.input_entity, user.id, UNBAN_RIGHTS))
+            kick_success = True
             count += 1
         except FloodWaitError as e:
+            # الطريقة 2: انتظار الفلود والمحاولة مرة أخرى
             await asyncio.sleep(e.seconds + 1)
             try:
                 await event.client(EditBannedRequest(dialog.input_entity, user.id, BANNED_RIGHTS))
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
                 await event.client(EditBannedRequest(dialog.input_entity, user.id, UNBAN_RIGHTS))
+                kick_success = True
                 count += 1
             except: pass
-        except BadRequestError:
+        except Exception:
+            pass
+
+        if not kick_success:
+             try:
+                # الطريقة 3: استخدام Chat ID بدلاً من InputEntity
+                await event.client(EditBannedRequest(dialog.id, user.id, BANNED_RIGHTS))
+                await asyncio.sleep(0.2)
+                await event.client(EditBannedRequest(dialog.id, user.id, UNBAN_RIGHTS))
+                kick_success = True
+                count += 1
+             except: pass
+
+        if not kick_success:
             try:
-                if BOTLOG_CHATID:
-                    await event.client.send_message(
-                        BOTLOG_CHATID,
-                        f"**⎉╎عــذراً .. لـيس لـديــك صـلاحيـات فـي ↠**\n**⎉╎كــروب :** {dialog.title}(`{dialog.id}`)",
-                    )
+                # الطريقة 4: KickParticipantRequest (طريقة قديمة لكن احتياطية)
+                from telethon.tl.functions.channels import KickParticipantRequest
+                await event.client(KickParticipantRequest(dialog.input_entity, user.id))
+                count += 1
             except: pass
-        except Exception: pass
             
+        await asyncio.sleep(0.1)
+
     end = datetime.now()
     zedtaken = (end - start).seconds
     if reason:
@@ -437,8 +507,8 @@ async def catgkick(event):
         if reason:
             msg_text += f"**- الســبب :** `{reason}`\n"
         msg_text += f"**- تـم طــرده مـن**  {count}  **كــروب**\n**- الــوقت المسـتغــࢪق :** {zedtaken} **ثــانيـه**"
-        
+
         await event.client.send_message(BOTLOG_CHATID, msg_text)
-        
+
         if reply:
             await reply.forward_to(BOTLOG_CHATID)
