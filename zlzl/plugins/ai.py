@@ -35,7 +35,7 @@ LOGS = logging.getLogger(__name__) if logging else None
 #  ⚛️ AI CONFIGURATION (PURE 3.0)
 # ---------------------------------------------------------------------------------
 
-AI_KEY = "AIzaSyDorr8lOd5jitmexNTSNRiILrPAG89oGcc"
+AI_KEY = "AIzaSyDm4NwgInCTR1zabyPvXEYe5e2io_76NyE"
 MODEL_NAME = "gemini-3-pro-preview" 
 
 genai = None
