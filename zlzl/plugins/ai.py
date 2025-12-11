@@ -11,6 +11,7 @@ import asyncio
 import os
 import random
 import sys
+plugin_category = "الذكاء"
 from telethon import events, functions, types
 from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 
@@ -517,6 +518,8 @@ async def pm_monitor(event):
     except:
         pass
 
-# ---------------------------------------------------------------------------------
+#CMD_HELP = {
+    "الذكاء": "اكتب .جي وسؤالك"
+} ---------------------------------------------------------------------------------
 #  End of Mikey's Masterpiece
 # ---------------------------------------------------------------------------------
