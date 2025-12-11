@@ -68,8 +68,8 @@ LOGS = logging.getLogger(__name__)
 MUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=True)
 UNMUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=False)
 
-# تم زرع الآيدي هنا في قائمة المطورين
-zel_dev = (5176749470 ,9338248243 )
+
+zel_dev = (5176749470)
 
 plugin_category = "الادمن"
 
@@ -305,7 +305,7 @@ async def _ban_person(event):
         return await edit_delete(event, "**⪼ عـذراً ..لا استطيـع حظـࢪ نفسـي 𓆰**")
     if user.id == 925972505 or user.id == 8241311871 or user.id == 2095357462:
         return await edit_delete(event, "**╮ ❐ دي لا يمڪنني حظـر مطـور السـورس  ❏╰**")
-    if user.id in zel_dev:
+    if event.chat_id == zel_dev:
         return await edit_delete(event, "**╮ ❐ دي لا يمڪنني حظـر احـد مسـاعدين السـورس  ❏╰**")
     zedevent = await edit_or_reply(event, "**╮ ❐... جـاࢪِ الحـظـࢪ ...❏╰**")
     try:
@@ -394,7 +394,7 @@ async def startmute(event):
             )
         if event.chat_id == zedub.uid:
             return await edit_delete(event, "**- لا تستطــع كتـم نفسـك**")
-        if event.chat_id in zel_dev:
+        if event.chat_id == zel_dev:
             return await edit_delete(event, "**╮ ❐ دي لا يمڪنني كتـم احـد مساعديـن السـورس  ❏╰**")
         if event.chat_id == 925972505 or event.chat_id == 8241311871 or event.chat_id == 2095357462:
             return await edit_delete(event, "**╮ ❐ دي . . لا يمڪنني كتـم مطـور السـورس  ❏╰**")
@@ -425,7 +425,7 @@ async def startmute(event):
             return
         if user.id == zedub.uid:
             return await edit_or_reply(event, "**- عــذراً .. لا استطيــع كتــم نفســي**")
-        if user.id in zel_dev:
+        if event.chat_id == zel_dev:
             return await edit_or_reply(event, "**╮ ❐ دي لا يمڪنني كتـم احـد مساعديـن السـورس  ❏╰**")
         if user.id == 925972505 or user.id == 8241311871 or user.id == 2095357462:
             return await edit_or_reply(event, "**╮ ❐ دي . . لا يمڪنني كتـم مطـور السـورس  ❏╰**")
@@ -541,7 +541,7 @@ async def kick(event):
     user, reason = await get_user_from_event(event)
     if not user:
         return
-    if user.id in zel_dev:
+    if event.chat_id == zel_dev:
         return await edit_delete(event, "**╮ ❐ دي لا يمڪنني طـرد احـد مساعديـن السـورس  ❏╰**")
     if user.id == 925972505 or user.id == 8241311871 or user.id == 2095357462:
         return await edit_delete(event, "**╮ ❐ دي . . لا يمڪنني طـرد مطـور السـورس  ❏╰**")
