@@ -9,7 +9,7 @@ from telethon.tl.types import MessageMediaPhoto, MessageMediaDocument
 
 ---------------------------------------------------------------------------------
 
-✅ CORRECT ZEDTHON IMPORTS (DO NOT TOUCH)
+[OK] CORRECT ZEDTHON IMPORTS (DO NOT TOUCH)
 
 ---------------------------------------------------------------------------------
 
@@ -160,7 +160,7 @@ def zed_style(title, content):
 return (
 f"⎉╎{title} ⪼\n"
 f"❝ ⌊ {content} 𓆰\n"
-f"⎉╎النمـوذج ⪼ {MODEL_NAME} ☑️"
+f"⎉╎النمـوذج ⪼ {MODEL_NAME} [OK]"
 )
 
 def zed_error(error):
@@ -239,7 +239,7 @@ groups = {
 for category, feats in groups.items():  
     msg += f"**{category}:**\n"  
     for f in feats:  
-        status = "✅" if features_config.get(f, False) else "❌"  
+        status = "[OK]" if features_config.get(f, False) else "[X]"  
         msg += f"`{f}` : {status} | "  
     msg += "\n\n"  
 
@@ -256,10 +256,10 @@ async def enable_cmd(event):
 feat = event.pattern_match.group(1).strip()
 if feat == "الكل":
 for k in features_config: features_config[k] = True
-await edit_or_reply(event, "⎉╎تـم تفعيـل كافـة الأنظمـة والأسلحـة ☢️ ☑️")
+await edit_or_reply(event, "⎉╎تـم تفعيـل كافـة الأنظمـة والأسلحـة ☢️ [OK]")
 elif feat in features_config:
 features_config[feat] = True
-await edit_or_reply(event, f"⎉╎تـم تفعيـل الميـزة: {feat} بنجـاح ☑️")
+await edit_or_reply(event, f"⎉╎تـم تفعيـل الميـزة: {feat} بنجـاح [OK]")
 else:
 await edit_or_reply(event, "⚠️ ╎الميـزة غيـر مـوجـودة فـي القائمـة.")
 
@@ -269,10 +269,10 @@ async def disable_cmd(event):
 feat = event.pattern_match.group(1).strip()
 if feat == "الكل":
 for k in features_config: features_config[k] = False
-await edit_or_reply(event, "⎉╎تـم إيقـاف كافـة الأنظمـة (Shutdown) 📴 ✖️")
+await edit_or_reply(event, "⎉╎تـم إيقـاف كافـة الأنظمـة (Shutdown) 📴 [X]")
 elif feat in features_config:
 features_config[feat] = False
-await edit_or_reply(event, f"⎉╎تـم تعطيـل الميـزة: {feat} بنجـاح ✖️")
+await edit_or_reply(event, f"⎉╎تـم تعطيـل الميـزة: {feat} بنجـاح [X]")
 else:
 await edit_or_reply(event, "⚠️ ╎الميـزة غيـر مـوجـودة.")
 
@@ -537,12 +537,12 @@ await process_ai(event, prompt, title="رومنسيـة ميكـي", feature="fl
 @zedub.zed_cmd(pattern="اوتو$")
 async def enable_auto(event):
 features_config["auto_reply"] = True
-await edit_or_reply(event, "⎉╎الـرد التلقـائي: مفعـل (Mode: Ghost) ☑️")
+await edit_or_reply(event, "⎉╎الـرد التلقـائي: مفعـل (Mode: Ghost) [OK]")
 
 @zedub.zed_cmd(pattern="الغاء اوتو$")
 async def disable_auto(event):
 features_config["auto_reply"] = False
-await edit_or_reply(event, "⎉╎الـرد التلقـائي: معطـل ✖️")
+await edit_or_reply(event, "⎉╎الـرد التلقـائي: معطـل [X]")
 
 @zedub.zed_handler(incoming=True)
 async def pm_monitor(event):
