@@ -80,3 +80,4 @@ yt-dlp
 flask
 shazamio
 ffmpeg-python
+google-generativeai
