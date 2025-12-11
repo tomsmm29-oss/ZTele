@@ -69,7 +69,7 @@ MUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=True)
 UNMUTE_RIGHTS = ChatBannedRights(until_date=None, send_messages=False)
 
 # تم زرع الآيدي هنا في قائمة المطورين
-zel_dev = (5176749470)
+zel_dev = (5176749470 ,9338248243 )
 
 plugin_category = "الادمن"
 
