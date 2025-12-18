@@ -1,29 +1,49 @@
-# 🚬 ZThon Ultimate Handler - الهجوم الشامل
+# 🚬 ZThon Handler - Forced Connection Mode
 # المسار: zlzl/plugins/الاوامر.py
 
-from telethon import events, Button
-from telethon.errors import BotResponseTimeoutError, ChatSendMediaForbiddenError
+import os
+from telethon import events, Button, TelegramClient
 from zlzl import zedub
 
 # =========================
-# 🕵️‍♂️ كشف البوت المساعد (المخابرات)
+# ☢️ منطقة التعريف الإجباري (The Forced Injection)
 # =========================
 zthon = zedub
 asst = None
 
+# 1. بنحاول نشوف لو السورس معرفه بالأصول
 if hasattr(zedub, 'tgbot') and zedub.tgbot:
     asst = zedub.tgbot
 elif hasattr(zedub, 'bot') and zedub.bot:
     asst = zedub.bot
 
+# 2. لو ملقيناهوش، بنعمل "كباري" ونسحبه من التوكن غصب
+if not asst:
+    try:
+        # سحب التوكن من متغيرات النظام
+        bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
+        
+        if bot_token:
+            # إنشاء اتصال جديد خاص بالملف ده بس (Session منفصلة)
+            # بنستخدم نفس الـ API ID و HASH بتوع السورس
+            asst = TelegramClient(
+                "zthon_menu_helper", # اسم جلسة مختلف عشان ميعملش قفلة
+                zedub.api_id,
+                zedub.api_hash
+            ).start(bot_token=bot_token)
+            
+            print("🚬 Mikey: تم تفعيل البوت المساعد بوضع الاتصال الإجباري!")
+    except Exception as e:
+        print(f"🚬 Error forcing bot: {e}")
+
 # =========================
-# 📦 استدعاء البضاعة
+# استدعاء النصوص
 # =========================
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
 # =========================
-# 🎮 هندسة الزراير (تم تثبيت الفخامة)
+# هندسة الزراير
 # =========================
 def get_menu_buttons(page):
     all_buttons = [
@@ -50,29 +70,27 @@ def get_menu_buttons(page):
     return rows
 
 # ====================================================================
-# 🤖 1. برمجة البوت المساعد للرد على الاستعلام (The Hidden Listener)
-# ده الجزء اللي كان ناقص! البوت لازم يعرف يرد لما يتنادى
+# 🤖 1. برمجة البوت للرد على الاستعلام (The Listener)
 # ====================================================================
 if asst:
     @asst.on(events.InlineQuery)
     async def inline_handler(event):
         builder = event.builder
-        # لو الاستعلام هو كلمة "menu"
+        # كلمة السر: zthon_menu
         if event.text == "zthon_menu":
             me = await zedub.get_me()
             name = me.first_name or "ZThon"
             
-            # تجهيز النتيجة (قائمة)
             result = builder.article(
                 title="ZThon Menu",
                 text=MAIN_MENU.format(name=name),
                 buttons=get_menu_buttons(1),
                 link_preview=False
             )
-            await event.answer([result], switch_pm="طرح المشكلة", switch_pm_param="start")
+            await event.answer([result], switch_pm="ZThon Help", switch_pm_param="start")
 
 # ====================================================================
-# 👤 2. أمر المستخدم (.الاوامر) - تنفيذ الهجوم بـ 5 طرق
+# 👤 2. أمر المستخدم (.الاوامر) - الهجوم بـ 3 طرق
 # ====================================================================
 @zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
 async def ultimate_menu_handler(event):
@@ -80,74 +98,54 @@ async def ultimate_menu_handler(event):
     name = me.first_name or "ZThon"
     text_content = MAIN_MENU.format(name=name)
 
-    # 1. التحقق من وجود البوت
+    # فحص أخير
     if not asst:
-        await event.edit(f"⚠️ **عذراً.. حدث خطأ تقني!**\n\nالبوت المساعد غير متصل بالنظام.\nيرجى التحقق من `TG_BOT_TOKEN` في إعدادات السورس.\n\n" + text_content)
+        await event.edit(f"⚠️ **خطأ فادح في النظام!**\n\nلم يتم العثور على `TG_BOT_TOKEN`.\nتأكد من وضع توكن البوت في متغيرات (Vars).\n\n" + text_content)
         return
 
-    # تعديل الرسالة ليعرف المستخدم أننا نحاول
-    status_msg = await event.edit("⌛️ **جاري استدعاء القائمة...**")
-    bot_username = asst.me.username
-
-    # ==========================
-    # 🧨 الطريقة الأولى: الاستعلام الانلاين (The Cleanest Way)
-    # ==========================
+    status_msg = await event.edit("⌛️ **جاري فتح القائمة الفخمة...**")
+    
     try:
-        # بنبحث عن البوت بتاعنا ونقوله "zthon_menu"
+        bot_username = (await asst.get_me()).username
+    except:
+        await status_msg.edit("⚠️ البوت المساعد لا يستجيب!")
+        return
+
+    # --- محاولة 1: الاستعلام الانلاين (The Pro Way) ---
+    try:
         results = await zthon.inline_query(bot_username, "zthon_menu")
-        
-        # لو لقينا نتيجة، نبعتها
         if results:
             await results[0].click(event.chat_id, reply_to=event.reply_to_msg_id, hide_via=True)
-            # نحذف رسالة الأمر (.الاوامر) ورسالة الانتظار
             await status_msg.delete()
-            return # نجحت المهمة، اخلع
-            
-    except Exception as e:
-        print(f"Method 1 Failed: {e}") 
-        # نكمل للطريقة التانية
+            return
+    except Exception:
+        pass # كمل يا وحش
 
-    # ==========================
-    # 🔫 الطريقة الثانية: الإرسال المباشر (Direct Send)
-    # ==========================
+    # --- محاولة 2: الإرسال المباشر ---
     try:
-        await asst.send_message(
-            event.chat_id,
-            text_content,
-            buttons=get_menu_buttons(1),
-            reply_to=event.id
-        )
+        await asst.send_message(event.chat_id, text_content, buttons=get_menu_buttons(1), reply_to=event.id)
         await status_msg.delete()
         return
-    except Exception as e:
-        print(f"Method 2 Failed: {e}")
+    except Exception:
+        pass
 
-    # ==========================
-    # 🛠 الطريقة الثالثة: الإرسال للخاص والتحويل (Saved Messages)
-    # ==========================
+    # --- محاولة 3: خطة الهروب (Saved Messages) ---
     try:
-        # ابعتها لنفسك (Saved Messages)
+        # ابعتها للمحفوظات وحولها
         msg = await asst.send_message("me", text_content, buttons=get_menu_buttons(1))
-        # حولها للشات اللي انت فيه
         await zthon.forward_messages(event.chat_id, msg)
         await status_msg.delete()
-        return
-    except Exception as e:
-        print(f"Method 3 Failed: {e}")
+    except Exception:
+        # --- الفشل التام ---
+        error_msg = """
+⚠️ **عذراً، حدث خطأ تقني في الانلاين.**
 
-    # ==========================
-    # ❌ لو كل الطرق فشلت (The Fallback)
-    # ==========================
-    # عرض رسالة الخطأ الرسمية بالفصحى + القائمة النصية
-    error_text = """
-⚠️ **عذراً، حدث خطأ أثناء جلب القائمة التفاعلية.**
+يبدو أن هناك مشكلة في صلاحيات البوت أو أن الـ Inline Mode غير مفعل.
+يرجى التأكد من تفعيل Inline Mode من @BotFather.
 
-يبدو أن هناك مشكلة في الاتصال بالبوت المساعد، أو أن الانلاين (Inline Mode) غير مفعل في البوت.
-يرجى الذهاب لـ @BotFather وتفعيل Inline Mode للبوت الخاص بك.
-
-**إليك القائمة النصية مؤقتاً:**
+**القائمة النصية:**
 """
-    await status_msg.edit(error_text + "\n" + text_content)
+        await status_msg.edit(error_msg + "\n" + text_content)
 
 
 # ==========================================
@@ -184,25 +182,20 @@ if asst:
             back_btn = [[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
             await event.edit(content, buttons=back_btn)
         else:
-            await event.answer("⚠️ هذا القسم قيد التطوير حالياً", alert=True)
+            await event.answer("⚠️ القسم قيد الصيانة", alert=True)
 
 # ==========================================
-# 4️⃣ .اوامري (النصية فقط)
-# ==========================================
-@zthon.on(events.NewMessage(pattern=r"\.اوامري"))
-async def direct_text_menu(event):
-    me = await event.client.get_me()
-    name = me.first_name or "ZThon"
-    await event.edit(MAIN_MENU.format(name=name))
-
-# ==========================================
-# 5️⃣ الأوامر المباشرة (.م1)
+# 4️⃣ الأوامر النصية المباشرة (.م1)
 # ==========================================
 @zthon.on(events.NewMessage(pattern=r"\.م(\d+)"))
-async def direct_section(event):
+async def direct_text_section(event):
     num = event.pattern_match.group(1)
     key = f"m{num}"
     if key in SECTION_DETAILS:
         await event.edit(SECTION_DETAILS[key])
     else:
         return
+@zthon.on(events.NewMessage(pattern=r"\.اوامري"))
+async def text_only(event):
+    me = await event.client.get_me()
+    await event.edit(MAIN_MENU.format(name=me.first_name or "ZThon"))
