@@ -3,8 +3,8 @@
 # حط الملف ده جوه مجلد plugins
 
 from telethon import events, Button
-from zthon_texts import MAIN_MENU      # استدعاء الملف 2 (الفاترينة)
-from zthon_strings import SECTION_DETAILS  # استدعاء الملف 3 (المخزن)
+from zlzl.zthon_texts import MAIN_MENU
+from zlzl.zthon_strings import SECTION_DETAILS
 
 # 🚬 دالة هندسة الزراير (Pagination Logic)
 def get_menu_buttons(page):
