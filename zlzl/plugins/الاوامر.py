@@ -1,32 +1,25 @@
-import os
-from telethon import events, Button, TelegramClient
+# 🚬 ZThon Handler - Fixed & Powered by Mikey
+# المسار: zlzl/plugins/الاوامر.py
+
+from telethon import events, Button
 from zlzl import zedub
 
 # =========================
-# الاختصارات
+# تعريف الاختصارات (مهم جداً)
 # =========================
 zthon = zedub
-
-TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
-
-# =========================
-# إنشاء البوت المساعد
-# =========================
-assistant = TelegramClient(
-    "assistant_bot",
-    zedub.api_id,
-    zedub.api_hash
-).start(bot_token=TG_BOT_TOKEN)
+# هنا بنستخدم البوت المساعد الموجود بالفعل في السورس
+# بدل ما نعمل واحد جديد ونعمل قفلة
+asst = zthon.tgbot 
 
 # =========================
-# استدعاء النصوص
+# استدعاء النصوص والمخزن
 # =========================
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
-
 # =========================
-# هندسة الزراير (بدون لمس)
+# هندسة الزراير (Pagination Logic)
 # =========================
 def get_menu_buttons(page):
     all_buttons = [
@@ -44,6 +37,7 @@ def get_menu_buttons(page):
 
     for i, icon in enumerate(all_buttons[start:end]):
         real_index = start + i + 1
+        # m1, m2, etc.
         temp.append(Button.inline(f" {icon} ", data=f"m{real_index}"))
         if len(temp) == 3:
             rows.append(temp)
@@ -53,94 +47,124 @@ def get_menu_buttons(page):
         rows.append(temp)
 
     nav = []
-    nav.append(
-        Button.inline("⪼ الســابق ⪻", data=f"page_{page-1}")
-        if page > 1 else
-        Button.inline("❨ الرئيسيــة ❩", data="dummy_start")
-    )
+    # زرار السابق
+    if page > 1:
+        nav.append(Button.inline("⪼ الســابق ⪻", data=f"page_{page-1}"))
+    else:
+        nav.append(Button.inline("❨ الرئيسيــة ❩", data="dummy_start"))
 
+    # زرار الإغلاق
     nav.append(Button.inline("❎ اغــلاق", data="close"))
 
-    nav.append(
-        Button.inline("⪼ التــالي ⪻", data=f"page_{page+1}")
-        if end < len(all_buttons) else
-        Button.inline("❨ النهايــة ❩", data="dummy_end")
-    )
+    # زرار التالي
+    if end < len(all_buttons):
+        nav.append(Button.inline("⪼ التــالي ⪻", data=f"page_{page+1}"))
+    else:
+        nav.append(Button.inline("❨ النهايــة ❩", data="dummy_end"))
 
     rows.append(nav)
     return rows
 
 
-# =========================
-# 1️⃣ .اوامري (يوزر فقط)
-# =========================
+# ==========================================
+# 1️⃣ .اوامري (نص فقط - للمسطول الكلاسيكي)
+# ==========================================
 @zthon.on(events.NewMessage(pattern=r"\.اوامري"))
 async def text_only_menu(event):
     me = await event.client.get_me()
-    await event.edit(MAIN_MENU.format(name=me.first_name or "ZThon"))
+    name = me.first_name or "ZThon"
+    await event.edit(MAIN_MENU.format(name=name))
 
 
-# =========================
-# 2️⃣ .الاوامر (يوزر → بوت)
-# =========================
+# ==========================================
+# 2️⃣ .الاوامر (الانلاين - شغل الفخامة)
+# ==========================================
 @zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
-async def inline_menu_handler(event):
+async def inline_menu_show(event):
+    # 1. نجيب معلومات المستخدم عشان الاسم
     me = await event.client.get_me()
-    text = MAIN_MENU.format(name=me.first_name or "ZThon")
+    name = me.first_name or "ZThon"
+    text_content = MAIN_MENU.format(name=name)
 
-    # تعديل رسالة اليوزر (إحساس الاستمرار)
-    await event.edit("⌛️ جاري فتح القائمة...")
+    # 2. نعدل رسالة المستخدم عشان يعرف اننا شغالين
+    await event.edit("⌛️ **جاري استدعاء القائمة ...**")
 
-    # البوت يرسل القائمة الفعلية
-    await assistant.send_message(
-        event.chat_id,
-        text,
-        buttons=get_menu_buttons(1)
-    )
+    # 3. نخلي البوت المساعد يرمي القائمة
+    try:
+        # هنا بنستخدم asst اللي هو zedub.tgbot
+        # بنعمل reply على رسالة المستخدم
+        await asst.send_message(
+            event.chat_id,
+            text_content,
+            buttons=get_menu_buttons(1),
+            reply_to=event.id
+        )
+        # نمسح رسالة "جاري الاستدعاء" عشان النظافة
+        await event.delete()
+        
+    except Exception as e:
+        # لو البوت مش ادمن او فيه مشكلة، نرجع للنص العادي
+        await event.edit(f"⚠️ **حدث خطأ في الانلاين:**\n{str(e)}\n\n" + text_content)
 
 
-# =========================
-# 3️⃣ CallbackQuery (بوت فقط)
-# =========================
-@assistant.on(events.CallbackQuery)
+# ==========================================
+# 3️⃣ معالج الضغطات (Bot Callback Handler)
+# ==========================================
+# لاحظ هنا: asst.on مش assistant.on
+@asst.on(events.CallbackQuery)
 async def callback_handler(event):
-    data = event.data.decode()
+    data = event.data.decode('utf-8')
+    
+    # عشان نجيب اسم صاحب الحساب (zedub) مش البوت
+    owner = await zedub.get_me()
+    owner_name = owner.first_name or "ZThon"
 
+    # ❎ إغلاق
     if data == "close":
-        return await event.delete()
+        await event.delete()
+        return
 
+    # ⚠️ تنبيهات
     if data in ("dummy_start", "dummy_end"):
-        return await event.answer("⚠️ لا يوجد تنقل", cache_time=1)
+        await event.answer("⚠️ لا يوجد صفحات أخرى!", cache_time=1)
+        return
 
+    # 🔄 تقليب الصفحات
     if data.startswith("page_"):
         page = int(data.split("_")[1])
-        me = await assistant.get_me()
-        return await event.edit(
-            MAIN_MENU.format(name=me.first_name or "ZThon"),
-            buttons=get_menu_buttons(page)
-        )
+        new_text = MAIN_MENU.format(name=owner_name)
+        await event.edit(new_text, buttons=get_menu_buttons(page))
+        return
 
+    # 🔙 الرجوع للقائمة الرئيسية
     if data == "main_menu":
-        me = await assistant.get_me()
-        return await event.edit(
-            MAIN_MENU.format(name=me.first_name or "ZThon"),
-            buttons=get_menu_buttons(1)
-        )
+        new_text = MAIN_MENU.format(name=owner_name)
+        await event.edit(new_text, buttons=get_menu_buttons(1))
+        return
 
+    # 📄 عرض تفاصيل الأقسام (m1, m2...)
     if data in SECTION_DETAILS:
-        return await event.edit(
-            SECTION_DETAILS[data],
-            buttons=[[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
-        )
+        content = SECTION_DETAILS[data]
+        # زرار رجوع فخم
+        back_btn = [[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
+        
+        await event.edit(content, buttons=back_btn)
+    else:
+        await event.answer("⚠️ القسم ده لسه تحت الإنشاء!", alert=True)
 
-    await event.answer("⚠️ هذا القسم غير متاح", alert=True)
 
-
-# =========================
-# 4️⃣ .م1 .م2 (يوزر مباشر)
-# =========================
+# ==========================================
+# 4️⃣ الأوامر النصية المباشرة (.م1 .م2)
+# ==========================================
 @zthon.on(events.NewMessage(pattern=r"\.م(\d+)"))
 async def direct_text_section(event):
-    key = f"m{event.pattern_match.group(1)}"
+    # نستخرج الرقم
+    num = event.pattern_match.group(1)
+    key = f"m{num}"
+    
     if key in SECTION_DETAILS:
+        # نعرض النص بس بدون زراير
         await event.edit(SECTION_DETAILS[key])
+    else:
+        # الصمت لغة العظماء (تجاهل لو الرقم غلط)
+        return
