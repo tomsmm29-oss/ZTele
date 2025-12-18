@@ -1,10 +1,22 @@
-# 🚬 ZThon Handler - الكود ده مسؤول عن الربط والتشغيل
-# By Mikey & Kalvari - The Stoner Devs 🍁
-# حط الملف ده جوه مجلد plugins
+# update by mikey 👉🏿✔️🤏🏿
+
+
 
 from telethon import events, Button
+
+# 👇👇👇 التعديل الجراحي (الحقنة المكس) 👇👇👇
+
+# 1. بننادي المعلم الكبير zedub من ملفات السورس
+from zlzl import zedub
+
+# 2. بنعمل حركة صايعة عشان الكود بتاعنا مكتوب فيه @zthon
+# فبنقوله: يا بايثون، أي حد يسأل على zthon هو هو zedub
+zthon = zedub 
+
+# 3. بنسحب النصوص من مكانها الصح جوه مجلد zlzl
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
+
 
 # 🚬 دالة هندسة الزراير (Pagination Logic)
 def get_menu_buttons(page):
