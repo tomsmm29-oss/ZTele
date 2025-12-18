@@ -1,49 +1,45 @@
-# 🚬 ZThon Handler - Forced Connection Mode
+# 🚬 ZThon Handler - Anti-Crash Edition 🛡️
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
 from telethon import events, Button, TelegramClient
+from telethon.errors import MessageNotModifiedError
 from zlzl import zedub
 
 # =========================
-# ☢️ منطقة التعريف الإجباري (The Forced Injection)
+# ☢️ كشف وتعريف البوت المساعد (إجباري)
 # =========================
 zthon = zedub
 asst = None
 
-# 1. بنحاول نشوف لو السورس معرفه بالأصول
+# محاولة 1: السحب من السورس
 if hasattr(zedub, 'tgbot') and zedub.tgbot:
     asst = zedub.tgbot
 elif hasattr(zedub, 'bot') and zedub.bot:
     asst = zedub.bot
 
-# 2. لو ملقيناهوش، بنعمل "كباري" ونسحبه من التوكن غصب
+# محاولة 2: السحب من التوكن (لو السورس نايم)
 if not asst:
     try:
-        # سحب التوكن من متغيرات النظام
         bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
-        
         if bot_token:
-            # إنشاء اتصال جديد خاص بالملف ده بس (Session منفصلة)
-            # بنستخدم نفس الـ API ID و HASH بتوع السورس
+            # سيشن خاص عشان ميعملش تداخل
             asst = TelegramClient(
-                "zthon_menu_helper", # اسم جلسة مختلف عشان ميعملش قفلة
-                zedub.api_id,
+                "zthon_menu_helper_v2", 
+                zedub.api_id, 
                 zedub.api_hash
             ).start(bot_token=bot_token)
-            
-            print("🚬 Mikey: تم تفعيل البوت المساعد بوضع الاتصال الإجباري!")
     except Exception as e:
-        print(f"🚬 Error forcing bot: {e}")
+        print(f"🚬 Mikey Error: {e}")
 
 # =========================
-# استدعاء النصوص
+# 📦 استدعاء النصوص
 # =========================
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
 # =========================
-# هندسة الزراير
+# 🎮 هندسة الزراير
 # =========================
 def get_menu_buttons(page):
     all_buttons = [
@@ -70,27 +66,57 @@ def get_menu_buttons(page):
     return rows
 
 # ====================================================================
-# 🤖 1. برمجة البوت للرد على الاستعلام (The Listener)
+# 🛠 دالة التعديل الآمن (Safe Edit) - دي اللي هتحل المشكلة 💊
+# ====================================================================
+async def safe_edit(event, text, buttons=None):
+    """دالة ذكية بتعرف نوع الرسالة وتعدلها من غير ما تضرب ايرور"""
+    try:
+        # محاولة 1: التعديل القياسي (لو شغال خير وبركة)
+        await event.edit(text, buttons=buttons)
+    except Exception:
+        # محاولة 2: التعديل اليدوي (لو المحاولة الأولى فشلت بسبب Peer Error)
+        try:
+            # لو الرسالة جاية من انلاين (Inline Query)
+            if event.inline_message_id:
+                await asst.edit_message(
+                    entity=None, 
+                    message=event.inline_message_id, 
+                    text=text, 
+                    buttons=buttons
+                )
+            # لو الرسالة عادية في شات
+            elif event.chat_id and event.message_id:
+                await asst.edit_message(
+                    entity=event.chat_id, 
+                    message=event.message_id, 
+                    text=text, 
+                    buttons=buttons
+                )
+        except MessageNotModifiedError:
+            pass # تجاهل لو المحتوى هو هو
+        except Exception as e:
+            print(f"🚬 Fatal Edit Error: {e}")
+
+# ====================================================================
+# 🤖 1. Listener (الانلاين المخفي)
 # ====================================================================
 if asst:
     @asst.on(events.InlineQuery)
     async def inline_handler(event):
         builder = event.builder
-        # كلمة السر: zthon_menu
         if event.text == "zthon_menu":
             me = await zedub.get_me()
             name = me.first_name or "ZThon"
-            
             result = builder.article(
                 title="ZThon Menu",
                 text=MAIN_MENU.format(name=name),
                 buttons=get_menu_buttons(1),
                 link_preview=False
             )
-            await event.answer([result], switch_pm="ZThon Help", switch_pm_param="start")
+            await event.answer([result], switch_pm="Help", switch_pm_param="start")
 
 # ====================================================================
-# 👤 2. أمر المستخدم (.الاوامر) - الهجوم بـ 3 طرق
+# 👤 2. أمر المستخدم (.الاوامر)
 # ====================================================================
 @zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
 async def ultimate_menu_handler(event):
@@ -98,89 +124,81 @@ async def ultimate_menu_handler(event):
     name = me.first_name or "ZThon"
     text_content = MAIN_MENU.format(name=name)
 
-    # فحص أخير
     if not asst:
-        await event.edit(f"⚠️ **خطأ فادح في النظام!**\n\nلم يتم العثور على `TG_BOT_TOKEN`.\nتأكد من وضع توكن البوت في متغيرات (Vars).\n\n" + text_content)
+        await event.edit(f"⚠️ **عذراً.. البوت المساعد غير متصل!**\nتأكد من `TG_BOT_TOKEN`.\n\n" + text_content)
         return
 
-    status_msg = await event.edit("⌛️ **جاري فتح القائمة الفخمة...**")
+    status_msg = await event.edit("⌛️ **جاري التحميل...**")
     
     try:
         bot_username = (await asst.get_me()).username
-    except:
-        await status_msg.edit("⚠️ البوت المساعد لا يستجيب!")
-        return
-
-    # --- محاولة 1: الاستعلام الانلاين (The Pro Way) ---
-    try:
+        # محاولة الانلاين (الأفخم)
         results = await zthon.inline_query(bot_username, "zthon_menu")
         if results:
             await results[0].click(event.chat_id, reply_to=event.reply_to_msg_id, hide_via=True)
             await status_msg.delete()
             return
     except Exception:
-        pass # كمل يا وحش
+        pass
 
-    # --- محاولة 2: الإرسال المباشر ---
+    # لو فشل، ابعت مباشر
     try:
         await asst.send_message(event.chat_id, text_content, buttons=get_menu_buttons(1), reply_to=event.id)
         await status_msg.delete()
-        return
     except Exception:
-        pass
-
-    # --- محاولة 3: خطة الهروب (Saved Messages) ---
-    try:
-        # ابعتها للمحفوظات وحولها
-        msg = await asst.send_message("me", text_content, buttons=get_menu_buttons(1))
-        await zthon.forward_messages(event.chat_id, msg)
-        await status_msg.delete()
-    except Exception:
-        # --- الفشل التام ---
-        error_msg = """
-⚠️ **عذراً، حدث خطأ تقني في الانلاين.**
-
-يبدو أن هناك مشكلة في صلاحيات البوت أو أن الـ Inline Mode غير مفعل.
-يرجى التأكد من تفعيل Inline Mode من @BotFather.
-
-**القائمة النصية:**
-"""
-        await status_msg.edit(error_msg + "\n" + text_content)
+        # لو فشل، ابعت نصي
+        await status_msg.edit(f"⚠️ **فشل الانلاين.**\n\n{text_content}")
 
 
 # ==========================================
-# 3️⃣ معالج الضغطات (Bot Callback Handler)
+# 3️⃣ معالج الضغطات (Bot Callback) - هنا التعديل 🔧
 # ==========================================
 if asst:
     @asst.on(events.CallbackQuery)
     async def callback_handler(event):
         data = event.data.decode('utf-8')
-        owner = await zedub.get_me()
-        owner_name = owner.first_name or "ZThon"
+        
+        # بنجيب الاسم عشان لو رجعنا للقائمة
+        try:
+            owner = await zedub.get_me()
+            owner_name = owner.first_name or "ZThon"
+        except:
+            owner_name = "ZThon"
 
+        # ❎ إغلاق
         if data == "close":
-            await event.delete()
+            try:
+                await event.delete()
+            except:
+                # لو فشل الحذف، نعدلها لنص فاضي أو نقطة
+                await safe_edit(event, "تم الإغلاق. 🔒", buttons=None)
             return
 
+        # ⚠️ تنبيهات (Alerts) دي شغالة عادي مش محتاجة edit
         if data in ("dummy_start", "dummy_end"):
-            await event.answer("⚠️ لا توجد صفحات أخرى", cache_time=1)
+            await event.answer("⚠️ لا توجد صفحات أخرى!", cache_time=1)
             return
 
+        # 🔄 تقليب الصفحات
         if data.startswith("page_"):
             page = int(data.split("_")[1])
             new_text = MAIN_MENU.format(name=owner_name)
-            await event.edit(new_text, buttons=get_menu_buttons(page))
+            # استخدام دالة التعديل الآمن
+            await safe_edit(event, new_text, buttons=get_menu_buttons(page))
             return
 
+        # 🔙 الرجوع
         if data == "main_menu":
             new_text = MAIN_MENU.format(name=owner_name)
-            await event.edit(new_text, buttons=get_menu_buttons(1))
+            await safe_edit(event, new_text, buttons=get_menu_buttons(1))
             return
 
+        # 📄 عرض الأقسام
         if data in SECTION_DETAILS:
             content = SECTION_DETAILS[data]
             back_btn = [[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
-            await event.edit(content, buttons=back_btn)
+            # استخدام دالة التعديل الآمن
+            await safe_edit(event, content, buttons=back_btn)
         else:
             await event.answer("⚠️ القسم قيد الصيانة", alert=True)
 
@@ -195,6 +213,7 @@ async def direct_text_section(event):
         await event.edit(SECTION_DETAILS[key])
     else:
         return
+
 @zthon.on(events.NewMessage(pattern=r"\.اوامري"))
 async def text_only(event):
     me = await event.client.get_me()
