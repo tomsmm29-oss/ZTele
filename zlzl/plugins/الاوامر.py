@@ -1,115 +1,122 @@
 # update by mikey 👉🏿✔️🤏🏿
-
-
+# 🚬 ZThon Handler - Final Luxury Version
+# By Mikey & Kalvari 🍁
+# المسار: zlzl/plugins/الاوامر.py
 
 from telethon import events, Button
-
-# 👇👇👇 التعديل الجراحي (الحقنة المكس) 👇👇👇
-
-# 1. بننادي المعلم الكبير zedub من ملفات السورس
 from zlzl import zedub
 
-# 2. بنعمل حركة صايعة عشان الكود بتاعنا مكتوب فيه @zthon
-# فبنقوله: يا بايثون، أي حد يسأل على zthon هو هو zedub
+# تعريف الاختصار
 zthon = zedub 
 
-# 3. بنسحب النصوص من مكانها الصح جوه مجلد zlzl
+# استدعاء الملفات الخارجية
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
-
-# 🚬 دالة هندسة الزراير (Pagination Logic)
+# 🚬 دالة هندسة الزراير (تم توحيد الفخامة السوداء)
 def get_menu_buttons(page):
-    # قائمة الأرقام الفخمة (25 زرار)
+    # تم تعديل الأرقام بعد 20 لتكون سوداء وثقيلة دمجاً 
     all_buttons = [
         "❶", "❷", "❸", "❹", "❺", "❻", 
         "❼", "❽", "❾", "❿", "⓫", "⓬",
         "⓭", "⓮", "⓯", "⓰", "⓱", "⓲", 
-        "⓳", "⓴", "㉑", "㉒", "㉓", "㉔", "㉕"
+        "⓳", "⓴", "❷❶", "❷❷", "❷❸", "❷❹", "❷❺"
     ]
 
-    # تقسيم الصفحات (12 زرار في الصفحة)
     max_per_page = 12
     start = (page - 1) * max_per_page
     end = start + max_per_page
-    
-    # قص الأزرار المطلوبة للصفحة الحالية
     current_page_icons = all_buttons[start:end]
 
-    # بناء الصفوف (3 زراير في الصف)
     rows = []
     temp_row = []
     
     for i, icon in enumerate(current_page_icons):
-        # حساب الرقم الحقيقي للقسم (m1, m2, etc.)
         real_index = start + i + 1
         callback_data = f"m{real_index}"
-        
-        # الزرار العريض
+        # مسافات حول الأيقونة لزيادة العرض والهيبة
         temp_row.append(Button.inline(f" {icon} ", data=callback_data))
         
-        # لو الصف كمل 3، ارفعه وابدأ صف جديد
         if len(temp_row) == 3:
             rows.append(temp_row)
             temp_row = []
     
-    # لو فيه زراير لسه مكملتش صف (بواقي)، ضيفهم
     if temp_row:
         rows.append(temp_row)
 
-    # 🚬 زراير التنقل (التالي - الإغلاق - السابق) بترتيب فخم
     nav_buttons = []
     
-    # زرار السابق (يظهر لو إحنا مش في الصفحة الأولى)
+    # زرار السابق
     if page > 1:
         nav_buttons.append(Button.inline("⪼ الســابق ⪻", data=f"page_{page-1}"))
     else:
-        # زرار "منظر" بس عشان يحفظ التوازن (اختياري، لو مش عايزه شيله)
-        nav_buttons.append(Button.inline("❨ القائمــة ❩", data="dummy"))
+        # زرار منظر (بداية القائمة)
+        nav_buttons.append(Button.inline("❨ الرئيسيــة ❩", data="dummy_start"))
 
-    # زرار الإغلاق (في النص أو الترتيب حسب الزوق، هنا خليته في النص)
+    # زرار الإغلاق
     nav_buttons.append(Button.inline("❎ اغــلاق", data="close"))
 
-    # زرار التالي (يظهر لو لسه فيه أقسام)
+    # زرار التالي
     if end < len(all_buttons):
         nav_buttons.append(Button.inline("⪼ التــالي ⪻", data=f"page_{page+1}"))
     else:
-        # زرار "منظر" للنهاية
-        nav_buttons.append(Button.inline("❨ النهايــة ❩", data="dummy"))
+        # زرار منظر (نهاية القائمة)
+        nav_buttons.append(Button.inline("❨ النهايــة ❩", data="dummy_end"))
 
     rows.append(nav_buttons)
     return rows
 
-# 1️⃣ معالج الأمر النصي (.الاوامر) - بداية الليلة
-@zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
-async def start_menu(event):
-    # جلب اسم المستخدم للفخامة
+
+# ==========================================
+# 1️⃣ معالج الأمر النصي الصافي (.اوامري)
+# ==========================================
+@zthon.on(events.NewMessage(pattern=r"\.اوامري"))
+async def text_only_menu(event):
     sender = await event.client.get_me()
     name = sender.first_name if sender.first_name else "ZThon"
     
-    # سحب النص من الملف 2
+    menu_text = MAIN_MENU.format(name=name)
+    await event.edit(menu_text)
+
+
+# ==========================================
+# 2️⃣ معالج الأمر المتطور (.الاوامر)
+# ==========================================
+@zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
+async def inline_menu_handler(event):
+    sender = await event.client.get_me()
+    name = sender.first_name if sender.first_name else "ZThon"
+    
     menu_text = MAIN_MENU.format(name=name)
     
-    # عرض الصفحة الأولى
-    await event.edit(menu_text, buttons=get_menu_buttons(1))
+    try:
+        await event.edit(menu_text, buttons=get_menu_buttons(1))
+    except Exception:
+        await event.edit(menu_text)
 
 
-# 2️⃣ معالج الضغطات (Callback Query) - المخ المدبر
+# ==========================================
+# 3️⃣ معالج الضغطات (Callback Query)
+# ==========================================
 @zthon.on(events.CallbackQuery)
 async def callback_handler(event):
     data = event.data.decode('utf-8')
     
-    # ❌ زرار الإغلاق
+    # ❌ إغلاق
     if data == "close":
         await event.delete()
         return
     
-    # 🤡 زرار المنظر (Dummy)
-    if data == "dummy":
-        await event.answer(" انت هنا بالفعل✔️", cache_time=1)
+    # ⚠️ رسائل التنبيه الرسمية (بدل الهزار)
+    if data == "dummy_start":
+        await event.answer("⚠️ أنت في الصفحة الأولى بالفعل", cache_time=1)
+        return
+    
+    if data == "dummy_end":
+        await event.answer("⚠️ لا توجد صفحات أخرى", cache_time=1)
         return
 
-    # 🔄 التنقل بين الصفحات
+    # 🔄 التنقل
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         sender = await event.client.get_me()
@@ -119,7 +126,7 @@ async def callback_handler(event):
         await event.edit(menu_text, buttons=get_menu_buttons(page))
         return
 
-    # 🔙 الرجوع للقائمة الرئيسية (من داخل القسم)
+    # 🔙 الرجوع
     if data == "main_menu":
         sender = await event.client.get_me()
         name = sender.first_name if sender.first_name else "ZThon"
@@ -127,28 +134,26 @@ async def callback_handler(event):
         await event.edit(menu_text, buttons=get_menu_buttons(1))
         return
 
-    # 📄 فتح الأقسام (m1, m2... m25)
+    # 📄 عرض الأقسام
     if data in SECTION_DETAILS:
-        # سحب النص من الملف 3
         content = SECTION_DETAILS[data]
-        
-        # زرار الرجوع الفخم أسفل النص
         back_btn = [[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
         
         await event.edit(content, buttons=back_btn)
     else:
-        await event.answer("هذا القسم غير موجود✔️", alert=True)
+        # رسالة خطأ رسمية
+        await event.answer("⚠️ هذا القسم غير متاح حالياً", alert=True)
 
 
-# 3️⃣ معالج الأوامر النصية (.م1 .م2) - التحديث الصامت 🤫
+# ==========================================
+# 4️⃣ معالج الأوامر النصية (.م1 .م2)
+# ==========================================
 @zthon.on(events.NewMessage(pattern=r"\.م(\d+)"))
-async def text_section_handler(event):
+async def direct_text_section(event):
     num_str = event.pattern_match.group(1)
     key = f"m{num_str}"
     
-    # هنا الشرط القاتل: لو موجود هات، لو مش موجود اخرس.
     if key in SECTION_DETAILS:
         await event.edit(SECTION_DETAILS[key])
     else:
-        # الصمت لغة العظماء.. ولا كأنه شاف حاجة
         return
