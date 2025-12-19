@@ -1,6 +1,3 @@
-# 🚬 ZThon PM Permit - Pyrogram Powered & 3-Strike System
-# By Mikey & Kalvari 🍁
-
 import os
 import asyncio
 import random
@@ -10,9 +7,9 @@ from datetime import datetime
 from telethon import functions
 from telethon.utils import get_display_name
 
-# 👇 استدعاء السورس
-from zthon import zedub
-from zthon.core.logger import logging
+# 👇 استدعاء السورس (بدل zthon)
+from . import zedub
+from .core.logger import logging
 
 # 👇 استدعاء مكتبة الباشا (Pyrogram) للزراير
 from pyrogram import Client, filters
@@ -25,7 +22,7 @@ from ..sql_helper import global_collectionjson as sql
 from ..sql_helper import global_list as sqllist
 from ..sql_helper import pmpermit_sql
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG_CHATID, mention
+from . import BOTLOG_CHATID, mention 
 
 plugin_category = "البوت"
 LOGS = logging.getLogger(__name__)
