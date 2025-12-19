@@ -81,3 +81,5 @@ flask
 shazamio
 ffmpeg-python
 google-generativeai
+pyrogram
+tgcrypto
