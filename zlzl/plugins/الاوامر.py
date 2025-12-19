@@ -1,4 +1,4 @@
-# 🚬 ZThon Handler - Fully Dynamic Navigation Logic
+# 🚬 ZThon Handler - Private & Secure Edition 🔒
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
@@ -22,7 +22,7 @@ api_hash = zedub.api_hash
 bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
 
 pyro_bot = Client(
-    name="zthon_pyro_final",
+    name="zthon_pyro_secure",
     api_id=api_id,
     api_hash=api_hash,
     bot_token=bot_token,
@@ -36,7 +36,7 @@ from zlzl.zthon_texts import HEADER_TEXT, TITLES, FOOTER_TEXT, get_full_menu
 from zlzl.zthon_strings import SECTION_DETAILS
 
 # =========================
-# 📝 دالة بناء النص الديناميكي
+# 📝 دالة بناء النص
 # =========================
 def generate_page_text(name, page):
     max_per_page = 12
@@ -52,7 +52,7 @@ def generate_page_text(name, page):
     return f"{HEADER_TEXT.format(name=name)}\n{titles_str}\n{FOOTER_TEXT}"
 
 # =========================
-# 🎮 هندسة الزراير (Dynamic Math Logic)
+# 🎮 هندسة الزراير
 # =========================
 def get_pyro_keyboard(page):
     all_buttons = [
@@ -62,17 +62,14 @@ def get_pyro_keyboard(page):
         "⓳","⓴","❷❶","❷❷","❷❸","❷❹","❷❺"
     ]
     max_per_page = 12
-    
-    # حساب بداية ونهاية الصفحة الحالية
-    start_index = (page - 1) * max_per_page
-    end_index = start_index + max_per_page
+    start = (page - 1) * max_per_page
+    end = start + max_per_page
     
     keyboard = []
     temp_row = []
 
-    # رص أزرار الأقسام
-    for i, icon in enumerate(all_buttons[start_index:end_index]):
-        real_index = start_index + i + 1
+    for i, icon in enumerate(all_buttons[start:end]):
+        real_index = start + i + 1
         callback_data = f"m{real_index}|{page}"
         temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=callback_data))
         
@@ -83,55 +80,42 @@ def get_pyro_keyboard(page):
     if temp_row:
         keyboard.append(temp_row)
 
-    # 🚬 صف التنقل الذكي (Smart Navigation Row)
     nav_row = []
     
-    # --- [ زرار السابق الديناميكي ] ---
+    # السابق
     if page > 1:
-        # بنحسب الصفحة اللي فاتت كانت من كام لكام
-        # معادلة: (رقم الصفحة السابقة - 1) * 12 + 1
         prev_page_num = page - 1
         prev_range_start = (prev_page_num - 1) * max_per_page + 1
         prev_range_end = prev_page_num * max_per_page
-        
         label = f"⪻ ❨ {prev_range_start} ⇄ {prev_range_end} ❩"
         nav_row.append(InlineKeyboardButton(label, callback_data=f"page_{prev_page_num}"))
     else:
-        # لو إحنا في صفحة 1، مفيش سابق، بنعرض زرار منظر
         nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy_start"))
 
-    # --- [ زرار التالي الديناميكي ] ---
-    if end_index < len(all_buttons):
-        # بنحسب الصفحة الجاية هتبدأ من كام وتنتهي كام
+    # التالي
+    if end < len(all_buttons):
         next_page_num = page + 1
         next_range_start = (next_page_num - 1) * max_per_page + 1
         next_range_end = next_page_num * max_per_page
-        
-        # لو النطاق القادم بيعدي آخر زرار موجود (25)، نكتب مالانهاية
         if next_range_start >= 25:
              label = f"❨ {next_range_start} ⇄ ∞ ❩ ⪼"
         else:
              label = f"❨ {next_range_start} ⇄ {next_range_end} ❩ ⪼"
-             
         nav_row.append(InlineKeyboardButton(label, callback_data=f"page_{next_page_num}"))
     else:
-        # لو إحنا في آخر صفحة
         nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy_end"))
 
-    # إضافة صف التنقل
     keyboard.append(nav_row)
-    
-    # زرار الإغلاق
     keyboard.append([InlineKeyboardButton("❎ اغــلاق القائمــة", callback_data="close")])
-    
     return InlineKeyboardMarkup(keyboard)
 
 # ====================================================================
-# 🔥 المعالجات (Handlers)
+# 🔥 المعالجات (Bot Handlers)
 # ====================================================================
 
 @pyro_bot.on_inline_query(filters.regex("^zthon_menu$"))
 async def pyro_inline_handler(client, inline_query):
+    # حماية: المالك فقط (عشان لو حد عرف اليوزرنيم)
     try:
         owner_id = (await zedub.get_me()).id
         if inline_query.from_user.id != owner_id: return
@@ -161,6 +145,7 @@ async def pyro_inline_handler(client, inline_query):
 
 @pyro_bot.on_callback_query()
 async def pyro_callback_handler(client, callback_query):
+    # حماية: المالك فقط
     try:
         owner_id = (await zedub.get_me()).id
         if callback_query.from_user.id != owner_id: return 
@@ -173,7 +158,6 @@ async def pyro_callback_handler(client, callback_query):
     except:
         name = "ZThon"
 
-    # إغلاق
     if data == "close":
         try:
             await callback_query.message.delete()
@@ -181,25 +165,17 @@ async def pyro_callback_handler(client, callback_query):
             await callback_query.edit_message_text("🔒 تم الإغلاق")
         return
 
-    # تنبيهات
     if data.startswith("dummy"):
         msg = "أنت في البداية" if "start" in data else "أنت في النهاية"
         await callback_query.answer(msg, show_alert=False)
         return
 
-    # 🔄 التنقل بين الصفحات
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         new_text = generate_page_text(name, page)
-        
-        await callback_query.edit_message_text(
-            new_text,
-            reply_markup=get_pyro_keyboard(page),
-            disable_web_page_preview=True
-        )
+        await callback_query.edit_message_text(new_text, reply_markup=get_pyro_keyboard(page), disable_web_page_preview=True)
         return
 
-    # 📄 الدخول لقسم
     if data.startswith("m"):
         try:
             parts = data.split("|")
@@ -208,16 +184,10 @@ async def pyro_callback_handler(client, callback_query):
             
             if section_key in SECTION_DETAILS:
                 content = SECTION_DETAILS[section_key]
-                # زرار الرجوع
                 back_btn = InlineKeyboardMarkup([[
                     InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data=f"page_{origin_page}")
                 ]])
-                
-                await callback_query.edit_message_text(
-                    content,
-                    reply_markup=back_btn,
-                    disable_web_page_preview=True
-                )
+                await callback_query.edit_message_text(content, reply_markup=back_btn, disable_web_page_preview=True)
             else:
                 await callback_query.answer("⚠️ القسم قيد الصيانة", show_alert=True)
         except Exception:
@@ -229,20 +199,23 @@ async def pyro_callback_handler(client, callback_query):
 # =========================
 async def start_pyro():
     if not bot_token:
-        print("🚬 Mikey: لا يوجد توكن (Pyrogram)!")
+        print("🚬 Mikey: لا يوجد توكن!")
         return
     try:
         await pyro_bot.start()
-        print("🚬 Mikey: Pyrogram Luxury Mode Started!")
+        print("🚬 Mikey: Pyrogram Secure Started!")
     except Exception as e:
         print(f"🚬 Mikey Error: {e}")
 
 zedub.loop.create_task(start_pyro())
 
-# =========================
-# أوامر المستخدم
-# =========================
-@zedub.on(events.NewMessage(pattern=r"\.الاوامر"))
+# ====================================================================
+# 👤 أوامر المستخدم (Userbot Handlers)
+# هنا التعديل المهم: outgoing=True 🔐
+# ====================================================================
+
+# 1. أمر القائمة الانلاين
+@zedub.on(events.NewMessage(pattern=r"\.الاوامر", outgoing=True))
 async def launch_menu(event):
     if not bot_token:
         await event.edit("⚠️ **خطأ:** تأكد من `TG_BOT_TOKEN`")
@@ -260,14 +233,16 @@ async def launch_menu(event):
     except Exception as e:
         await status.edit(f"⚠️ **فشل:** {str(e)}")
 
-@zedub.on(events.NewMessage(pattern=r"\.م(\d+)"))
+# 2. أمر الأقسام المباشر
+@zedub.on(events.NewMessage(pattern=r"\.م(\d+)", outgoing=True))
 async def direct_txt(event):
     num = event.pattern_match.group(1)
     key = f"m{num}"
     if key in SECTION_DETAILS:
         await event.edit(SECTION_DETAILS[key])
 
-@zedub.on(events.NewMessage(pattern=r"\.اوامري"))
+# 3. أمر القائمة النصية
+@zedub.on(events.NewMessage(pattern=r"\.اوامري", outgoing=True))
 async def txt_menu(event):
     me = await event.client.get_me()
     name = me.first_name or "ZThon"
