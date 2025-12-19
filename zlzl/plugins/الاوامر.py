@@ -1,32 +1,47 @@
-# 🚬 ZThon Handler - Stealth Mode (Hidden from Source Loader)
+# 🚬 ZThon Handler - Pyrogram Edition (The Hybrid)
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
 import asyncio
-from telethon import events, Button, TelegramClient
-from telethon.errors import MessageNotModifiedError
+from telethon import events
 from zlzl import zedub
 
+# 👇 هنا بنستدعي المكتبة الجديدة (المستورد)
+from pyrogram import Client, filters
+from pyrogram.types import (
+    InlineKeyboardMarkup, 
+    InlineKeyboardButton, 
+    InlineQueryResultArticle, 
+    InputTextMessageContent
+)
+
 # =========================
-# 1. إعداد العميل المستقل (بدون تشغيل فوري)
+# 🏗 إعداد بوت بايروجرام (Pyrogram Bot)
 # =========================
 api_id = zedub.api_id
 api_hash = zedub.api_hash
 bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
 
-# اسم الجلسة مختلف ومميز
-worker = TelegramClient("zthon_stealth_worker", api_id, api_hash)
+# نستخدم Session String في الذاكرة عشان منعملش ملفات
+# ومهم جداً: in_memory=True عشان السرعة
+pyro_bot = Client(
+    name="zthon_pyro_worker",
+    api_id=api_id,
+    api_hash=api_hash,
+    bot_token=bot_token,
+    in_memory=True
+)
 
 # =========================
-# 2. استدعاء النصوص
+# 📦 استدعاء النصوص
 # =========================
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
 # =========================
-# 3. هندسة الزراير
+# 🎮 هندسة الزراير (بستايل بايروجرام)
 # =========================
-def get_menu_buttons(page):
+def get_pyro_keyboard(page):
     all_buttons = [
         "❶","❷","❸","❹","❺","❻",
         "❼","❽","❾","❿","⓫","⓬",
@@ -36,170 +51,188 @@ def get_menu_buttons(page):
     max_per_page = 12
     start = (page - 1) * max_per_page
     end = start + max_per_page
-    rows, temp = [], []
+    
+    keyboard = []
+    temp_row = []
+
     for i, icon in enumerate(all_buttons[start:end]):
         real_index = start + i + 1
-        temp.append(Button.inline(f" {icon} ", data=f"m{real_index}"))
-        if len(temp) == 3: rows.append(temp); temp = []
-    if temp: rows.append(temp)
+        # بايروجرام بيستخدم InlineKeyboardButton
+        temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=f"m{real_index}"))
+        if len(temp_row) == 3:
+            keyboard.append(temp_row)
+            temp_row = []
     
-    nav = []
-    nav.append(Button.inline("⪼ الســابق ⪻", data=f"page_{page-1}") if page > 1 else Button.inline("❨ الرئيسيــة ❩", data="dummy_start"))
-    nav.append(Button.inline("❎ اغــلاق", data="close"))
-    nav.append(Button.inline("⪼ التــالي ⪻", data=f"page_{page+1}") if end < len(all_buttons) else Button.inline("❨ النهايــة ❩", data="dummy_end"))
-    rows.append(nav)
-    return rows
+    if temp_row:
+        keyboard.append(temp_row)
 
-# =========================
-# 4. دالة التعديل الآمن
-# =========================
-async def safe_edit(event, text, buttons=None):
-    try:
-        if event.inline_message_id:
-            await worker.edit_message(entity=None, message=event.inline_message_id, text=text, buttons=buttons)
-        else:
-            await event.edit(text, buttons=buttons)
-    except:
-        pass
+    nav_row = []
+    # زرار السابق
+    if page > 1:
+        nav_row.append(InlineKeyboardButton("⪼ الســابق ⪻", callback_data=f"page_{page-1}"))
+    else:
+        nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy_start"))
+
+    # زرار الإغلاق
+    nav_row.append(InlineKeyboardButton("❎ اغــلاق", callback_data="close"))
+
+    # زرار التالي
+    if end < len(all_buttons):
+        nav_row.append(InlineKeyboardButton("⪼ التــالي ⪻", callback_data=f"page_{page+1}"))
+    else:
+        nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy_end"))
+
+    keyboard.append(nav_row)
+    
+    return InlineKeyboardMarkup(keyboard)
 
 # ====================================================================
-# 5. الدوال "العريانة" (بدون أي علامة @)
-# دي الدوال اللي هتشتغل بعيد عن عين السورس
+# 🔥 معالجات بايروجرام (منعزلة تماماً عن تليثون)
 # ====================================================================
 
-async def ghost_inline_handler(event):
-    """معالج البحث الانلاين"""
-    # حماية يدوية: المالك فقط
+# 1. الرد على البحث (Inline Query)
+@pyro_bot.on_inline_query(filters.regex("^zthon_menu$"))
+async def pyro_inline_handler(client, inline_query):
+    # التحقق من المالك (اختياري بس أمان)
+    # هنجيب ايدي المالك من تليثون
     try:
-        my_id = (await zedub.get_me()).id
-        if event.sender_id != my_id:
-            return
-    except:
-        pass 
-
-    builder = event.builder
-    if event.text == "zthon_menu":
-        try:
-            me = await zedub.get_me()
-            name = me.first_name or "ZThon"
-        except:
-            name = "ZThon"
-            
-        result = builder.article(
-            title="ZThon Menu",
-            text=MAIN_MENU.format(name=name),
-            buttons=get_menu_buttons(1),
-            link_preview=False
-        )
-        await event.answer([result], switch_pm="ZThon", switch_pm_param="start")
-
-
-async def ghost_callback_handler(event):
-    """معالج الضغطات"""
-    # حماية يدوية
-    try:
-        my_id = (await zedub.get_me()).id
-        if event.sender_id != my_id:
+        owner_id = (await zedub.get_me()).id
+        if inline_query.from_user.id != owner_id:
             return
     except:
         pass
 
-    data = event.data.decode('utf-8')
+    try:
+        # نجيب الاسم
+        me = await zedub.get_me()
+        name = me.first_name or "ZThon"
+    except:
+        name = "ZThon"
+
+    await inline_query.answer(
+        results=[
+            InlineQueryResultArticle(
+                title="ZThon Menu",
+                input_message_content=InputTextMessageContent(
+                    MAIN_MENU.format(name=name),
+                    disable_web_page_preview=True
+                ),
+                reply_markup=get_pyro_keyboard(1)
+            )
+        ],
+        cache_time=1
+    )
+
+# 2. الرد على الضغطات (Callback Query)
+@pyro_bot.on_callback_query()
+async def pyro_callback_handler(client, callback_query):
+    # حماية المالك
+    try:
+        owner_id = (await zedub.get_me()).id
+        if callback_query.from_user.id != owner_id:
+            # تجاهل تام
+            return 
+    except:
+        pass
+
+    data = callback_query.data
     try:
         me = await zedub.get_me()
         name = me.first_name or "ZThon"
     except:
         name = "ZThon"
 
+    # معالجة الزراير
     if data == "close":
         try:
-            await event.delete()
+            await callback_query.message.delete()
         except:
-            await safe_edit(event, "🔒", buttons=None)
+            # لو معرفش يحذف (انلاين) يعدلها لنص
+            await callback_query.edit_message_text("🔒 تم الإغلاق")
         return
 
     if data in ("dummy_start", "dummy_end"):
-        await event.answer("⚠️ لا توجد صفحات أخرى!", cache_time=1)
+        await callback_query.answer("⚠️ لا توجد صفحات أخرى!", show_alert=False)
         return
 
     if data.startswith("page_"):
         page = int(data.split("_")[1])
-        new_text = MAIN_MENU.format(name=name)
-        await safe_edit(event, new_text, buttons=get_menu_buttons(page))
+        await callback_query.edit_message_text(
+            MAIN_MENU.format(name=name),
+            reply_markup=get_pyro_keyboard(page),
+            disable_web_page_preview=True
+        )
         return
 
     if data == "main_menu":
-        new_text = MAIN_MENU.format(name=name)
-        await safe_edit(event, new_text, buttons=get_menu_buttons(1))
+        await callback_query.edit_message_text(
+            MAIN_MENU.format(name=name),
+            reply_markup=get_pyro_keyboard(1),
+            disable_web_page_preview=True
+        )
         return
 
     if data in SECTION_DETAILS:
         content = SECTION_DETAILS[data]
-        back_btn = [[Button.inline("⪼ رجــوع للقائمــة ⪻", data="main_menu")]]
-        await safe_edit(event, content, buttons=back_btn)
+        back_btn = InlineKeyboardMarkup([[
+            InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data="main_menu")
+        ]])
+        await callback_query.edit_message_text(
+            content,
+            reply_markup=back_btn,
+            disable_web_page_preview=True
+        )
     else:
-        await event.answer("⚠️ القسم قيد الصيانة", alert=True)
+        await callback_query.answer("⚠️ القسم قيد الصيانة", show_alert=True)
 
 
 # ====================================================================
-# 6. الحقن السري والتشغيل (The Injection Task)
+# 🚀 تشغيل بايروجرام في الخلفية (The Engine)
 # ====================================================================
-async def start_stealth_bot():
+async def start_pyro():
     if not bot_token:
-        print("🚬 Mikey: لم يتم العثور على توكن البوت، تم إلغاء تشغيل القائمة.")
+        print("🚬 Mikey: لا يوجد توكن للبوت (Pyrogram)!")
         return
-
     try:
-        # تشغيل البوت المستقل
-        await worker.start(bot_token=bot_token)
-        
-        # 👇👇👇 هنا السحر كله 👇👇👇
-        # بنضيف الدوال يدوياً للمكتبة، فالسورس ومشاكله مش بيحسوا بحاجة
-        worker.add_event_handler(ghost_inline_handler, events.InlineQuery)
-        worker.add_event_handler(ghost_callback_handler, events.CallbackQuery)
-        
-        print("🚬 Mikey: تم تفعيل البوت الشبح (Stealth Mode) بنجاح!")
+        await pyro_bot.start()
+        print("🚬 Mikey: تم تشغيل بايروجرام (Pyrogram) بنجاح! وداعاً تليثون!")
     except Exception as e:
-        print(f"🚬 Mikey Error: فشل تشغيل البوت: {e}")
+        print(f"🚬 Mikey Error (Pyrogram): {e}")
 
-# تشغيل المهمة في الخلفية
-zedub.loop.create_task(start_stealth_bot())
+# نضيف التشغيل للـ Loop الحالي بتاع تليثون
+zedub.loop.create_task(start_pyro())
 
 
 # ====================================================================
-# 7. أوامر المستخدم (دي عادية لانها شغالة على zedub)
+# 👤 أوامر المستخدم (Telethon Trigger)
+# هنا تليثون بيسلم الراية لبايروجرام
 # ====================================================================
 
 @zedub.on(events.NewMessage(pattern=r"\.الاوامر"))
 async def launch_menu(event):
     if not bot_token:
-        await event.edit("⚠️ **خطأ:** لم يتم وضع `TG_BOT_TOKEN`!")
+        await event.edit("⚠️ **خطأ:** تأكد من `TG_BOT_TOKEN`")
         return
 
-    status = await event.edit("⌛️ **...**")
+    status = await event.edit("⌛️ **جاري الفتح (Pyrogram Engine)...**")
     
-    # محاولة الاستدعاء عبر worker
     try:
-        bot_user = (await worker.get_me()).username
+        # بنجيب يوزر البوت من بايروجرام
+        bot_user = pyro_bot.me.username
+        
+        # بنستخدم تليثون عشان نعمل البحث، وبايروجرام هو اللي هيرد
         results = await zedub.inline_query(bot_user, "zthon_menu")
+        
         if results:
             await results[0].click(event.chat_id, reply_to=event.reply_to_msg_id, hide_via=True)
             await status.delete()
+        else:
+            await status.edit("⚠️ **لم يتم العثور على النتائج!**")
+            
     except Exception as e:
-        # لو فشل الانلاين، يبعت مباشر
-        try:
-            me = await zedub.get_me()
-            name = me.first_name or "ZThon"
-            await worker.send_message(
-                event.chat_id, 
-                MAIN_MENU.format(name=name), 
-                buttons=get_menu_buttons(1), 
-                reply_to=event.id
-            )
-            await status.delete()
-        except Exception:
-            await status.edit("⚠️ **فشل العرض!**\nتأكد من تفعيل Inline Mode للبوت من @BotFather.")
+        await status.edit(f"⚠️ **فشل:** {str(e)}")
 
+# الأوامر النصية القديمة (لسه تليثون، بسيطة ومش بتعلق)
 @zedub.on(events.NewMessage(pattern=r"\.م(\d+)"))
 async def direct_txt(event):
     num = event.pattern_match.group(1)
