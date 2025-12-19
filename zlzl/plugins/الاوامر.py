@@ -1,5 +1,4 @@
-# 🚬 ZThon Handler - Standalone Isolation Mode
-# ده بيفصل معالجة الزراير عن السورس تماماً عشان يمنع الأخطاء
+# 🚬 ZThon Handler - Stealth Mode (Hidden from Source Loader)
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
@@ -9,33 +8,23 @@ from telethon.errors import MessageNotModifiedError
 from zlzl import zedub
 
 # =========================
-# 🏗 إعداد العميل المستقل (The Worker)
+# 1. إعداد العميل المستقل (بدون تشغيل فوري)
 # =========================
-# هنا بنعمل بوت خاص بالملف ده بس، ملوش دعوة بـ zedub
 api_id = zedub.api_id
 api_hash = zedub.api_hash
 bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
 
-# اسم الجلسة مختلف عشان ميتخانقش مع السورس
-worker = TelegramClient("zthon_menu_worker", api_id, api_hash)
-
-# تشغيل العميل المستقل في الخلفية
-async def start_worker():
-    await worker.start(bot_token=bot_token)
-    print("🚬 Mikey: تم تشغيل (MenuWorker) بنجاح في وضع العزل!")
-
-# نضيفه للـ Loop بتاع السورس عشان يشتغل معاه
-zedub.loop.create_task(start_worker())
-
+# اسم الجلسة مختلف ومميز
+worker = TelegramClient("zthon_stealth_worker", api_id, api_hash)
 
 # =========================
-# 📦 استدعاء النصوص
+# 2. استدعاء النصوص
 # =========================
 from zlzl.zthon_texts import MAIN_MENU
 from zlzl.zthon_strings import SECTION_DETAILS
 
 # =========================
-# 🎮 هندسة الزراير
+# 3. هندسة الزراير
 # =========================
 def get_menu_buttons(page):
     all_buttons = [
@@ -62,37 +51,34 @@ def get_menu_buttons(page):
     return rows
 
 # =========================
-# 🛠 دالة التعديل الآمن
+# 4. دالة التعديل الآمن
 # =========================
 async def safe_edit(event, text, buttons=None):
     try:
-        # بنستخدم worker للتعديل لانه هو اللي ماسك الزراير
         if event.inline_message_id:
             await worker.edit_message(entity=None, message=event.inline_message_id, text=text, buttons=buttons)
         else:
             await event.edit(text, buttons=buttons)
-    except (MessageNotModifiedError, Exception):
+    except:
         pass
 
 # ====================================================================
-# 🤖 معالجات العميل المستقل (worker)
-# المعالجات دي شغالة على "worker" مش "zedub" ولا "asst"
+# 5. الدوال "العريانة" (بدون أي علامة @)
+# دي الدوال اللي هتشتغل بعيد عن عين السورس
 # ====================================================================
 
-@worker.on(events.InlineQuery)
-async def worker_inline_handler(event):
-    """الرد على الاستعلام"""
-    # حماية: المالك فقط
+async def ghost_inline_handler(event):
+    """معالج البحث الانلاين"""
+    # حماية يدوية: المالك فقط
     try:
         my_id = (await zedub.get_me()).id
         if event.sender_id != my_id:
             return
     except:
-        pass # لو فشل التحقق، كمل (للامان)
+        pass 
 
     builder = event.builder
     if event.text == "zthon_menu":
-        # بنجيب الاسم من zedub عشان يظهر اسمك انت
         try:
             me = await zedub.get_me()
             name = me.first_name or "ZThon"
@@ -108,10 +94,9 @@ async def worker_inline_handler(event):
         await event.answer([result], switch_pm="ZThon", switch_pm_param="start")
 
 
-@worker.on(events.CallbackQuery)
-async def worker_callback_handler(event):
-    """الرد على الضغطات"""
-    # حماية التجاهل
+async def ghost_callback_handler(event):
+    """معالج الضغطات"""
+    # حماية يدوية
     try:
         my_id = (await zedub.get_me()).id
         if event.sender_id != my_id:
@@ -120,8 +105,6 @@ async def worker_callback_handler(event):
         pass
 
     data = event.data.decode('utf-8')
-    
-    # اسم المالك
     try:
         me = await zedub.get_me()
         name = me.first_name or "ZThon"
@@ -159,13 +142,38 @@ async def worker_callback_handler(event):
 
 
 # ====================================================================
-# 👤 أوامر المستخدم (شغالة على zedub)
+# 6. الحقن السري والتشغيل (The Injection Task)
+# ====================================================================
+async def start_stealth_bot():
+    if not bot_token:
+        print("🚬 Mikey: لم يتم العثور على توكن البوت، تم إلغاء تشغيل القائمة.")
+        return
+
+    try:
+        # تشغيل البوت المستقل
+        await worker.start(bot_token=bot_token)
+        
+        # 👇👇👇 هنا السحر كله 👇👇👇
+        # بنضيف الدوال يدوياً للمكتبة، فالسورس ومشاكله مش بيحسوا بحاجة
+        worker.add_event_handler(ghost_inline_handler, events.InlineQuery)
+        worker.add_event_handler(ghost_callback_handler, events.CallbackQuery)
+        
+        print("🚬 Mikey: تم تفعيل البوت الشبح (Stealth Mode) بنجاح!")
+    except Exception as e:
+        print(f"🚬 Mikey Error: فشل تشغيل البوت: {e}")
+
+# تشغيل المهمة في الخلفية
+zedub.loop.create_task(start_stealth_bot())
+
+
+# ====================================================================
+# 7. أوامر المستخدم (دي عادية لانها شغالة على zedub)
 # ====================================================================
 
 @zedub.on(events.NewMessage(pattern=r"\.الاوامر"))
 async def launch_menu(event):
     if not bot_token:
-        await event.edit("⚠️ **خطأ:** لم يتم وضع توكن البوت!")
+        await event.edit("⚠️ **خطأ:** لم يتم وضع `TG_BOT_TOKEN`!")
         return
 
     status = await event.edit("⌛️ **...**")
@@ -190,7 +198,7 @@ async def launch_menu(event):
             )
             await status.delete()
         except Exception:
-            await status.edit("⚠️ **فشل عرض القائمة!**\nتأكد من تفعيل Inline Mode في البوت.")
+            await status.edit("⚠️ **فشل العرض!**\nتأكد من تفعيل Inline Mode للبوت من @BotFather.")
 
 @zedub.on(events.NewMessage(pattern=r"\.م(\d+)"))
 async def direct_txt(event):
