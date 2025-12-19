@@ -1,35 +1,32 @@
-# 🚬 ZThon Handler - Bypass Mode (No Decorators for Bot)
+# 🚬 ZThon Handler - Standalone Isolation Mode
+# ده بيفصل معالجة الزراير عن السورس تماماً عشان يمنع الأخطاء
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
+import asyncio
 from telethon import events, Button, TelegramClient
 from telethon.errors import MessageNotModifiedError
 from zlzl import zedub
 
 # =========================
-# ☢️ كشف وتعريف البوت المساعد (إجباري)
+# 🏗 إعداد العميل المستقل (The Worker)
 # =========================
-zthon = zedub
-asst = None
+# هنا بنعمل بوت خاص بالملف ده بس، ملوش دعوة بـ zedub
+api_id = zedub.api_id
+api_hash = zedub.api_hash
+bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
 
-# محاولة 1: السحب من السورس
-if hasattr(zedub, 'tgbot') and zedub.tgbot:
-    asst = zedub.tgbot
-elif hasattr(zedub, 'bot') and zedub.bot:
-    asst = zedub.bot
+# اسم الجلسة مختلف عشان ميتخانقش مع السورس
+worker = TelegramClient("zthon_menu_worker", api_id, api_hash)
 
-# محاولة 2: السحب من التوكن (لو السورس نايم)
-if not asst:
-    try:
-        bot_token = os.environ.get("TG_BOT_TOKEN") or os.environ.get("BOT_TOKEN")
-        if bot_token:
-            asst = TelegramClient(
-                "zthon_menu_helper_bypass", 
-                zedub.api_id, 
-                zedub.api_hash
-            ).start(bot_token=bot_token)
-    except Exception as e:
-        print(f"🚬 Mikey Error: {e}")
+# تشغيل العميل المستقل في الخلفية
+async def start_worker():
+    await worker.start(bot_token=bot_token)
+    print("🚬 Mikey: تم تشغيل (MenuWorker) بنجاح في وضع العزل!")
+
+# نضيفه للـ Loop بتاع السورس عشان يشتغل معاه
+zedub.loop.create_task(start_worker())
+
 
 # =========================
 # 📦 استدعاء النصوص
@@ -69,31 +66,39 @@ def get_menu_buttons(page):
 # =========================
 async def safe_edit(event, text, buttons=None):
     try:
-        await event.edit(text, buttons=buttons)
-    except Exception:
-        try:
-            if event.inline_message_id:
-                await asst.edit_message(entity=None, message=event.inline_message_id, text=text, buttons=buttons)
-            elif event.chat_id and event.message_id:
-                await asst.edit_message(entity=event.chat_id, message=event.message_id, text=text, buttons=buttons)
-        except (MessageNotModifiedError, Exception):
-            pass
+        # بنستخدم worker للتعديل لانه هو اللي ماسك الزراير
+        if event.inline_message_id:
+            await worker.edit_message(entity=None, message=event.inline_message_id, text=text, buttons=buttons)
+        else:
+            await event.edit(text, buttons=buttons)
+    except (MessageNotModifiedError, Exception):
+        pass
 
 # ====================================================================
-# 🔥 الدوال الخام (بدون ديكوريتورز @asst.on) - عشان نهرب من check_owner
+# 🤖 معالجات العميل المستقل (worker)
+# المعالجات دي شغالة على "worker" مش "zedub" ولا "asst"
 # ====================================================================
 
-async def raw_inline_handler(event):
-    """معالج البحث الانلاين (الخفي)"""
-    # تحقق أمني يدوي
-    owner_id = await zedub.get_peer_id('me')
-    if event.sender_id != owner_id:
-        return
+@worker.on(events.InlineQuery)
+async def worker_inline_handler(event):
+    """الرد على الاستعلام"""
+    # حماية: المالك فقط
+    try:
+        my_id = (await zedub.get_me()).id
+        if event.sender_id != my_id:
+            return
+    except:
+        pass # لو فشل التحقق، كمل (للامان)
 
     builder = event.builder
     if event.text == "zthon_menu":
-        me = await zedub.get_me()
-        name = me.first_name or "ZThon"
+        # بنجيب الاسم من zedub عشان يظهر اسمك انت
+        try:
+            me = await zedub.get_me()
+            name = me.first_name or "ZThon"
+        except:
+            name = "ZThon"
+            
         result = builder.article(
             title="ZThon Menu",
             text=MAIN_MENU.format(name=name),
@@ -103,20 +108,25 @@ async def raw_inline_handler(event):
         await event.answer([result], switch_pm="ZThon", switch_pm_param="start")
 
 
-async def raw_callback_handler(event):
-    """معالج الضغطات (القلب النابض)"""
-    # 1. الحماية اليدوية (تجاهل المتطفلين)
-    owner_id = await zedub.get_peer_id('me')
-    if event.sender_id != owner_id:
-        # تجاهل تام
-        return 
+@worker.on(events.CallbackQuery)
+async def worker_callback_handler(event):
+    """الرد على الضغطات"""
+    # حماية التجاهل
+    try:
+        my_id = (await zedub.get_me()).id
+        if event.sender_id != my_id:
+            return
+    except:
+        pass
 
     data = event.data.decode('utf-8')
+    
+    # اسم المالك
     try:
-        owner = await zedub.get_me()
-        owner_name = owner.first_name or "ZThon"
+        me = await zedub.get_me()
+        name = me.first_name or "ZThon"
     except:
-        owner_name = "ZThon"
+        name = "ZThon"
 
     if data == "close":
         try:
@@ -131,12 +141,12 @@ async def raw_callback_handler(event):
 
     if data.startswith("page_"):
         page = int(data.split("_")[1])
-        new_text = MAIN_MENU.format(name=owner_name)
+        new_text = MAIN_MENU.format(name=name)
         await safe_edit(event, new_text, buttons=get_menu_buttons(page))
         return
 
     if data == "main_menu":
-        new_text = MAIN_MENU.format(name=owner_name)
+        new_text = MAIN_MENU.format(name=name)
         await safe_edit(event, new_text, buttons=get_menu_buttons(1))
         return
 
@@ -149,57 +159,47 @@ async def raw_callback_handler(event):
 
 
 # ====================================================================
-# 💉 الحقن اليدوي (The Injection) - هنا بنركب الدوال غصب عن السورس
-# ====================================================================
-if asst:
-    # بنضيف الدوال مباشرة للمكتبة عشان نتخطى ديكوريتورز السورس الفاسدة
-    asst.add_event_handler(raw_inline_handler, events.InlineQuery)
-    asst.add_event_handler(raw_callback_handler, events.CallbackQuery)
-    print("🚬 Mikey: تم حقن معالجات البوت المساعد بنجاح (Bypass Mode On)!")
-
-
-# ====================================================================
-# 👤 أوامر المستخدم (دي بتشتغل بـ zthon عادي لانها محمية صح)
+# 👤 أوامر المستخدم (شغالة على zedub)
 # ====================================================================
 
-@zthon.on(events.NewMessage(pattern=r"\.الاوامر"))
-async def ultimate_menu_handler(event):
-    me = await event.client.get_me()
-    name = me.first_name or "ZThon"
-    text_content = MAIN_MENU.format(name=name)
-
-    if not asst:
-        await event.edit(f"⚠️ **عذراً.. البوت المساعد غير متصل!**\nتأكد من `TG_BOT_TOKEN`.\n\n" + text_content)
+@zedub.on(events.NewMessage(pattern=r"\.الاوامر"))
+async def launch_menu(event):
+    if not bot_token:
+        await event.edit("⚠️ **خطأ:** لم يتم وضع توكن البوت!")
         return
 
-    status_msg = await event.edit("⌛️ **...**")
+    status = await event.edit("⌛️ **...**")
     
+    # محاولة الاستدعاء عبر worker
     try:
-        bot_username = (await asst.get_me()).username
-        results = await zthon.inline_query(bot_username, "zthon_menu")
+        bot_user = (await worker.get_me()).username
+        results = await zedub.inline_query(bot_user, "zthon_menu")
         if results:
             await results[0].click(event.chat_id, reply_to=event.reply_to_msg_id, hide_via=True)
-            await status_msg.delete()
-            return
-    except Exception:
-        pass
+            await status.delete()
+    except Exception as e:
+        # لو فشل الانلاين، يبعت مباشر
+        try:
+            me = await zedub.get_me()
+            name = me.first_name or "ZThon"
+            await worker.send_message(
+                event.chat_id, 
+                MAIN_MENU.format(name=name), 
+                buttons=get_menu_buttons(1), 
+                reply_to=event.id
+            )
+            await status.delete()
+        except Exception:
+            await status.edit("⚠️ **فشل عرض القائمة!**\nتأكد من تفعيل Inline Mode في البوت.")
 
-    try:
-        await asst.send_message(event.chat_id, text_content, buttons=get_menu_buttons(1), reply_to=event.id)
-        await status_msg.delete()
-    except Exception:
-        await status_msg.edit(f"⚠️ **فشل الانلاين.**\n\n{text_content}")
-
-@zthon.on(events.NewMessage(pattern=r"\.م(\d+)"))
-async def direct_text_section(event):
+@zedub.on(events.NewMessage(pattern=r"\.م(\d+)"))
+async def direct_txt(event):
     num = event.pattern_match.group(1)
     key = f"m{num}"
     if key in SECTION_DETAILS:
         await event.edit(SECTION_DETAILS[key])
-    else:
-        return
 
-@zthon.on(events.NewMessage(pattern=r"\.اوامري"))
-async def text_only(event):
+@zedub.on(events.NewMessage(pattern=r"\.اوامري"))
+async def txt_menu(event):
     me = await event.client.get_me()
     await event.edit(MAIN_MENU.format(name=me.first_name or "ZThon"))
