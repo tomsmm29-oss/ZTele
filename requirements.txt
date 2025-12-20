@@ -83,3 +83,5 @@ ffmpeg-python
 google-generativeai
 pyrogram
 tgcrypto
+pyTelegramBotAPI
+PyJWT
