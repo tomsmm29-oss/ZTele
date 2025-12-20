@@ -85,3 +85,4 @@ pyrogram
 tgcrypto
 pyTelegramBotAPI
 PyJWT
+faker
