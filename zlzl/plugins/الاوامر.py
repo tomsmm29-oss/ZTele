@@ -1,5 +1,6 @@
 import os
 import traceback
+import asyncio
 from telethon import events
 from zlzl import zedub
 
@@ -27,8 +28,9 @@ pyro_bot = Client(
     in_memory=True
 )
 
-# متغير عالمي لحفظ معرف المالك لتقليل الطلبات
+# متغيرات عالمية لتجنب استدعاء تليثون المتكرر
 OWNER_ID = None
+OWNER_NAME = "ZThon"
 
 # =========================
 # 📦 استدعاء النصوص
@@ -56,12 +58,7 @@ def generate_page_text(name, page):
 # 🎮 هندسة الزراير
 # =========================
 def get_pyro_keyboard(page):
-    all_buttons = [
-        "❶","❷","❸","❹","❺","❻",
-        "❼","❽","❾","❿","⓫","⓬",
-        "⓭","⓮","⓯","⓰","⓱","⓲",
-        "⓳","⓴","❷❶","❷❷","❷❸","❷❹","❷❺"
-    ]
+    all_buttons = ["❶","❷","❸","❹","❺","❻","❼","❽","❾","❿","⓫","⓬","⓭","⓮","⓯","⓰","⓱","⓲","⓳","⓴","❷❶","❷❷","❷❸","❷❹","❷❺"]
     max_per_page = 12
     start = (page - 1) * max_per_page
     end = start + max_per_page
@@ -71,9 +68,7 @@ def get_pyro_keyboard(page):
 
     for i, icon in enumerate(all_buttons[start:end]):
         real_index = start + i + 1
-        callback_data = f"m{real_index}|{page}"
-        temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=callback_data))
-
+        temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=f"m{real_index}|{page}"))
         if len(temp_row) == 3:
             keyboard.append(temp_row)
             temp_row = []
@@ -82,30 +77,20 @@ def get_pyro_keyboard(page):
         keyboard.append(temp_row)
 
     nav_row = []
-
     if page > 1:
-        prev_page_num = page - 1
-        prev_range_start = (prev_page_num - 1) * max_per_page + 1
-        prev_range_end = prev_page_num * max_per_page
-        label = f"⪻ ❨ {prev_range_start} ⇄ {prev_range_end} ❩"
-        nav_row.append(InlineKeyboardButton(label, callback_data=f"page_{prev_page_num}"))
+        prev_p = page - 1
+        nav_row.append(InlineKeyboardButton(f"⪻ ❨ {(prev_p-1)*12+1} ⇄ {prev_p*12} ❩", callback_data=f"page_{prev_p}"))
     else:
-        nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy_start"))
+        nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy"))
 
     if end < len(all_buttons):
-        next_page_num = page + 1
-        next_range_start = (next_page_num - 1) * max_per_page + 1
-        next_range_end = next_page_num * max_per_page
-        if next_range_start >= 25:
-            label = f"❨ {next_range_start} ⇄ ∞ ❩ ⪼"
-        else:
-            label = f"❨ {next_range_start} ⇄ {next_range_end} ❩ ⪼"
-        nav_row.append(InlineKeyboardButton(label, callback_data=f"page_{next_page_num}"))
+        next_p = page + 1
+        nav_row.append(InlineKeyboardButton(f"❨ {(next_p-1)*12+1} ⇄ {next_p*12} ❩ ⪼", callback_data=f"page_{next_p}"))
     else:
-        nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy_end"))
+        nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy"))
 
     keyboard.append(nav_row)
-    keyboard.append([InlineKeyboardButton("❎ اغــلاق القائمــة", callback_data="close")])
+    keyboard.append([InlineKeyboardButton("❎ اغــلاق القائمــة", callback_data="close_all")])
     return InlineKeyboardMarkup(keyboard)
 
 # ====================================================================
@@ -114,32 +99,15 @@ def get_pyro_keyboard(page):
 
 @pyro_bot.on_inline_query(filters.regex("^zthon_menu$"))
 async def pyro_inline_handler(client, inline_query):
-    global OWNER_ID
-    try:
-        if OWNER_ID is None:
-            OWNER_ID = (await zedub.get_me()).id
-        
-        if inline_query.from_user.id != OWNER_ID:
-            return
-    except:
+    if OWNER_ID and inline_query.from_user.id != OWNER_ID:
         return
 
-    try:
-        me = await zedub.get_me()
-        name = me.first_name or "ZThon"
-    except:
-        name = "ZThon"
-
-    text_content = generate_page_text(name, 1)
-
+    text_content = generate_page_text(OWNER_NAME, 1)
     await inline_query.answer(
         results=[
             InlineQueryResultArticle(
                 title="ZThon Menu",
-                input_message_content=InputTextMessageContent(
-                    text_content,
-                    disable_web_page_preview=True
-                ),
+                input_message_content=InputTextMessageContent(text_content, disable_web_page_preview=True),
                 reply_markup=get_pyro_keyboard(1)
             )
         ],
@@ -150,77 +118,70 @@ async def pyro_inline_handler(client, inline_query):
 async def pyro_callback_handler(client, callback_query):
     global OWNER_ID
     
-    # 1. جلب معرف المالك إذا لم يكن موجوداً
-    if OWNER_ID is None:
-        try:
-            OWNER_ID = (await zedub.get_me()).id
-        except:
-            pass
-
-    # 2. التحقق من الهوية فوراً
-    if callback_query.from_user.id != OWNER_ID:
-        # إذا لم يكن المالك، نظهر الرسالة له هو فقط
-        return await callback_query.answer("هذا الخيار ليس لك ⚠️!", show_alert=True)
-
-    # 3. إذا كان المالك، نرسل إجابة صامتة فوراً لإخفاء علامة التحميل
+    # 1. أهم خطوة: الرد الفوري لإيقاف التحميل ومنع تداخل السورس الأساسي
     try:
-        await callback_query.answer()
+        await callback_query.answer() 
     except:
         pass
 
-    data = callback_query.data or ""
-
-    try:
-        if data == "close":
-            await callback_query.message.delete()
+    # 2. التحقق من المالك باستخدام المتغير المحلي (سريع جداً)
+    if OWNER_ID and callback_query.from_user.id != OWNER_ID:
+        # إذا ضغط شخص آخر، نظهر له التنبيه وننهي التنفيذ
+        try:
+            return await callback_query.answer("هذا الخيار ليس لك ⚠️!", show_alert=True)
+        except:
             return
 
-        if data.startswith("dummy"):
+    data = callback_query.data
+    try:
+        # إصلاح زر الإغلاق (في الإنلاين التعديل أفضل من الحذف لتجنب الأخطاء)
+        if data == "close_all":
+            await callback_query.edit_message_text("✅ تم إغلاق قائمة الأوامر.")
+            return
+
+        if data == "dummy":
             return
 
         if data.startswith("page_"):
             page = int(data.split("_")[1])
-            me = await zedub.get_me()
-            new_text = generate_page_text(me.first_name or "ZThon", page)
             await callback_query.edit_message_text(
-                new_text,
+                generate_page_text(OWNER_NAME, page),
                 reply_markup=get_pyro_keyboard(page),
                 disable_web_page_preview=True
             )
             return
 
         if data.startswith("m"):
-            section_key, origin_page = data.split("|")
-            if section_key in SECTION_DETAILS:
-                content = SECTION_DETAILS[section_key]
-                back_btn = InlineKeyboardMarkup([[
-                    InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data=f"page_{origin_page}")
-                ]])
+            section, p = data.split("|")
+            if section in SECTION_DETAILS:
+                back_btn = InlineKeyboardMarkup([[InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data=f"page_{p}")]])
                 await callback_query.edit_message_text(
-                    content,
+                    SECTION_DETAILS[section],
                     reply_markup=back_btn,
                     disable_web_page_preview=True
                 )
             return
     except Exception:
-        traceback.print_exc()
+        pass
 
 # =========================
 # التشغيل
 # =========================
 async def start_pyro():
-    global OWNER_ID
+    global OWNER_ID, OWNER_NAME
     if not bot_token:
-        print("🚬 Mikey: لا يوجد توكن!")
         return
     try:
         await pyro_bot.start()
-        # جلب ID المالك عند بدء التشغيل لتسريع الاستجابة
-        OWNER_ID = (await zedub.get_me()).id
-        print(f"🚬 Mikey: Pyrogram Started (Owner ID: {OWNER_ID})")
+        # جلب معلومات المالك مرة واحدة عند التشغيل فقط
+        me = await zedub.get_me()
+        OWNER_ID = me.id
+        OWNER_NAME = me.first_name or "ZThon"
+        print(f"✅ PyroBot Started - Owner: {OWNER_ID}")
     except Exception as e:
-        print(f"🚬 Mikey Error: {e}")
+        print(f"❌ Error starting PyroBot: {e}")
 
+# تشغيل بايروجرام في الخلفية
 zedub.loop.create_task(start_pyro())
 
 # ====================================================================
@@ -230,24 +191,18 @@ zedub.loop.create_task(start_pyro())
 @zedub.on(events.NewMessage(pattern=r"\.الاوامر", outgoing=True))
 async def launch_menu(event):
     if not bot_token:
-        await event.edit("⚠️ **خطأ:** تأكد من `TG_BOT_TOKEN`")
-        return
+        return await event.edit("⚠️ تأكد من وضع توكن البوت في المتغيرات")
 
-    status = await event.edit("⌛️ **يتم فتح قائمة الأوامر...**")
+    await event.edit("⌛️")
     try:
-        bot_user = pyro_bot.me.username
-        results = await zedub.inline_query(bot_user, "zthon_menu")
+        results = await zedub.inline_query(pyro_bot.me.username, "zthon_menu")
         if results:
-            await results[0].click(
-                event.chat_id,
-                reply_to=event.reply_to_msg_id,
-                hide_via=True
-            )
-            await status.delete()
+            await results[0].click(event.chat_id, hide_via=True)
+            await event.delete()
         else:
-            await status.edit("⚠️ **فشل:** تأكد أن البوت المساعد يعمل.")
+            await event.edit("⚠️ فشل في تشغيل الإنلاين")
     except Exception as e:
-        await status.edit(f"⚠️ **حدث خطأ:** {str(e)}")
+        await event.edit(f"⚠️ خطأ: {str(e)}")
 
 @zedub.on(events.NewMessage(pattern=r"\.م(\d+)", outgoing=True))
 async def direct_txt(event):
@@ -258,6 +213,4 @@ async def direct_txt(event):
 
 @zedub.on(events.NewMessage(pattern=r"\.اوامري", outgoing=True))
 async def txt_menu(event):
-    me = await event.client.get_me()
-    name = me.first_name or "ZThon"
-    await event.edit(get_full_menu(name))
+    await event.edit(get_full_menu(OWNER_NAME))
