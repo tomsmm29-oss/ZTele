@@ -2,6 +2,7 @@
 # المسار: zlzl/plugins/الاوامر.py
 
 import os
+import traceback
 from telethon import events
 from zlzl import zedub
 
@@ -144,6 +145,112 @@ async def pyro_inline_handler(client, inline_query):
 
 
 
+
+@pyro_bot.on_callback_query()
+async def pyro_callback_handler(client, callback_query):
+    # ==== طباعة تشخيصية كاملة ====
+    try:
+        pyro_me = await pyro_bot.get_me()
+    except Exception as e:
+        pyro_me = None
+    try:
+        zedub_me = await zedub.get_me()
+    except Exception as e:
+        zedub_me = None
+
+    try:
+        print("===== CALLBACK DEBUG =====")
+        print("pyro_bot.me:", getattr(pyro_me, "id", None), getattr(pyro_me, "username", None))
+        print("zedub.get_me():", getattr(zedub_me, "id", None), getattr(zedub_me, "username", None))
+        print("callback.from_user.id:", getattr(callback_query.from_user, "id", None))
+        print("callback.from_user.username:", getattr(callback_query.from_user, "username", None))
+        print("callback.data:", callback_query.data)
+        print("callback.inline_message_id:", getattr(callback_query, "inline_message_id", None))
+
+        if getattr(callback_query, "message", None):
+            msg = callback_query.message
+            print("message.message_id:", getattr(msg, "message_id", None))
+            print("message.chat.id:", getattr(getattr(msg, "chat", None), "id", None))
+            print("message.chat.type:", getattr(getattr(msg, "chat", None), "type", None))
+            print("message.from_user:", getattr(getattr(msg, "from_user", None), "id", None))
+            print("message.via_bot:", getattr(getattr(msg, "via_bot", None), "username", None))
+            # print reply_markup summary
+            try:
+                if msg.reply_markup:
+                    print("reply_markup buttons count:", len(msg.reply_markup.inline_keyboard))
+            except:
+                pass
+        print("===========================")
+    except Exception as e:
+        print("DEBUG PRINT ERROR:", e)
+        traceback.print_exc()
+
+    # ==== أجب فورًا لتفادي رسائل تيليجرام الافتراضية ====
+    try:
+        await callback_query.answer()   # لا show_alert، لا نص — رد فارغ يخفي الـ loading
+    except Exception as e:
+        print("answer() failed:", e)
+
+    # ==== ثم نفّذ المنطق العادي (المالك فقط يستطيع التنفيذ) ====
+    try:
+        owner_id = getattr(zedub_me, "id", None)
+    except:
+        owner_id = None
+
+    # لو مش المالك، نكتفي بالإجابة الصامتة (أعلاه) ونرجع
+    try:
+        if owner_id is None or callback_query.from_user.id != owner_id:
+            # (لا إعادة show_alert هنا)
+            return
+    except:
+        return
+
+    # الآن المتفاعل هو المالك — نفّذ باقي الوظائف
+    data = callback_query.data or ""
+
+    try:
+        if data == "close":
+            try:
+                await callback_query.message.delete()
+            except:
+                pass
+            return
+
+        if data.startswith("dummy"):
+            return
+
+        if data.startswith("page_"):
+            try:
+                page = int(data.split("_")[1])
+                new_text = generate_page_text((await zedub.get_me()).first_name or "ZThon", page)
+                await callback_query.edit_message_text(
+                    new_text,
+                    reply_markup=get_pyro_keyboard(page),
+                    disable_web_page_preview=True
+                )
+            except Exception as e:
+                print("page_ handler error:", e)
+            return
+
+        if data.startswith("m"):
+            try:
+                section_key, origin_page = data.split("|")
+                if section_key in SECTION_DETAILS:
+                    content = SECTION_DETAILS[section_key]
+                    back_btn = InlineKeyboardMarkup([[
+                        InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data=f"page_{origin_page}")
+                    ]])
+                    await callback_query.edit_message_text(
+                        content,
+                        reply_markup=back_btn,
+                        disable_web_page_preview=True
+                    )
+            except Exception as e:
+                print("m handler error:", e)
+            return
+    except Exception as e:
+        print("MAIN HANDLER ERROR:", e)
+        traceback.print_exc()
 
 
 
