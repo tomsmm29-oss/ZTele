@@ -42,12 +42,12 @@ def generate_page_text(name, page):
     max_per_page = 12
     start = (page - 1) * max_per_page + 1 
     end = start + max_per_page - 1       
-    
+
     page_titles = []
     for i in range(start, end + 2): 
         if i in TITLES:
             page_titles.append(TITLES[i])
-            
+
     titles_str = "\n".join(page_titles)
     return f"{HEADER_TEXT.format(name=name)}\n{titles_str}\n{FOOTER_TEXT}"
 
@@ -64,7 +64,7 @@ def get_pyro_keyboard(page):
     max_per_page = 12
     start = (page - 1) * max_per_page
     end = start + max_per_page
-    
+
     keyboard = []
     temp_row = []
 
@@ -72,16 +72,16 @@ def get_pyro_keyboard(page):
         real_index = start + i + 1
         callback_data = f"m{real_index}|{page}"
         temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=callback_data))
-        
+
         if len(temp_row) == 3:
             keyboard.append(temp_row)
             temp_row = []
-    
+
     if temp_row:
         keyboard.append(temp_row)
 
     nav_row = []
-    
+
     # السابق
     if page > 1:
         prev_page_num = page - 1
@@ -148,7 +148,9 @@ async def pyro_callback_handler(client, callback_query):
     # حماية: المالك فقط
     try:
         owner_id = (await zedub.get_me()).id
-        if callback_query.from_user.id != owner_id: return 
+        if callback_query.from_user.id != owner_id:
+            await callback_query.answer()
+            return
     except: pass
 
     data = callback_query.data
@@ -173,7 +175,11 @@ async def pyro_callback_handler(client, callback_query):
     if data.startswith("page_"):
         page = int(data.split("_")[1])
         new_text = generate_page_text(name, page)
-        await callback_query.edit_message_text(new_text, reply_markup=get_pyro_keyboard(page), disable_web_page_preview=True)
+        await callback_query.edit_message_text(
+            new_text,
+            reply_markup=get_pyro_keyboard(page),
+            disable_web_page_preview=True
+        )
         return
 
     if data.startswith("m"):
@@ -181,13 +187,17 @@ async def pyro_callback_handler(client, callback_query):
             parts = data.split("|")
             section_key = parts[0]
             origin_page = parts[1]
-            
+
             if section_key in SECTION_DETAILS:
                 content = SECTION_DETAILS[section_key]
                 back_btn = InlineKeyboardMarkup([[
                     InlineKeyboardButton("⪼ رجــوع للقائمــة ⪻", callback_data=f"page_{origin_page}")
                 ]])
-                await callback_query.edit_message_text(content, reply_markup=back_btn, disable_web_page_preview=True)
+                await callback_query.edit_message_text(
+                    content,
+                    reply_markup=back_btn,
+                    disable_web_page_preview=True
+                )
             else:
                 await callback_query.answer("⚠️ القسم قيد الصيانة", show_alert=True)
         except Exception:
@@ -211,10 +221,8 @@ zedub.loop.create_task(start_pyro())
 
 # ====================================================================
 # 👤 أوامر المستخدم (Userbot Handlers)
-# هنا التعديل المهم: outgoing=True 🔐
 # ====================================================================
 
-# 1. أمر القائمة الانلاين
 @zedub.on(events.NewMessage(pattern=r"\.الاوامر", outgoing=True))
 async def launch_menu(event):
     if not bot_token:
@@ -226,14 +234,17 @@ async def launch_menu(event):
         bot_user = pyro_bot.me.username
         results = await zedub.inline_query(bot_user, "zthon_menu")
         if results:
-            await results[0].click(event.chat_id, reply_to=event.reply_to_msg_id, hide_via=True)
+            await results[0].click(
+                event.chat_id,
+                reply_to=event.reply_to_msg_id,
+                hide_via=True
+            )
             await status.delete()
         else:
             await status.edit("⚠️ **لم يتم العثور على النتائج!**")
     except Exception as e:
         await status.edit(f"⚠️ **فشل:** {str(e)}")
 
-# 2. أمر الأقسام المباشر
 @zedub.on(events.NewMessage(pattern=r"\.م(\d+)", outgoing=True))
 async def direct_txt(event):
     num = event.pattern_match.group(1)
@@ -241,7 +252,6 @@ async def direct_txt(event):
     if key in SECTION_DETAILS:
         await event.edit(SECTION_DETAILS[key])
 
-# 3. أمر القائمة النصية
 @zedub.on(events.NewMessage(pattern=r"\.اوامري", outgoing=True))
 async def txt_menu(event):
     me = await event.client.get_me()
