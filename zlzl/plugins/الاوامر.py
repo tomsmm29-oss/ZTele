@@ -142,12 +142,18 @@ async def pyro_inline_handler(client, inline_query):
         cache_time=1
     )
 
+
 @pyro_bot.on_callback_query()
 async def pyro_callback_handler(client, callback_query):
-    # 🔒 حماية صامتة: المالك فقط (بدون أي Answer)
+    # 🔒 حماية صامتة: المالك فقط (مع ردود مناسبة)
     try:
         owner_id = (await zedub.get_me()).id
         if callback_query.from_user.id != owner_id:
+            # أجب حتى لا يظهر تيليجرام الرسالة الافتراضية
+            try:
+                await callback_query.answer("⚠️ هذا الخيار ليس لك!", show_alert=True)
+            except:
+                pass
             return
     except:
         return
@@ -160,6 +166,12 @@ async def pyro_callback_handler(client, callback_query):
     except:
         name = "ZThon"
 
+    # أِعترِف بالـ callback فورًا للمستخدم المصرح (يمنع حملات التحميل والرسائل)
+    try:
+        await callback_query.answer()
+    except:
+        pass
+
     if data == "close":
         try:
             await callback_query.message.delete()
@@ -167,18 +179,21 @@ async def pyro_callback_handler(client, callback_query):
             pass
         return
 
-    # 🧹 أزرار وهمية – صامتة تمامًا
+    # أزرار وهمية – صامتة تمامًا
     if data.startswith("dummy"):
         return
 
     if data.startswith("page_"):
-        page = int(data.split("_")[1])
-        new_text = generate_page_text(name, page)
-        await callback_query.edit_message_text(
-            new_text,
-            reply_markup=get_pyro_keyboard(page),
-            disable_web_page_preview=True
-        )
+        try:
+            page = int(data.split("_")[1])
+            new_text = generate_page_text(name, page)
+            await callback_query.edit_message_text(
+                new_text,
+                reply_markup=get_pyro_keyboard(page),
+                disable_web_page_preview=True
+            )
+        except:
+            pass
         return
 
     if data.startswith("m"):
@@ -195,8 +210,8 @@ async def pyro_callback_handler(client, callback_query):
                     disable_web_page_preview=True
                 )
         except:
-            return
-
+            pass
+        return
 # =========================
 # التشغيل
 # =========================
