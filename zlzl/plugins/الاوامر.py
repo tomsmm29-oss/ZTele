@@ -8,9 +8,9 @@ from zlzl import zedub
 # مكتبة الباشا (Pyrogram)
 from pyrogram import Client, filters
 from pyrogram.types import (
-    InlineKeyboardMarkup, 
-    InlineKeyboardButton, 
-    InlineQueryResultArticle, 
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    InlineQueryResultArticle,
     InputTextMessageContent
 )
 
@@ -40,11 +40,11 @@ from zlzl.zthon_strings import SECTION_DETAILS
 # =========================
 def generate_page_text(name, page):
     max_per_page = 12
-    start = (page - 1) * max_per_page + 1 
-    end = start + max_per_page - 1       
+    start = (page - 1) * max_per_page + 1
+    end = start + max_per_page - 1
 
     page_titles = []
-    for i in range(start, end + 2): 
+    for i in range(start, end + 2):
         if i in TITLES:
             page_titles.append(TITLES[i])
 
@@ -82,7 +82,6 @@ def get_pyro_keyboard(page):
 
     nav_row = []
 
-    # السابق
     if page > 1:
         prev_page_num = page - 1
         prev_range_start = (prev_page_num - 1) * max_per_page + 1
@@ -92,15 +91,14 @@ def get_pyro_keyboard(page):
     else:
         nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy_start"))
 
-    # التالي
     if end < len(all_buttons):
         next_page_num = page + 1
         next_range_start = (next_page_num - 1) * max_per_page + 1
         next_range_end = next_page_num * max_per_page
         if next_range_start >= 25:
-             label = f"❨ {next_range_start} ⇄ ∞ ❩ ⪼"
+            label = f"❨ {next_range_start} ⇄ ∞ ❩ ⪼"
         else:
-             label = f"❨ {next_range_start} ⇄ {next_range_end} ❩ ⪼"
+            label = f"❨ {next_range_start} ⇄ {next_range_end} ❩ ⪼"
         nav_row.append(InlineKeyboardButton(label, callback_data=f"page_{next_page_num}"))
     else:
         nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy_end"))
@@ -115,11 +113,12 @@ def get_pyro_keyboard(page):
 
 @pyro_bot.on_inline_query(filters.regex("^zthon_menu$"))
 async def pyro_inline_handler(client, inline_query):
-    # حماية: المالك فقط (عشان لو حد عرف اليوزرنيم)
     try:
         owner_id = (await zedub.get_me()).id
-        if inline_query.from_user.id != owner_id: return
-    except: pass
+        if inline_query.from_user.id != owner_id:
+            return
+    except:
+        return
 
     try:
         me = await zedub.get_me()
@@ -145,15 +144,16 @@ async def pyro_inline_handler(client, inline_query):
 
 @pyro_bot.on_callback_query()
 async def pyro_callback_handler(client, callback_query):
-    # حماية: المالك فقط
+    # 🔒 حماية صامتة: المالك فقط (بدون أي Answer)
     try:
         owner_id = (await zedub.get_me()).id
         if callback_query.from_user.id != owner_id:
-            await callback_query.answer()
             return
-    except: pass
+    except:
+        return
 
     data = callback_query.data
+
     try:
         me = await zedub.get_me()
         name = me.first_name or "ZThon"
@@ -164,12 +164,11 @@ async def pyro_callback_handler(client, callback_query):
         try:
             await callback_query.message.delete()
         except:
-            await callback_query.edit_message_text("🔒 تم الإغلاق")
+            pass
         return
 
+    # 🧹 أزرار وهمية – صامتة تمامًا
     if data.startswith("dummy"):
-        msg = "أنت في البداية" if "start" in data else "أنت في النهاية"
-        await callback_query.answer(msg, show_alert=False)
         return
 
     if data.startswith("page_"):
@@ -184,10 +183,7 @@ async def pyro_callback_handler(client, callback_query):
 
     if data.startswith("m"):
         try:
-            parts = data.split("|")
-            section_key = parts[0]
-            origin_page = parts[1]
-
+            section_key, origin_page = data.split("|")
             if section_key in SECTION_DETAILS:
                 content = SECTION_DETAILS[section_key]
                 back_btn = InlineKeyboardMarkup([[
@@ -198,11 +194,8 @@ async def pyro_callback_handler(client, callback_query):
                     reply_markup=back_btn,
                     disable_web_page_preview=True
                 )
-            else:
-                await callback_query.answer("⚠️ القسم قيد الصيانة", show_alert=True)
-        except Exception:
-            await callback_query.answer("⚠️ خطأ تقني", show_alert=True)
-
+        except:
+            return
 
 # =========================
 # التشغيل
