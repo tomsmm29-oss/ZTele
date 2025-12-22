@@ -1,4 +1,5 @@
 import os
+import re
 import traceback
 from telethon import events
 from zlzl import zedub
@@ -27,12 +28,23 @@ pyro_bot = Client(
     in_memory=True
 )
 
-# 🔥 سحب الايدي من ريندر مباشرة (بدون الاعتماد على تليثون)
-# ملاحظة: سيحاول البحث عن OWNER_ID أو SUDO_ID أو معرفك اليدوي
+# سحب الايدي من ريندر
 try:
     RENDER_OWNER_ID = int(os.environ.get("OWNER_ID") or os.environ.get("SUDO_ID") or 0)
 except:
     RENDER_OWNER_ID = 0
+
+# ====================================================================
+# 🛡 حل مشكلة تداخل الجلسات (Telethon Silencer)
+# ====================================================================
+# هذا الجزء وظيفته إسكات تليثون لكي لا يظهر رسالة "الخيار ليس لك"
+@zedub.on(events.CallbackQuery(data=re.compile(b"^(m|page_|close_all|dummy)")))
+async def telethon_silencer(event):
+    # إذا كان المستخدم هو المالك، نجعل تليثون يجيب بصمت ويوقف الانتشار
+    if RENDER_OWNER_ID != 0 and event.sender_id == RENDER_OWNER_ID:
+        await event.answer() # رد صامت من تليثون
+        raise events.StopPropagation # منع بقية ملفات السورس من استلام النقرة
+    # إذا لم يكن المالك، نتركه للسورس الأساسي ليتعامل معه
 
 # =========================
 # 📦 استدعاء النصوص
@@ -87,48 +99,44 @@ def get_pyro_keyboard(page):
     return InlineKeyboardMarkup(keyboard)
 
 # ====================================================================
-# 🔥 المعالجات (Bot Handlers)
+# 🔥 معالجات بايروجرام (Execution Handlers)
 # ====================================================================
 
 @pyro_bot.on_inline_query(filters.regex("^zthon_menu$"))
 async def pyro_inline_handler(client, inline_query):
-    # التحقق الفوري من الايدي المسحوب من ريندر
     if RENDER_OWNER_ID != 0 and inline_query.from_user.id != RENDER_OWNER_ID:
         return
-
     try:
-        # جلب الاسم فقط عند الطلب الأول
         me = await zedub.get_me()
         name = me.first_name or "ZThon"
-    except: name = "ZThon"
-
-    await inline_query.answer(
-        results=[InlineQueryResultArticle(
-            title="ZThon Menu",
-            input_message_content=InputTextMessageContent(generate_page_text(name, 1), disable_web_page_preview=True),
-            reply_markup=get_pyro_keyboard(1)
-        )], cache_time=1
-    )
+        await inline_query.answer(
+            results=[InlineQueryResultArticle(
+                title="ZThon Menu",
+                input_message_content=InputTextMessageContent(generate_page_text(name, 1), disable_web_page_preview=True),
+                reply_markup=get_pyro_keyboard(1)
+            )], cache_time=1
+        )
+    except: pass
 
 @pyro_bot.on_callback_query()
 async def pyro_callback_handler(client, callback_query):
-    # 1. التحقق اللحظي من الايدي (بدون تليثون)
+    # التحقق من المالك (بايروجرام)
     if RENDER_OWNER_ID != 0 and callback_query.from_user.id != RENDER_OWNER_ID:
         return await callback_query.answer("هذا الخيار ليس لك ⚠️!", show_alert=True)
 
-    # 2. إذا كنت أنت المالك، رد صامت فوراً لإخفاء التنبيهات
+    # رد صامت من بايروجرام
     try: await callback_query.answer()
     except: pass
 
     data = callback_query.data
     try:
-        # زر الإغلاق: تعديل الرسالة لتختفي القائمة
         if data == "close_all":
-            return await callback_query.edit_message_text("✅ تم إغلاق القائمة بنجاح.")
+            try: await callback_query.message.delete()
+            except: await callback_query.edit_message_text("✅ تم إغلاق القائمة")
+            return
 
         if data.startswith("page_"):
             page = int(data.split("_")[1])
-            # جلب الاسم من تليثون فقط عند تحديث الصفحة
             me = await zedub.get_me()
             await callback_query.edit_message_text(
                 generate_page_text(me.first_name or "ZThon", page),
@@ -150,21 +158,21 @@ async def start_pyro():
     if not bot_token: return
     try:
         await pyro_bot.start()
-        print(f"✅ Hinata Started! (Owner ID from Render: {RENDER_OWNER_ID})")
-    except Exception as e: print(f"❌ Error: {e}")
+        print(f"✅ Started! ID: {RENDER_OWNER_ID}")
+    except Exception as e:
+        print(f"❌ Error: {e}")
 
 zedub.loop.create_task(start_pyro())
 
 # ====================================================================
-# 👤 أوامر المستخدم (Userbot Handlers)
+# 👤 أوامر تليثون (Userbot Handlers)
 # ====================================================================
 
 @zedub.on(events.NewMessage(pattern=r"\.الاوامر", outgoing=True))
 async def launch_menu(event):
-    if not bot_token: return await event.edit("⚠️ تأكد من وضع توكن البوت!")
+    if not bot_token: return await event.edit("⚠️ خطأ في توكن البوت")
     await event.edit("⌛️")
     try:
-        # استخدام يوزر البوت المساعد (بايروجرام)
         bot_info = await pyro_bot.get_me()
         results = await zedub.inline_query(bot_info.username, "zthon_menu")
         if results:
