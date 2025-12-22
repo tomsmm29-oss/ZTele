@@ -63,16 +63,19 @@ class ZedUserBotClient(TelegramClient):
         disable_errors: bool = False,
         command: str or tuple = None,
         **kwargs,
-    ) -> callable:  # sourcery no-metrics
+    ) -> callable:
         kwargs["func"] = kwargs.get("func", lambda e: e.via_bot_id is None)
         kwargs.setdefault("forwards", forword)
+
         if gvarstatus("blacklist_chats") is not None:
             kwargs["blacklist_chats"] = True
             kwargs["chats"] = blacklist_chats_list()
+
         stack = inspect.stack()
         previous_stack_frame = stack[1]
         file_test = Path(previous_stack_frame.filename)
         file_test = file_test.stem.replace(".py", "")
+
         if command is not None:
             command = list(command)
             if not command[1] in BOT_INFO:
@@ -89,6 +92,8 @@ class ZedUserBotClient(TelegramClient):
                 PLG_INFO.update({file_test: [command[0]]})
             if not command[0] in CMD_INFO:
                 CMD_INFO[command[0]] = [_format_about(info)]
+
+        # ================= PREFIX SUPPORT (. ، !) =================
         if pattern is not None:
             if (
                 pattern.startswith(r"\#")
@@ -97,20 +102,21 @@ class ZedUserBotClient(TelegramClient):
             ):
                 REGEX_.regex1 = REGEX_.regex2 = re.compile(pattern)
             else:
-                reg1 = "\\" + Config.COMMAND_HAND_LER
-                reg2 = "\\" + Config.SUDO_COMMAND_HAND_LER
-                REGEX_.regex1 = re.compile(reg1 + pattern)
-                REGEX_.regex2 = re.compile(reg2 + pattern)
+                # دعم النقطة + الفاصلة العربية + !
+                prefix_regex = r"[\.،!]"
+                REGEX_.regex1 = re.compile(prefix_regex + pattern)
+                REGEX_.regex2 = re.compile(prefix_regex + pattern)
+        # ==========================================================
 
-        def decorator(func):  # sourcery no-metrics
-            async def wrapper(check):  # sourcery no-metrics
+        def decorator(func):
+            async def wrapper(check):
                 if groups_only and not check.is_group:
                     return await edit_delete(
-                        check, "**⪼ عذرا هذا الامر يستخدم في المجموعات فقط  𓆰،**", 10
+                        check, "**⪼ عذرا هذا الامر يستخدم في المجموعات فقط 𓆰،**", 10
                     )
                 if private_only and not check.is_private:
                     return await edit_delete(
-                        check, "**⪼ هذا الامر يستخدم فقط في الدردشات الخاصه  𓆰،**", 10
+                        check, "**⪼ هذا الامر يستخدم فقط في الدردشات الخاصه 𓆰،**", 10
                     )
                 try:
                     await func(check)
@@ -158,56 +164,24 @@ class ZedUserBotClient(TelegramClient):
                         if Config.PRIVATE_GROUP_BOT_API_ID == 0:
                             return
                         date = (datetime.datetime.now()).strftime("%m/%d/%Y, %H:%M:%S")
-                        ftext = f"\nيتم تحميل هذا الملف فقط هنا ،\
-                                  \n\nنسجل فقـط تقريـر الإشعـار وتـاريخـه ،\
-                                  \n\nنحن نحترم خصوصيتك.\
-                                  \n\nفقـط قـم بإعـادة توجيـه هـذه الرسـالة إلى مطـور السـورس @zzzzl1l\
-                                  \n\n--------بـدء تتبـع سجـل زدثـــون 𝗭𝗧𝗵𝗼𝗻--------\
-                                  \n- التـاريـخ : {date}\n- ايـدي الكـروب : {str(check.chat_id)}\
-                                  \n- ايـدي الشخـص : {str(check.sender_id)}\
-                                  \n- رابـط الرسـالـه : {await check.client.get_msg_link(check)}\
-                                  \n\n- التقـريـر :\n{str(check.text)}\
-                                  \n\n- التفـاصـيل :\n{str(traceback.format_exc())}\
-                                  \n\n- نـص الإشعـار :\n{str(sys.exc_info()[1])}"
-                        new = {
-                            "error": str(sys.exc_info()[1]),
-                            "date": datetime.datetime.now(),
-                        }
-                        ftext += "\n\n--------نهـاية سجـل تتبـع زدثـــون 𝗭𝗧𝗵𝗼𝗻--------"
-                        ftext += "\n\n\n- آخـر 5 ملفـات تم تحديثهـا :\n"
-                        command = 'git log --pretty=format:"%an: %s" -5'
-                        output = (await runcmd(command))[:2]
-                        result = output[0] + output[1]
-                        ftext += result
+                        ftext = f"\n-------- تقرير خطأ زدثون --------\n"
+                        ftext += f"- التاريخ : {date}\n"
+                        ftext += f"- ايدي الكروب : {check.chat_id}\n"
+                        ftext += f"- ايدي الشخص : {check.sender_id}\n"
+                        ftext += f"- نص الرسالة : {check.text}\n\n"
+                        ftext += traceback.format_exc()
                         pastelink = await paste_message(
                             ftext, pastetype="s", markdown=False
                         )
-                        link = "[𐇮 𝙕𝞝𝙇𝙕𝘼𝙇 الهہـيـٖ͡ـ͢ـبـه 𐇮](https://t.me/zzzzl1l)"
-                        text = (
-                            "**✘ تقـريـر اشعـار زدثـــون 𝗭𝗧𝗵𝗼𝗻 ✘**\n\n"
-                            + "- يمكنك الإبـلاغ عن هـذا الاشعـار .. "
-                        )
-                        text += f"- فقط قم بإعـادة توجيـه هـذه الرسـالة إلى مطـور السـورس {link}.\n\n"
-                        text += (
-                            "- لـ اعـلام المطـور بالاشعـار .. حتـى يتـم ملاحظتـه\n\n"
-                        )
-                        text += f"**- رسـالة الإشعـار :** [{new['error']}]({pastelink})"
                         await check.client.send_message(
-                            Config.PRIVATE_GROUP_BOT_API_ID, text, link_preview=False
+                            Config.PRIVATE_GROUP_BOT_API_ID,
+                            f"**✘ تقرير اشعار زدثون ✘**\n\n{pastelink}",
+                            link_preview=False,
                         )
 
             from .session import zedub
 
-            if not func.__doc__ is None:
-                CMD_INFO[command[0]].append((func.__doc__).strip())
             if pattern is not None:
-                if command is not None:
-                    if command[0] in LOADED_CMDS and wrapper in LOADED_CMDS[command[0]]:
-                        return None
-                    try:
-                        LOADED_CMDS[command[0]].append(wrapper)
-                    except BaseException:
-                        LOADED_CMDS.update({command[0]: [wrapper]})
                 if edited:
                     zedub.add_event_handler(
                         wrapper,
@@ -217,141 +191,30 @@ class ZedUserBotClient(TelegramClient):
                     wrapper,
                     NewMessage(pattern=REGEX_.regex1, outgoing=True, **kwargs),
                 )
+
                 if allow_sudo and gvarstatus("sudoenable") is not None:
-                    if command is None or command[0] in sudo_enabledcmds:
-                        if edited:
-                            zedub.add_event_handler(
-                                wrapper,
-                                MessageEdited(
-                                    pattern=REGEX_.regex2,
-                                    from_users=_sudousers_list(),
-                                    **kwargs,
-                                ),
-                            )
+                    if edited:
                         zedub.add_event_handler(
                             wrapper,
-                            NewMessage(
+                            MessageEdited(
                                 pattern=REGEX_.regex2,
                                 from_users=_sudousers_list(),
                                 **kwargs,
                             ),
                         )
+                    zedub.add_event_handler(
+                        wrapper,
+                        NewMessage(
+                            pattern=REGEX_.regex2,
+                            from_users=_sudousers_list(),
+                            **kwargs,
+                        ),
+                    )
             else:
-                if file_test in LOADED_CMDS and func in LOADED_CMDS[file_test]:
-                    return None
-                try:
-                    LOADED_CMDS[file_test].append(func)
-                except BaseException:
-                    LOADED_CMDS.update({file_test: [func]})
                 if edited:
-                    zedub.add_event_handler(func, events.MessageEdited(**kwargs))
-                zedub.add_event_handler(func, events.NewMessage(**kwargs))
-            return wrapper
-
-        return decorator
-
-    def bot_cmd(
-        self: TelegramClient,
-        disable_errors: bool = False,
-        edited: bool = False,
-        forword=False,
-        **kwargs,
-    ) -> callable:  # sourcery no-metrics
-        kwargs["func"] = kwargs.get("func", lambda e: e.via_bot_id is None)
-        kwargs.setdefault("forwards", forword)
-
-        def decorator(func):
-            async def wrapper(check):
-                try:
-                    await func(check)
-                except events.StopPropagation as e:
-                    raise events.StopPropagation from e
-                except KeyboardInterrupt:
-                    pass
-                except MessageNotModifiedError:
-                    LOGS.error("Message was same as previous message")
-                except MessageIdInvalidError:
-                    LOGS.error("Message was deleted or cant be found")
-                except BaseException as e:
-                    # Check if we have to disable error logging.
-                    LOGS.exception(e)  # Log the error in console
-                    if not disable_errors:
-                        if check.sender_id not in ZDEV:
-                            return
-                        if Config.PRIVATE_GROUP_BOT_API_ID == 0:
-                            return
-                        date = (datetime.datetime.now()).strftime("%m/%d/%Y, %H:%M:%S")
-                        ftext = f"\nيتم تحميل هذا الملف فقط هنا ،\
-                                  \n\nنسجل فقـط تقريـر الإشعـار وتـاريخـه ،\
-                                  \n\nنحن نحترم خصوصيتك.\
-                                  \n\nفقـط قـم بإعـادة توجيـه هـذه الرسـالة إلى مطـور السـورس @zzzzl1l\
-                                  \n\n--------بـدء تتبـع سجـل زدثـــون 𝗭𝗧𝗵𝗼𝗻--------\
-                                  \n- التـاريـخ : {date}\n- ايـدي الكـروب : {str(check.chat_id)}\
-                                  \n- ايـدي الشخـص : {str(check.sender_id)}\
-                                  \n- رابـط الرسـالـه : {await check.client.get_msg_link(check)}\
-                                  \n\n- التقـريـر :\n{str(check.text)}\
-                                  \n\n- التفـاصـيل :\n{str(traceback.format_exc())}\
-                                  \n\n- نـص الإشعـار :\n{str(sys.exc_info()[1])}"
-                        new = {
-                            "error": str(sys.exc_info()[1]),
-                            "date": datetime.datetime.now(),
-                        }
-                        ftext += "\n\n--------نهـاية سجـل تتبـع زدثـــون 𝗭𝗧𝗵𝗼𝗻--------"
-                        command = 'git log --pretty=format:"%an: %s" -5'
-                        ftext += "\n\n\n- آخـر 5 ملفـات تم تحديثهـا :\n"
-                        output = (await runcmd(command))[:2]
-                        result = output[0] + output[1]
-                        ftext += result
-                        pastelink = await paste_message(
-                            ftext, pastetype="s", markdown=False
-                        )
-                        text = "**✘ تقـريـر اشعـار زدثـــون 𝗭𝗧𝗵𝗼𝗻 ✘**\n\n "
-                        link = "[𐇮 𝙕𝞝𝙇𝙕𝘼𝙇 الهہـيـٖ͡ـ͢ـبـه 𐇮](https://t.me/zzzzl1l)"
-                        text += "- يمكنك الإبـلاغ عن هـذا الاشعـار .. "
-                        text += f"- فقط قم بإعـادة توجيـه هـذه الرسـالة إلى مطـور السـورس {link}.\n"
-                        text += (
-                            "- لـ اعـلام المطـور بالاشعـار .. حتـى يتـم ملاحظتـه\n\n"
-                        )
-                        text += f"**- رسـالة الإشعـار :** [{new['error']}]({pastelink})"
-                        await check.client.send_message(
-                            Config.PRIVATE_GROUP_BOT_API_ID, text, link_preview=False
-                        )
-
-            from .session import zedub
-
-            if edited is True:
-                zedub.tgbot.add_event_handler(func, events.MessageEdited(**kwargs))
-            else:
-                zedub.tgbot.add_event_handler(func, events.NewMessage(**kwargs))
+                    zedub.add_event_handler(wrapper, events.MessageEdited(**kwargs))
+                zedub.add_event_handler(wrapper, events.NewMessage(**kwargs))
 
             return wrapper
 
         return decorator
-
-    async def get_traceback(self, exc: Exception) -> str:
-        return "".join(
-            traceback.format_exception(etype=type(exc), value=exc, tb=exc.__traceback__)
-        )
-
-    def _kill_running_processes(self) -> None:
-        """Kill all the running asyncio subprocessess"""
-        for _, process in self.running_processes.items():
-            try:
-                process.kill()
-                LOGS.debug("Killed %d which was still running.", process.pid)
-            except Exception as e:
-                LOGS.debug(e)
-        self.running_processes.clear()
-
-
-ZedUserBotClient.fast_download_file = download_file
-ZedUserBotClient.fast_upload_file = upload_file
-ZedUserBotClient.reload = restart_script
-ZedUserBotClient.get_msg_link = get_message_link
-ZedUserBotClient.check_testcases = checking
-try:
-    send_message_check = TelegramClient.send_message
-except AttributeError:
-    ZedUserBotClient.send_message = send_message
-    ZedUserBotClient.send_file = send_file
-    ZedUserBotClient.edit_message = edit_message
