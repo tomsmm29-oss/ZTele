@@ -5,6 +5,18 @@ import re
 import os
 import sys
 import traceback
+from telethon import events
+
+@events.register(events.NewMessage(outgoing=True))
+async def normalize_prefix(event):
+    if not event.raw_text:
+        return
+
+    if event.raw_text.startswith(("،", "!")):
+        try:
+            event.message.message = "." + event.raw_text[1:]
+        except Exception:
+            pass
 from pathlib import Path
 from typing import Dict, List, Union
 
