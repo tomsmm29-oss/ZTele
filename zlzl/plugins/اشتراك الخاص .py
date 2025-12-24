@@ -4,12 +4,15 @@ import requests
 
 from telethon import events, Button
 from telethon.errors.rpcerrorlist import UserNotParticipantError
+
 from telethon.tl.functions.channels import (
     EditBannedRequest,
     GetParticipantRequest,
-    ExportChatInviteRequest,
 )
+
+from telethon.tl.functions.messages import ExportChatInviteRequest
 from telethon.tl.types import ChatBannedRights
+
 
 # --- تصحيح المسارات والحقن النسبي ---
 from . import zedub
