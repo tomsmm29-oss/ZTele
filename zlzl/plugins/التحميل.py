@@ -8,7 +8,7 @@ from ..helpers import reply_id, progress
 from ..Config import Config
 
 # اسم البوت الوسيط
-DL_BOT = "@oldnotpt_bot"
+DL_BOT = "@yt_zthon_bot"
 plugin_category = "البحث"
 
 # دالة مساعدة للتحدث مع البوت وجلب الميديا
