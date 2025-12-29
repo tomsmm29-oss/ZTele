@@ -86,3 +86,4 @@ tgcrypto
 pyTelegramBotAPI
 PyJWT
 faker
+google-genai
