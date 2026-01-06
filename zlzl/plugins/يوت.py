@@ -14,7 +14,7 @@ plugin_category = "البحث"
     command=("يوت", plugin_category),
     info={
         "header": "بحث وتحميل الأغاني بسرعة صاروخية",
-        "شرح": "يتصل بالبوت سراً ويسحب الملف الأصلي فقط (فوق 5 ثواني) ويتجاهل الملفات المؤقتة.",
+        "شرح": "يحدد رسالة الانتظار بدقة ويراقب تعديلها للأصل.",
         "مثــال": ["{tr}يوت اغنية"],
     },
 )
@@ -42,29 +42,45 @@ async def zed_fast_song(event):
         # 2. النقر (إرسال للمحفوظات سراً)
         await results[0].click(entity="me", hide_via=True)
 
-        # 3. المراقبة والاقتناص (بحد أقصى 6 ثواني)
-        start_time = time.time()
-        final_msg = None
-
-        while time.time() - start_time < 6:
-            # فحص آخر رسالة وصلت للمحفوظات
+        # 3. التقاط رسالة الانتظار (ID)
+        # ننتظر قليلاً حتى تصل رسالة الانتظار (التي مدتها قصيرة)
+        waiting_msg_id = None
+        for _ in range(15): # محاولات لمدة 3 ثواني لالتقاط بداية الرسالة
             async for msg in event.client.iter_messages('me', limit=1):
-                if msg.media and hasattr(msg, 'file'):
-                    # شرط الفلترة: تجاهل أي شي 5 ثواني أو أقل
-                    if msg.file.duration and msg.file.duration > 5:
-                        final_msg = msg
-                        break
-            
-            if final_msg:
+                # نتأكد أن الرسالة من البوت وتحتوي على صوت
+                if msg.via_bot_id and msg.media:
+                    waiting_msg_id = msg.id
+                    break
+            if waiting_msg_id:
                 break
-            
-            # انتظار جزء من الثانية لإعادة الفحص بسرعة
             await asyncio.sleep(0.2)
 
-        if not final_msg:
-            return await edit_delete(zedevent, "**⎉╎فشلت العملية: البوت تأخر في إرسال الملف الأصلي ⚠️**", 10)
+        if not waiting_msg_id:
+             return await edit_delete(zedevent, "**⎉╎تأخر البوت في الاستجابة (لم تصل رسالة الانتظار) ⚠️**", 10)
 
-        # 4. إرسال الملف للدردشة
+        # 4. مراقبة هذا الـ ID تحديداً حتى يتعدل
+        final_msg = None
+        start_time = time.time()
+        
+        while time.time() - start_time < 25: # انتظار 25 ثانية كحد أقصى للتعديل
+            # نجلب الرسالة نفسها مرة أخرى من السيرفر للتأكد من التحديث
+            try:
+                check_msg = await event.client.get_messages('me', ids=waiting_msg_id)
+                
+                # التحقق: هل يوجد ملف صوتي وهل مدته أكبر من 5 ثواني؟
+                if check_msg and check_msg.file and check_msg.file.duration:
+                    if check_msg.file.duration > 5:
+                        final_msg = check_msg
+                        break
+            except Exception:
+                pass # في حال حدوث خطأ لحظي في الجلب نواصل المحاولة
+            
+            await asyncio.sleep(1.5) # نفحص كل ثانية ونصف لتخفيف الضغط
+
+        if not final_msg:
+            return await edit_delete(zedevent, "**⎉╎فشلت العملية: البوت لم يقم بتعديل الرسالة للملف الأصلي ⚠️**", 10)
+
+        # 5. إرسال الملف للدردشة
         song_title = query
         try:
             if hasattr(results[0], 'title'):
@@ -84,7 +100,7 @@ async def zed_fast_song(event):
             reply_to=await reply_id(event)
         )
 
-        # 5. تنظيف الآثار
+        # 6. تنظيف الآثار
         await final_msg.delete()
         await zedevent.delete()
 
