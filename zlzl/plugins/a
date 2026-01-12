@@ -1,0 +1,41 @@
+# ZLZL SAFE HANDLER
+# Works in restricted groups
+# By request
+
+from telethon import events
+
+BAD_GROUP_ID = -1003018668358  # الكروب المقيد
+
+@client.on(events.NewMessage(chats=BAD_GROUP_ID))
+async def zlzl_safe_handler(event):
+    try:
+        # لو مافي رسالة فعليًا
+        if not event or not hasattr(event, "raw_text"):
+            return
+
+        text = event.raw_text or ""
+
+        # تجاهل الرسائل الفاضية
+        if not text:
+            return
+
+        # مثال أمر بسيط
+        if text.startswith(".ping"):
+            await client.send_message(
+                BAD_GROUP_ID,
+                "🏓 ZLZL PONG (SAFE MODE)",
+                reply_to=None
+            )
+
+        # مثال أمر عام (اختبار)
+        if text.startswith(".test"):
+            await client.send_message(
+                BAD_GROUP_ID,
+                f"✅ الرسالة وصلت بدون مشاكل\n\n{text[:100]}",
+                reply_to=None
+            )
+
+    except Exception as e:
+        # لا هنق ولا كراش
+        print(f"[ZLZL SAFE ERROR] {e}")
+        return
