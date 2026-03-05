@@ -42,7 +42,7 @@ async def strict_lock(event):
     """تفعيل وضع الإبادة"""
     if gvarstatus("strict_pm_lock"):
         return await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔒 الوضع النووي مفعل مسبقاً .. لا أحد يمر.**")
-    
+
     addgvar("strict_pm_lock", "active")
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔒 تم تشغيل الدروع .. الخاص مغلق للجميع (باستثناء قائمة السماح).**")
 
@@ -52,20 +52,20 @@ async def strict_unlock(event):
     """تعطيل وضع الإبادة"""
     if not gvarstatus("strict_pm_lock"):
         return await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔓 الدروع متوقفة بالفعل .. الخاص مفتوح.**")
-    
+
     delgvar("strict_pm_lock")
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔓 تم إيقاف الدروع .. الخاص مفتوح.**")
 
 
-@zedub.zed_cmd(pattern="سماح$")
+@zedub.zed_cmd(pattern="فتح$")
 async def allow_user_nuclear(event):
-    """استثناء المستخدم الحالي من الحظر النووي"""
+    """استثناء المستخدم الحالي من الحظر النووي (بدل كلمة سماح)"""
     if not event.is_private:
         return await edit_delete(event, "**⚠️ هذا الأمر يعمل في الخاص فقط.**")
-    
+
     chat_id = event.chat_id
     add_to_whitelist(chat_id)
-    
+
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n✅ تم منح العفو لهذا المستخدم.\n لن يتم حظره أثناء قفل الخاص.**")
 
 
@@ -74,10 +74,10 @@ async def reset_user_nuclear(event):
     """إزالة الاستثناء (سيتم حظره في الرسالة القادمة)"""
     if not event.is_private:
         return await edit_delete(event, "**⚠️ هذا الأمر يعمل في الخاص فقط.**")
-    
+
     chat_id = event.chat_id
     remove_from_whitelist(chat_id)
-    
+
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n♻️ تم تصفير وضع المستخدم.\n🚫 سيتم حظره فوراً عند إرسال أي رسالة.**")
 
 
@@ -100,20 +100,21 @@ async def unblock_all_users(event):
     try:
         blocked_users = await event.client(functions.contacts.GetBlockedRequest(offset=0, limit=10000))
         users_list = blocked_users.users
-        
+
         if not users_list:
             return await msg.edit(f"**🖥┊نظام الحماية {Z_LOGO}**\n\n**✅ القائمة نظيفة، لا يوجد محظورين.**")
 
         done = 0
         for user in users_list:
             try:
+                # استخدام id صريح للتوافق مع التحديثات الجديدة
                 await event.client(functions.contacts.UnblockRequest(id=user.id))
                 done += 1
                 if done % 20 == 0:
                     await msg.edit(f"** جارِ تنظيف القائمة.. ({done}/{len(users_list)})**")
             except:
                 pass
-        
+
         await msg.edit(f"**🖥┊نظام الحماية {Z_LOGO}**\n\n**✅ تم تصفير المحظورين بنجاح.**\n**🗑 تم فك الحظر عن:** `{done}` **مستخدم.**")
     except Exception as e:
         await msg.edit(f"**حدث خطأ:** {str(e)}")
@@ -122,27 +123,26 @@ async def unblock_all_users(event):
 @zedub.zed_handler(incoming=True, func=lambda e: e.is_private)
 async def nuclear_block_action(event):
     """
-    المراقب النووي: يحظر الجميع إلا المسموح لهم
+    المراقب النووي: يحظر الأشخاص فقط (بدون قنوات وبوتات) إلا المسموح لهم
     """
-    # 1. إذا الوضع غير مفعل، اخرج
-    if gvarstatus("strict_pm_lock") is None:
+    # 1. الخروج فوراً إذا كان وضع قفل الخاص غير مفعل
+    if not gvarstatus("strict_pm_lock"):
         return
 
     sender = await event.get_sender()
-    
-    # لا تحظر نفسك
-    if sender.is_self:
+
+    # 2. التأكد من أن المرسل شخص حقيقي (ليس بوت ولا قناة ولا أنت ولا حساب تيليجرام الرسمي)
+    if not sender or not isinstance(sender, User) or sender.bot or sender.verified or sender.is_self:
         return
-    
+
     chat_id = event.chat_id
-    
-    # 2. التحقق من القائمة البيضاء (السماح)
-    # إذا كان الشخص في القائمة، لا تفعل شيئاً (اتركه يرسل)
+
+    # 3. التحقق من القائمة البيضاء (الاستثناءات التي تم كتابة "فتح" لها)
     whitelisted_ids = get_nuclear_whitelist()
     if chat_id in whitelisted_ids:
         return
 
-    # 3. الرسالة الفخمة قبل الإعدام
+    # 4. الرسالة الفخمة قبل الإعدام
     block_msg = (
         f"**🖥┊نظام الحماية {Z_LOGO}**\n\n"
         "**🔒 الخاص مقفل (Strict Lockdown)**\n"
@@ -151,8 +151,11 @@ async def nuclear_block_action(event):
     )
 
     try:
+        # إرسال الرسالة أولاً
         await event.reply(block_msg, link_preview=False)
+        # الانتظار قليلاً لضمان وصول الرسالة قبل الحظر
         await asyncio.sleep(0.5)
-        await event.client(functions.contacts.BlockRequest(chat_id))
+        # تنفيذ طلب الحظر (حظر فقط بدون حذف المحادثة باستخدام التعريف الحديث)
+        await event.client(functions.contacts.BlockRequest(id=sender.id))
     except Exception as e:
         print(f"Error in Nuclear Block: {e}")
