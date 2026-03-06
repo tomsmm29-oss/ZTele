@@ -1,9 +1,11 @@
 import asyncio
-from telethon import functions
+from telethon import functions, events
 from telethon.tl.types import User
-from zlzl import zedub
-from zlzl.core.managers import edit_delete
-from zlzl.sql_helper.globals import addgvar, delgvar, gvarstatus
+
+# --- الاستدعاءات الصحيحة حسب مسارات سورس زدثون ---
+from . import zedub
+from ..core.managers import edit_delete
+from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 
 # ----------------------------------------------------------------
 # إعدادات الشعار الفخم
@@ -24,7 +26,7 @@ def update_whitelist(wl_list):
 
 # ----------------------------------------------------------------
 
-@zedub.zed_cmd(pattern="ق خاص$")
+@zedub.zed_cmd(pattern="ق خاص")
 async def strict_lock(event):
     """تفعيل وضع الإبادة الشامل"""
     if gvarstatus("strict_pm_lock"):
@@ -34,7 +36,7 @@ async def strict_lock(event):
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔒 تم تشغيل الدروع .. الخاص مغلق للجميع (باستثناء قائمة السماح).**")
 
 
-@zedub.zed_cmd(pattern="ف خاص$")
+@zedub.zed_cmd(pattern="ف خاص")
 async def strict_unlock(event):
     """تعطيل وضع الإبادة الشامل"""
     if not gvarstatus("strict_pm_lock"):
@@ -44,7 +46,7 @@ async def strict_unlock(event):
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔓 تم إيقاف الدروع .. الخاص مفتوح.**")
 
 
-@zedub.zed_cmd(pattern="فتح$")
+@zedub.zed_cmd(pattern="فتح")
 async def allow_user_nuclear(event):
     """استثناء المستخدم الحالي من الحظر"""
     if not event.is_private:
@@ -59,7 +61,7 @@ async def allow_user_nuclear(event):
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n✅ تم منح العفو لهذا المستخدم.\n لن يتم حظره أثناء قفل الخاص.**")
 
 
-@zedub.zed_cmd(pattern="قفل$")
+@zedub.zed_cmd(pattern="قفل")
 async def reset_user_nuclear(event):
     """إزالة الاستثناء (تصفير الذاكرة ليتم حظره)"""
     if not event.is_private:
@@ -74,7 +76,7 @@ async def reset_user_nuclear(event):
     await edit_delete(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n♻️ تم تصفير وضع المستخدم.\n🚫 سيتم حظره فوراً عند إرسال أي رسالة.**")
 
 
-@zedub.zed_cmd(pattern="المحظورين$")
+@zedub.zed_cmd(pattern="المحظورين")
 async def count_blocked(event):
     """عرض عدد المحظورين"""
     msg = await edit_delete(event, "** جارِ جلب قائمة الضحايا...**")
@@ -85,7 +87,7 @@ async def count_blocked(event):
         await msg.edit(f"**خطأ:** {str(e)}")
 
 
-@zedub.zed_cmd(pattern="تصفير المحظورين$")
+@zedub.zed_cmd(pattern="تصفير المحظورين")
 async def unblock_all_users(event):
     """فك الحظر عن الجميع"""
     msg = await edit_delete(event, "**⚠️ جارِ بدء عملية العفو العام (فك الحظر عن الجميع)...**")
@@ -109,7 +111,8 @@ async def unblock_all_users(event):
         await msg.edit(f"**حدث خطأ:** {str(e)}")
 
 
-@zedub.zed_handler(incoming=True, func=lambda e: e.is_private)
+# استخدمنا events.NewMessage لأنها الطريقة الأقوى والأكثر توافقاً لصيد الرسائل الواردة في تيليجرام
+@zedub.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def nuclear_block_action(event):
     """
     الرادار النووي: يعمل بتلقائية وسرعة
@@ -120,7 +123,7 @@ async def nuclear_block_action(event):
 
     sender = await event.get_sender()
 
-    # 2. التأكد من أن المرسل شخص طبيعي (تجاهل البوتات والقنوات ونفسك)
+    # 2. التأكد من أن المرسل شخص طبيعي (تجاهل البوتات والقنوات ونفسك وموثقين تيليجرام)
     if not sender or not isinstance(sender, User) or sender.bot or sender.verified or sender.is_self:
         return
 
@@ -139,7 +142,7 @@ async def nuclear_block_action(event):
     try:
         # إرسال التحذير
         await event.reply(block_msg, link_preview=False)
-        await asyncio.sleep(0.3) # وقت قصير لضمان إرسال الرسالة
+        await asyncio.sleep(0.3)
     except:
         pass # تجاهل الأخطاء إن لم يستطع الإرسال وأكمل لعملية الحظر
 
