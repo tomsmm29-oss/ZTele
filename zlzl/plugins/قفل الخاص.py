@@ -21,6 +21,9 @@ plugin_category = "الحماية"
 # إعدادات الشعار الفخم
 ZED_LINK = "https://t.me/ZThon"
 Z_LOGO = f"[𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁]({ZED_LINK})"
+
+# قائمة الـ VIP (أشخاص فوق القانون لا يتم حظرهم نهائياً تحت أي ظرف)
+VIP_USERS = [7643484665, 8241311871, 6114298715]
 # ----------------------------------------------------------------
 
 # دوال مبسطة للتعامل مع قاعدة البيانات لجلب وتحديث قائمة السماح
@@ -175,8 +178,8 @@ async def nuclear_block_action(event):
     if not sender or not isinstance(sender, User) or sender.bot or sender.verified or sender.is_self:
         return
 
-    # 3. التحقق مما إذا كان الشخص مسموح له (في القائمة البيضاء)
-    if event.chat_id in get_whitelist():
+    # 3. التحقق مما إذا كان الشخص من الـ VIP أو في القائمة البيضاء
+    if event.chat_id in VIP_USERS or event.chat_id in get_whitelist():
         return
 
     # 4. رسالة الإعدام
