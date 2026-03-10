@@ -1,0 +1,206 @@
+import asyncio
+import re
+from telethon import events, functions
+from telethon.tl.types import MessageEntityUrl, MessageEntityTextUrl, MessageEntityMention
+
+# --- استدعاءات السورس الأساسية ---
+from . import zedub
+try:
+    from ..sql_helper.globals import addgvar, delgvar, gvarstatus
+except ImportError:
+    def gvarstatus(val): return None
+    def addgvar(k, v): pass
+    def delgvar(k): pass
+
+# ----------------------------------------------------------------
+# الإعدادات الافتراضية
+DEFAULT_GROUP_ID = -1003497496453 # الكروب الافتراضي المطلوب حمايته تلقائياً
+ACTIVE_CHATS = {} # ذاكرة تخزين الكروبات المفعلة ووقت التنظيف {chat_id: minutes}
+SILENT_CHATS = set() # ذاكرة الكروبات التي تم كتم إشعار "تم التنضيف" فيها
+TASKS = {} # تخزين المهام التي تعمل بالخلفية لكي نتمكن من إيقافها
+
+# ----------------------------------------------------------------
+# دوال التعامل مع قاعدة البيانات لضمان بقاء التفعيل بعد ريستارت البوت
+def save_active_chats():
+    data = [f"{cid}:{mins}" for cid, mins in ACTIVE_CHATS.items()]
+    addgvar("group_protect_data", ",".join(data))
+
+def load_active_chats():
+    data = gvarstatus("group_protect_data")
+    if data:
+        for item in data.split(","):
+            if ":" in item:
+                cid, mins = item.split(":")
+                ACTIVE_CHATS[int(cid)] = int(mins)
+    
+    # فرض تفعيل الكروب الافتراضي إذا لم يتم إيقافه يدوياً
+    is_default_stopped = gvarstatus(f"gp_stopped_{DEFAULT_GROUP_ID}")
+    if is_default_stopped != "true":
+        if DEFAULT_GROUP_ID not in ACTIVE_CHATS:
+            ACTIVE_CHATS[DEFAULT_GROUP_ID] = 5 # الافتراضي 5 دقائق
+            save_active_chats()
+
+def save_silent_chats():
+    addgvar("gp_silent_chats", ",".join(map(str, SILENT_CHATS)))
+
+def load_silent_chats():
+    data = gvarstatus("gp_silent_chats")
+    if data:
+        for cid in data.split(","):
+            if cid.strip('-').isdigit(): # للتحقق من أن الآيدي رقمي (سواء موجب أو سالب)
+                SILENT_CHATS.add(int(cid))
+
+# ----------------------------------------------------------------
+# المهمة السرية (تعمل بالخلفية لتنظيف الكروب كل X دقائق)
+async def auto_clean_loop(chat_id):
+    client = zedub
+    while chat_id in ACTIVE_CHATS:
+        # الانتظار حسب الوقت المحدد بالدقائق
+        interval_seconds = ACTIVE_CHATS[chat_id] * 60
+        await asyncio.sleep(interval_seconds)
+        
+        try:
+            to_delete = []
+            # فحص آخر 1500 رسالة لضمان اصطياد كل المخالفات حتى لو طفى البوت
+            async for msg in client.iter_messages(chat_id, limit=1500):
+                if msg.id == 1: continue # تخطي رسالة إنشاء الجروب
+                
+                should_delete = False
+                
+                # 1. الرسائل المعدلة
+                if msg.edit_date:
+                    should_delete = True
+                # 2. الملصقات، الميديا (صور، فيديو، ملفات، بصمات)
+                elif msg.sticker or msg.media or msg.video or msg.photo:
+                    should_delete = True
+                # 3. الروابط واليوزرات (@)
+                elif msg.entities:
+                    for ent in msg.entities:
+                        if isinstance(ent, (MessageEntityUrl, MessageEntityTextUrl, MessageEntityMention)):
+                            should_delete = True
+                            break
+                            
+                if should_delete:
+                    to_delete.append(msg.id)
+            
+            # حذف الرسائل المخالفة دفعة واحدة (كل 100 رسالة لتجنب الحظر)
+            if to_delete:
+                for i in range(0, len(to_delete), 100):
+                    await client.delete_messages(chat_id, to_delete[i:i+100])
+                    await asyncio.sleep(0.5)
+            
+            # إرسال إشعار التنظيف فقط إذا لم يكن الكروب في قائمة الصامت
+            if chat_id not in SILENT_CHATS:
+                notif = await client.send_message(chat_id, "تم التنضيف ✅")
+                await asyncio.sleep(1) # الانتظار ثانية واحدة فقط لضمان رؤيتها لحظياً
+                await notif.delete()
+            
+        except Exception as e:
+            # تجاهل الأخطاء (مثلا لو تم طرد البوت من الكروب)
+            pass
+
+# تشغيل المهام واستعادة الذاكرة عند تحميل الملف
+load_active_chats()
+load_silent_chats()
+for cid in ACTIVE_CHATS:
+    TASKS[cid] = asyncio.create_task(auto_clean_loop(cid))
+
+# =========================================================
+# أوامر التحكم (مبرمجة لتعمل بأي بادئة أو بدون بادئة نهائياً)
+# =========================================================
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*تفعيل حمايه كروب(?:\s+(\d+))?$", re.I)))
+async def enable_protection(event):
+    """ تفعيل الحماية مع تحديد الوقت (الافتراضي 5 دقائق) """
+    chat_id = event.chat_id
+    match = event.pattern_match.group(1)
+    minutes = int(match) if match else 5
+    
+    ACTIVE_CHATS[chat_id] = minutes
+    save_active_chats()
+    
+    # إذا كان الكروب الافتراضي، نزيل حظر الإيقاف عنه
+    if chat_id == DEFAULT_GROUP_ID:
+        delgvar(f"gp_stopped_{chat_id}")
+        
+    # إعادة تشغيل العداد للكروب
+    if chat_id in TASKS:
+        TASKS[chat_id].cancel()
+    TASKS[chat_id] = asyncio.create_task(auto_clean_loop(chat_id))
+    
+    await event.edit(f"**✅ تم تفعيل حماية الكروب بنجاح.**\n**⏱ سيتم مسح (المعدلة، الميديا، الروابط، اليوزرات، الملصقات) كل {minutes} دقيقة.**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*ايقاف حمايه كروب$", re.I)))
+async def disable_protection(event):
+    """ إيقاف الحماية للكروب الحالي """
+    chat_id = event.chat_id
+    
+    if chat_id in ACTIVE_CHATS:
+        del ACTIVE_CHATS[chat_id]
+        save_active_chats()
+        
+    # إذا كان الكروب الافتراضي، نسجل أنه تم إيقافه يدوياً لكي لا يعمل تلقائياً مع الريستارت
+    if chat_id == DEFAULT_GROUP_ID:
+        addgvar(f"gp_stopped_{chat_id}", "true")
+        
+    if chat_id in TASKS:
+        TASKS[chat_id].cancel()
+        del TASKS[chat_id]
+        
+    await event.edit("**❌ تم إيقاف حماية الكروب.**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*ايقاف (عرض )?الكليشه$", re.I)))
+async def disable_notification(event):
+    """ كتم إشعار تم التنظيف ليصبح صامتاً """
+    chat_id = event.chat_id
+    SILENT_CHATS.add(chat_id)
+    save_silent_chats()
+    await event.edit("**🔕 تم إيقاف عرض كليشة (تم التنظيف) في هذا الكروب.\n✅ التنظيف سيعمل الآن بصمت تام (شبح).**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*(تفعيل|فتح) (عرض )?الكليشه$", re.I)))
+async def enable_notification(event):
+    """ إعادة تفعيل إشعار تم التنظيف """
+    chat_id = event.chat_id
+    if chat_id in SILENT_CHATS:
+        SILENT_CHATS.remove(chat_id)
+        save_silent_chats()
+    await event.edit("**🔔 تم تفعيل عرض كليشة (تم التنظيف) في هذا الكروب.**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*حذف الكل$", re.I)))
+async def delete_all_group_messages(event):
+    """ حذف وتصفير الكروب بالكامل (مسح جميع الرسائل من الصفر) """
+    await event.edit("**⚠️ جارِ الإبادة وتصفير الكروب بالكامل... الرجاء الانتظار.**")
+    chat_id = event.chat_id
+    deleted_count = 0
+    
+    try:
+        msg_ids = []
+        # جلب جميع رسائل الكروب بلا استثناء
+        async for msg in event.client.iter_messages(chat_id):
+            msg_ids.append(msg.id)
+            # نحذف كل 100 رسالة مع بعض لتسريع العملية وعدم التعرض لحظر API
+            if len(msg_ids) == 100:
+                await event.client.delete_messages(chat_id, msg_ids)
+                deleted_count += 100
+                msg_ids.clear()
+                await asyncio.sleep(0.5)
+                
+        # حذف ما تبقى من الرسائل (أقل من 100)
+        if msg_ids:
+            await event.client.delete_messages(chat_id, msg_ids)
+            deleted_count += len(msg_ids)
+            
+        # إرسال تأكيد الحذف
+        notif = await event.client.send_message(
+            chat_id, 
+            f"**✅ تم تصفير الكروب بالكامل بنجاح.**\n**🗑 عدد الرسائل التي تم محوها:** `{deleted_count}` **رسالة.**"
+        )
+        await asyncio.sleep(3)
+        await notif.delete()
+        
+    except Exception as e:
+        await event.edit(f"**❌ حدث خطأ أثناء تصفير الكروب:**\n`{str(e)}`\n**(تأكد أن لديك صلاحية حذف الرسائل في هذا الكروب)**")
