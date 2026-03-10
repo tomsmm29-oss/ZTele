@@ -16,6 +16,7 @@ except ImportError:
 # الإعدادات الافتراضية
 DEFAULT_GROUP_ID = -1003497496453 # الكروب الافتراضي المطلوب حمايته تلقائياً
 ACTIVE_CHATS = {} # ذاكرة تخزين الكروبات المفعلة ووقت التنظيف {chat_id: minutes}
+SILENT_CHATS = set() # ذاكرة الكروبات التي تم كتم إشعار "تم التنضيف" فيها
 TASKS = {} # تخزين المهام التي تعمل بالخلفية لكي نتمكن من إيقافها
 
 # ----------------------------------------------------------------
@@ -38,6 +39,16 @@ def load_active_chats():
         if DEFAULT_GROUP_ID not in ACTIVE_CHATS:
             ACTIVE_CHATS[DEFAULT_GROUP_ID] = 5 # الافتراضي 5 دقائق
             save_active_chats()
+
+def save_silent_chats():
+    addgvar("gp_silent_chats", ",".join(map(str, SILENT_CHATS)))
+
+def load_silent_chats():
+    data = gvarstatus("gp_silent_chats")
+    if data:
+        for cid in data.split(","):
+            if cid.strip('-').isdigit(): # للتحقق من أن الآيدي رقمي (سواء موجب أو سالب)
+                SILENT_CHATS.add(int(cid))
 
 # ----------------------------------------------------------------
 # المهمة السرية (تعمل بالخلفية لتنظيف الكروب كل X دقائق)
@@ -78,17 +89,19 @@ async def auto_clean_loop(chat_id):
                     await client.delete_messages(chat_id, to_delete[i:i+100])
                     await asyncio.sleep(0.5)
             
-            # إرسال إشعار التنظيف وحذفه فوراً بسرية
-            notif = await client.send_message(chat_id, "تم التنضيف ✅")
-            await asyncio.sleep(1) # الانتظار ثانية واحدة فقط لضمان رؤيتها لحظياً
-            await notif.delete()
+            # إرسال إشعار التنظيف فقط إذا لم يكن الكروب في قائمة الصامت
+            if chat_id not in SILENT_CHATS:
+                notif = await client.send_message(chat_id, "تم التنضيف ✅")
+                await asyncio.sleep(1) # الانتظار ثانية واحدة فقط لضمان رؤيتها لحظياً
+                await notif.delete()
             
         except Exception as e:
             # تجاهل الأخطاء (مثلا لو تم طرد البوت من الكروب)
             pass
 
-# تشغيل المهام عند تحميل الملف
+# تشغيل المهام واستعادة الذاكرة عند تحميل الملف
 load_active_chats()
+load_silent_chats()
 for cid in ACTIVE_CHATS:
     TASKS[cid] = asyncio.create_task(auto_clean_loop(cid))
 
@@ -136,6 +149,25 @@ async def disable_protection(event):
         del TASKS[chat_id]
         
     await event.edit("**❌ تم إيقاف حماية الكروب.**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*ايقاف (عرض )?الكليشه$", re.I)))
+async def disable_notification(event):
+    """ كتم إشعار تم التنظيف ليصبح صامتاً """
+    chat_id = event.chat_id
+    SILENT_CHATS.add(chat_id)
+    save_silent_chats()
+    await event.edit("**🔕 تم إيقاف عرض كليشة (تم التنظيف) في هذا الكروب.\n✅ التنظيف سيعمل الآن بصمت تام (شبح).**")
+
+
+@zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*(تفعيل|فتح) (عرض )?الكليشه$", re.I)))
+async def enable_notification(event):
+    """ إعادة تفعيل إشعار تم التنظيف """
+    chat_id = event.chat_id
+    if chat_id in SILENT_CHATS:
+        SILENT_CHATS.remove(chat_id)
+        save_silent_chats()
+    await event.edit("**🔔 تم تفعيل عرض كليشة (تم التنظيف) في هذا الكروب.**")
 
 
 @zedub.on(events.NewMessage(outgoing=True, pattern=re.compile(r"^[.,|!?]?\s*حذف الكل$", re.I)))
