@@ -69,34 +69,54 @@ def generate_page_text(name, page):
 # =========================
 # 🎮 هندسة الزراير
 # =========================
-def get_pyro_keyboard(page):
-    all_buttons = ["❶","❷","❸","❹","❺","❻","❼","❽","❾","❿","⓫","⓬","⓭","⓮","⓯","⓰","⓱","⓲","⓳","⓴","❷❶","❷❷","❷❸","❷❹","❷❺"]
-    max_per_page = 12
-    start = (page - 1) * max_per_page
-    end = start + max_per_page
-    keyboard = []
-    temp_row = []
-    for i, icon in enumerate(all_buttons[start:end]):
-        real_index = start + i + 1
-        temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=f"m{real_index}|{page}"))
-        if len(temp_row) == 3:
-            keyboard.append(temp_row)
-            temp_row = []
-    if temp_row: keyboard.append(temp_row)
-    nav_row = []
-    if page > 1:
-        p_num = page - 1
-        nav_row.append(InlineKeyboardButton(f"⪻ ❨ {(p_num-1)*12+1} ⇄ {p_num*12} ❩", callback_data=f"page_{p_num}"))
-    else:
-        nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy"))
-    if end < len(all_buttons):
-        n_num = page + 1
-        nav_row.append(InlineKeyboardButton(f"❨ {(n_num-1)*12+1} ⇄ {n_num*12} ❩ ⪼", callback_data=f"page_{n_num}"))
-    else:
-        nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy"))
-    keyboard.append(nav_row)
-    keyboard.append([InlineKeyboardButton("❎ اغــلاق القائمــة", callback_data="close_all")])
-    return InlineKeyboardMarkup(keyboard)
+
+
+
+def get_pyro_keyboard(page): 
+     # تم إضافة "❷❻" إلى القائمة
+     all_buttons = ["❶","❷","❸","❹","❺","❻","❼","❽","❾","❿","⓫","⓬","⓭","⓮","⓯","⓰","⓱","⓲","⓳","⓴","❷❶","❷❷","❷❸","❷❹","❷❺", "❷❻"] 
+     
+     max_per_page = 12 
+     start = (page - 1) * max_per_page 
+     end = start + max_per_page 
+     keyboard = [] 
+     temp_row = [] 
+     
+     # عرض الأزرار للصفحة الحالية
+     for i, icon in enumerate(all_buttons[start:end]): 
+         real_index = start + i + 1 
+         temp_row.append(InlineKeyboardButton(f" {icon} ", callback_data=f"m{real_index}|{page}")) 
+         if len(temp_row) == 3: 
+             keyboard.append(temp_row) 
+             temp_row = [] 
+             
+     if temp_row: 
+         keyboard.append(temp_row) 
+         
+     # صف التنقل (السابق والتالي)
+     nav_row = [] 
+     if page > 1: 
+         p_num = page - 1 
+         nav_row.append(InlineKeyboardButton(f"⪻ ❨ {(p_num-1)*12+1} ⇄ {p_num*12} ❩", callback_data=f"page_{p_num}")) 
+     else: 
+         nav_row.append(InlineKeyboardButton("❨ الرئيسيــة ❩", callback_data="dummy")) 
+         
+     if end < len(all_buttons): 
+         n_num = page + 1 
+         # حساب نهاية المدى للصفحة التالية بشكل دقيق
+         next_end = n_num * 12 if (n_num * 12) < len(all_buttons) else len(all_buttons)
+         nav_row.append(InlineKeyboardButton(f"❨ {(n_num-1)*12+1} ⇄ {next_end} ❩ ⪼", callback_data=f"page_{n_num}")) 
+     else: 
+         nav_row.append(InlineKeyboardButton("❨ النهايــة ❩", callback_data="dummy")) 
+         
+     keyboard.append(nav_row) 
+     keyboard.append([InlineKeyboardButton("❎ اغــلاق القائمــة", callback_data="close_all")]) 
+     
+     return InlineKeyboardMarkup(keyboard)
+
+
+
+
 
 # ====================================================================
 # 🔥 معالجات بايروجرام (Execution Handlers)
