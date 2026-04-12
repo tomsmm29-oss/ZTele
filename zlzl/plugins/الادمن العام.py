@@ -62,7 +62,7 @@ UNBAN_RIGHTS = ChatBannedRights(
 )
 
 plugin_category = "الادمن"
-zel_dev = [8241311871, 1895219306, 925972505] 
+zel_dev = [8241311871, 1111565135, 6114298715] 
 
 # --- دالة الـ 5 طرق لجلب المجموعات ---
 async def get_admin_channels(client):
