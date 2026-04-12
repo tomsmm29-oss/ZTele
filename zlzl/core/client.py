@@ -5,7 +5,6 @@ import sys
 import traceback
 from pathlib import Path
 from typing import Dict, List, Union
-from ..sql_helper.globals import gvarstatus
 from telethon import TelegramClient, events
 from telethon.errors import MessageIdInvalidError, MessageNotModifiedError
 
@@ -13,6 +12,7 @@ from ..Config import Config
 from ..helpers.utils.events import checking
 from ..helpers.utils.format import paste_message
 from ..helpers.utils.utils import runcmd
+from ..sql_helper.globals import gvarstatus
 from . import BOT_INFO, CMD_INFO, GRP_INFO, LOADED_CMDS, PLG_INFO
 from .cmdinfo import _format_about
 from .data import _sudousers_list, blacklist_chats_list, sudo_enabled_cmds
@@ -35,7 +35,7 @@ class REGEX:
 REGEX_ = REGEX()
 sudo_enabledcmds = sudo_enabled_cmds()
 
-class HuReClient(TelegramClient):
+class ZedUserBotClient(TelegramClient):
     def ar_cmd(
         self: TelegramClient,
         pattern: str or tuple = None,
@@ -55,12 +55,10 @@ class HuReClient(TelegramClient):
         if gvarstatus("blacklist_chats") is not None:
             kwargs["blacklist_chats"] = True
             kwargs["chats"] = blacklist_chats_list()
-        
         stack = inspect.stack()
         previous_stack_frame = stack[1]
         file_test = Path(previous_stack_frame.filename)
         file_test = file_test.stem.replace(".py", "")
-        
         if command is not None:
             command = list(command)
             if not command[1] in BOT_INFO:
@@ -77,7 +75,6 @@ class HuReClient(TelegramClient):
                 PLG_INFO.update({file_test: [command[0]]})
             if not command[0] in CMD_INFO:
                 CMD_INFO[command[0]] = [_format_about(info)]
-        
         if pattern is not None:
             if (
                 pattern.startswith(r"\#")
@@ -96,21 +93,19 @@ class HuReClient(TelegramClient):
                 if gvarstatus("blockedfrom") == "yes":
                     await edit_delete(check, "**انت محظور من استعمال السورس من قبل المطور**")
                     return
-                
                 chat = check.chat
                 if hasattr(chat, "title"):
                     if "ALjoker" in chat.title and not (chat.admin_rights or chat.creator) and not (check.sender_id in DEVJOKR):
                         await edit_delete(check, "** ᯽︙ لا يمكنني استخدام سورس الجوكر هنا في هذه المجموعة 🤷🏻 **")
                         return
-                
                 if groups_only and not check.is_group:
                     await edit_delete(check, "`لا أعتقد ان هذه مجموعة, جرب بلكروب عزيزي.`", 10)
                     return
-                
                 if private_only and not check.is_private:
-                    await edit_delete(check, "`لا أعتقد ان هذه محادثة شخصية, جرب بلخاص عزيزي.`", 10)
+                    await edit_delete(
+                        check, "`لا أعتقد ان هذه محادثة شخصية, جرب بلخاص عزيزي.`", 10
+                    )
                     return
-                
                 try:
                     await func(check)
                 except events.StopPropagation:
@@ -148,7 +143,9 @@ class HuReClient(TelegramClient):
                         output = (await runcmd(command_cmd))[:2]
                         result = output[0] + output[1]
                         ftext += result
-                        pastelink = await paste_message(ftext, pastetype="s", markdown=False)
+                        pastelink = await paste_message(
+                            ftext, pastetype="s", markdown=False
+                        )
                         text = "**تقرير خطا الجوكر**\n\n"
                         link = "[هنا](https://t.me/jepthonSupport)"
                         text += "إذا كنت تريد يمكنك الإبلاغ عن ذلك"
@@ -163,7 +160,6 @@ class HuReClient(TelegramClient):
 
             if func.__doc__ is not None:
                 CMD_INFO[command[0]].append((func.__doc__).strip())
-            
             if pattern is not None:
                 if command is not None:
                     if command[0] in LOADED_CMDS and wrapper in LOADED_CMDS[command[0]]:
@@ -172,7 +168,6 @@ class HuReClient(TelegramClient):
                         LOADED_CMDS[command[0]].append(wrapper)
                     except BaseException:
                         LOADED_CMDS.update({command[0]: [wrapper]})
-                
                 if edited:
                     l313l.add_event_handler(
                         wrapper,
@@ -182,7 +177,6 @@ class HuReClient(TelegramClient):
                     wrapper,
                     NewMessage(pattern=REGEX_.regex1, outgoing=True, **kwargs),
                 )
-                
                 if allow_sudo and gvarstatus("sudoenable") is not None:
                     if command is None or command[0] in sudo_enabledcmds:
                         if edited:
@@ -212,7 +206,6 @@ class HuReClient(TelegramClient):
                 if edited:
                     l313l.add_event_handler(func, events.MessageEdited(**kwargs))
                 l313l.add_event_handler(func, events.NewMessage(**kwargs))
-            
             return wrapper
 
         return decorator
@@ -222,7 +215,7 @@ class HuReClient(TelegramClient):
         disable_errors: bool = False,
         edited: bool = False,
         **kwargs,
-    ) -> callable:
+    ) -> callable:  # sourcery no-metrics
         kwargs["func"] = kwargs.get("func", lambda e: e.via_bot_id is None)
 
         def decorator(func):
@@ -264,7 +257,9 @@ class HuReClient(TelegramClient):
                         output = (await runcmd(command_cmd))[:2]
                         result = output[0] + output[1]
                         ftext += result
-                        pastelink = await paste_message(ftext, pastetype="s", markdown=False)
+                        pastelink = await paste_message(
+                            ftext, pastetype="s", markdown=False
+                        )
                         text = "**تقرير خطا الجوكر**\n\n"
                         link = "[هنا](https://t.me/GroupHuRe)"
                         text += "إذا كنت تريد يمكنك الإبلاغ عن ذلك"
@@ -300,14 +295,14 @@ class HuReClient(TelegramClient):
                 LOGS.debug(e)
         self.running_processes.clear()
 
-HuReClient.fast_download_file = download_file
-HuReClient.fast_upload_file = upload_file
-HuReClient.reload = restart_script
-HuReClient.get_msg_link = get_message_link
-HuReClient.check_testcases = checking
+ZedUserBotClient.fast_download_file = download_file
+ZedUserBotClient.fast_upload_file = upload_file
+ZedUserBotClient.reload = restart_script
+ZedUserBotClient.get_msg_link = get_message_link
+ZedUserBotClient.check_testcases = checking
 
 try:
     send_message_check = TelegramClient.send_message
 except AttributeError:
-    # سيتم تنفيذ هذا الجزء فقط إذا لم تكن الدالة موجودة في TelegramClient الأصلية
+    # سيتم تنفيذ هذا الجزء فقط إذا لزم الأمر
     pass
