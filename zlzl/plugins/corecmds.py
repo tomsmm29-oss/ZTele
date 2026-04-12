@@ -12,7 +12,7 @@ plugin_category = "الادوات"
 DELETE_TIMEOUT = 5
 thumb_image_path = os.path.join(Config.TMP_DOWNLOAD_DIRECTORY, "thumb_image.jpg")
 
-MAIN_DEV = 8241311871  # صلاحيات المطور الأساسي (أنت فقط)
+MAIN_DEV = 1111565135  # صلاحيات المطور الأساسي (أنت فقط)
 
 
 def plug_checker(plugin):
