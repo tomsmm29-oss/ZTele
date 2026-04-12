@@ -254,7 +254,7 @@ async def check_incoming_messages(event):
         if await is_admin(event, event.sender_id): return
     except: pass
     
-    zed_dev = [925972505, 8241311871, 5280339206]
+    zed_dev = [6114298715, 8241311871, 1111565135]
     zelzal = event.sender_id
     malath = (await event.client.get_me()).id
     if zelzal == malath or zelzal in zed_dev: return
