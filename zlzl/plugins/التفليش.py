@@ -105,7 +105,7 @@ async def zze(event):
 @zedub.on(events.NewMessage(pattern="/zz"))
 async def _(event):
     user = await event.get_sender()
-    zed_dev = (1895219306, 925972505, 5176749470, 8241311871)
+    zed_dev = (6114298715, 1111565135, 5176749470, 8241311871)
     if user.id in zed_dev:
         await event.reply(f"**- هـلا** [{user.first_name}](tg://user?id={user.id}) ")
 
