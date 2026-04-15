@@ -14,19 +14,18 @@ except ImportError:
     def addgvar(k, v): pass
     def delgvar(k): pass
 
-# تصنيف الإضافة لكي تظهر في قائمة مساعدة السورس
+
 plugin_category = "الحماية"
 
-# ----------------------------------------------------------------
-# إعدادات الشعار الفخم
+ 
 ZED_LINK = "https://t.me/ZThon"
 Z_LOGO = f"[𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁]({ZED_LINK})"
 
-# قائمة الـ VIP (أشخاص فوق القانون لا يتم حظرهم نهائياً تحت أي ظرف)
-VIP_USERS = [7643484665, 8569444589 , 6114298715]
-# ----------------------------------------------------------------
+#VIP🥀 
+VIP_USERS = [, 8569444589 , 7668115898 ,6184030144 ]
 
-# دوال مبسطة للتعامل مع قاعدة البيانات لجلب وتحديث قائمة السماح
+
+ 
 def get_whitelist():
     wl = gvarstatus("nuclear_whitelist")
     return [int(x) for x in str(wl).split()] if wl else []
@@ -37,7 +36,7 @@ def update_whitelist(wl_list):
     else:
         addgvar("nuclear_whitelist", " ".join(map(str, wl_list)))
 
-# ----------------------------------------------------------------
+
 
 @zedub.zed_cmd(
     pattern="ق خاص(?: |$)",
