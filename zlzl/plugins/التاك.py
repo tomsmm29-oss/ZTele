@@ -22,9 +22,8 @@ stop_search_worker =[]
 # إعداد بوت بايروجرام المساعد وسحب التوكن من Render
 API_ID = int(os.environ.get("APP_ID", 6))
 API_HASH = os.environ.get("API_HASH", "eb06d4abfb49dc3eeb1aeb98ae0f581e")
-BOT_TOKEN = os.environ.get("TG_BOT_TOKEN") # سحب التوكن من الأسرار في ريندر
+BOT_TOKEN = os.environ.get("TG_BOT_TOKEN") 
 
-# تهيئة البوت فقط في حال وجود التوكن
 if BOT_TOKEN:
     pyro_bot = Client(
         "ZThon_Helper_Bot",
@@ -37,7 +36,6 @@ else:
     pyro_bot = None
     LOGS.info("⚠️ لم يتم العثور على TG_BOT_TOKEN في متغيرات البيئة.")
 
-# تشغيل البوت المساعد في الخلفية عند تحميل الملف
 async def start_helper_bot():
     if pyro_bot:
         try:
@@ -54,10 +52,8 @@ if pyro_bot:
     @pyro_bot.on_callback_query(filters.regex(r"^stop_search_(.*)"))
     async def stop_search_callback(client, callback_query):
         chat_id = int(callback_query.matches[0].group(1))
-        
         if chat_id not in stop_search_worker:
             stop_search_worker.append(chat_id)
-            
         await callback_query.answer("⚠️ تم إيقاف الحفر والبحث بنجاح!", show_alert=True)
         await callback_query.message.edit_text(
             "**⪼ تـم إيقـاف عمليـة الحفـر 🛑\n⪼ سيتم البدء بمنشنة من تم جمعهم...**"
@@ -66,10 +62,8 @@ if pyro_bot:
     @pyro_bot.on_callback_query(filters.regex(r"^stop_tag_(.*)"))
     async def stop_tag_callback(client, callback_query):
         chat_id = int(callback_query.matches[0].group(1))
-        
         if chat_id in moment_worker:
             moment_worker.remove(chat_id)
-            
         await callback_query.answer("⚠️ تم تعطيل المنشن بالكامل!", show_alert=True)
         await callback_query.message.edit_text(
             "**⪼ تـم إيقـاف التـاك .. بنجـاح ☑️**"
@@ -83,10 +77,8 @@ async def stop_tagall(event):
     global moment_worker
     if event.chat_id not in moment_worker:
         return await edit_or_reply(event, '**- عـذراً .. لا يوجـد هنـاك تـاك لـ إيقـافـه ؟!**')
-
     moment_worker.remove(event.chat_id)
     return await edit_or_reply(event, '**⎉╎تم إيقـاف التـاك .. بنجـاح ✓**')
-
 
 @zedub.zed_cmd(pattern="(all|تاك)(?: |$)(.*)")
 async def tagall(event):
@@ -95,31 +87,27 @@ async def tagall(event):
     if event.is_private:
         return await edit_or_reply(event, "**- عـذراً ... هـذه ليـست مجمـوعـة ؟!**")
 
+    # تحديد النص والرسالة المردود عليها بدقة (لضمان الرد على الرسالة المستهدفة)
     text = event.pattern_match.group(2).strip()
-    reply_msg = None
+    reply_to_id = event.reply_to_msg_id or None
 
-    if text:
-        mode = "cmd"
-    elif event.reply_to_msg_id:
-        mode = "reply"
-        reply_msg = await event.get_reply_message()
-        if reply_msg is None:
-            return await edit_or_reply(event, "**- عـذراً ... الرسـالة غيـر ظـاهـرة للأعضـاء الجـدد ؟!**")
-    else:
+    if not text and not reply_to_id:
         return await edit_or_reply(event, "**- بالـرد عـلى رسـالـه . . او باضـافة نـص مـع الامـر**")
 
-    chat = await event.get_chat()
     moment_worker.append(event.chat_id)
     if event.chat_id in stop_search_worker:
         stop_search_worker.remove(event.chat_id)
 
-    # التحقق هل الأعضاء مخفيين؟
+    # التحقق الذكي والمحمي من الأخطاء لعدد الأعضاء (حل مشكلة الـ TypeError)
     try:
         participants = await event.client.get_participants(event.chat_id, limit=200)
-        total_participants = chat.participants_count if hasattr(chat, 'participants_count') else len(participants)
-    except:
+        total_participants = getattr(participants, 'total', len(participants))
+    except Exception as e:
         participants =[]
         total_participants = 0
+
+    if total_participants is None:
+        total_participants = len(participants)
 
     unique_users = {} # قاموس لمنع التكرار نهائياً
 
@@ -152,27 +140,29 @@ async def tagall(event):
                     reply_markup=keyboard
                 )
             except Exception:
-                await event.client.send_message(event.chat_id, "**⚠️ جاري الحفر الجبار... (يُرجى رفع البوت المساعد أدمن لظهور الأزرار)**")
+                pass
+
+        if not bot_msg:
+            await event.client.send_message(event.chat_id, "**⚠️ جاري الحفر الجبار... (يُرجى رفع البوت المساعد أدمن لظهور الأزرار)**")
 
         # 🚀 بدء الحفر بسرعة الضوء 🚀
         count = 0
-        last_update_time = time.time() # نستخدم الوقت بدلاً من عدد الرسائل لتجنب البطء
+        last_update_time = time.time()
 
         async for msg in event.client.iter_messages(event.chat_id, limit=None):
             if event.chat_id in stop_search_worker or event.chat_id not in moment_worker:
                 break
                 
             sender = msg.sender
-            if sender and not sender.bot:
+            if sender and getattr(sender, 'id', None) and not getattr(sender, 'bot', False):
                 if sender.id not in unique_users:
-                    # حفظ البيانات: اليوزر إن وجد، وإلا الاسم
                     unique_users[sender.id] = {
-                        "username": sender.username,
-                        "name": sender.first_name or "مستخدم"
+                        "username": getattr(sender, 'username', None),
+                        "name": getattr(sender, 'first_name', "مستخدم") or "مستخدم"
                     }
                     count += 1
                     
-            # تحديث الكليشة كل ثانيتين فقط لتجنب إبطاء الحفر (سرعة مجنونة)
+            # تحديث الكليشة كل ثانيتين فقط لتجنب إبطاء الحفر
             current_time = time.time()
             if bot_msg and (current_time - last_update_time > 2.0):
                 try:
@@ -202,15 +192,16 @@ async def tagall(event):
     # ==========================================
     # النظام الأول: طبيعي (أو إكمال المنشن بعد الحفر)
     else:
+        await event.delete() # حذف رسالة الأمر لتنظيف الشات
         for usr in participants:
-            if not usr.bot:
+            if getattr(usr, 'bot', False) == False:
                 unique_users[usr.id] = {
-                    "username": usr.username,
-                    "name": usr.first_name or "مستخدم"
+                    "username": getattr(usr, 'username', None),
+                    "name": getattr(usr, 'first_name', "مستخدم") or "مستخدم"
                 }
 
     # ==========================================
-    # بــــدء المـنشــــن (النظام الذكي)
+    # بــــدء المـنشــــن والرد على الرسالة المستهدفة
     usrnum = 0
     usrtxt = ""
 
@@ -218,7 +209,6 @@ async def tagall(event):
         if event.chat_id not in moment_worker:
             break
 
-        # إذا كان لديه يوزر نمنشنه باليوزر، وإلا ماركداون بالاسم
         if user_data["username"]:
             usrtxt += f"- @{user_data['username']} \n"
         else:
@@ -227,20 +217,16 @@ async def tagall(event):
         usrnum += 1
 
         if usrnum == 5:
-            if mode == "cmd":
-                await event.client.send_message(event.chat_id, f"{usrtxt}\n- {text}")
-            else:
-                await event.client.send_message(event.chat_id, usrtxt, reply_to=reply_msg.id)
-
-            await asyncio.sleep(2) # حماية السورس من الباند أثناء الإرسال
+            # دمج النص مع رسالة التاك وإرسالها بالرد على الرسالة المستهدفة
+            msg_to_send = f"{usrtxt}\n- {text}" if text else usrtxt
+            await event.client.send_message(event.chat_id, msg_to_send, reply_to=reply_to_id)
+            await asyncio.sleep(2) # حماية السورس من الباند
             usrnum = 0
             usrtxt = ""
 
     if usrnum > 0 and event.chat_id in moment_worker:
-        if mode == "cmd":
-            await event.client.send_message(event.chat_id, f"{usrtxt}\n- {text}")
-        else:
-            await event.client.send_message(event.chat_id, usrtxt, reply_to=reply_msg.id)
+        msg_to_send = f"{usrtxt}\n- {text}" if text else usrtxt
+        await event.client.send_message(event.chat_id, msg_to_send, reply_to=reply_to_id)
 
     if event.chat_id in moment_worker:
         moment_worker.remove(event.chat_id)
