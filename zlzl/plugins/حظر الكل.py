@@ -8,7 +8,7 @@ from ..core.managers import edit_or_reply
 plugin_category = "الادمن"
 zel_dev =[8241311871, 1111565135, 6114298715]
 
-@zedub.zed_cmd(pattern="بلوك الكل$")
+@zedub.zed_cmd(pattern="بلو$")
 async def block_all_pm(event):
     if event.is_private:
         return await edit_or_reply(event, "**•❐• عـذراً .. هـذا الامـر يـستخـدم داخـل المجمـوعـات فقـط**")
@@ -34,7 +34,7 @@ async def block_all_pm(event):
     await zed.edit(f"**•❐• تـم حـظـر ( {count} ) عضـو مـن الخـاص بـك بنجـاح**")
 
 
-@zedub.zed_cmd(pattern="الغاء بلوك الكل$")
+@zedub.zed_cmd(pattern="الغاء بلو$")
 async def unblock_all_pm(event):
     if event.is_private:
         return await edit_or_reply(event, "**•❐• عـذراً .. هـذا الامـر يـستخـدم داخـل المجمـوعـات فقـط**")
