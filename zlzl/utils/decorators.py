@@ -139,25 +139,18 @@ def sudo_cmd(pattern=None, command=None, **args):
 
 def errors_handler(func):
     async def wrapper(check):
-        try:
-            await func(check)
-        except BaseException:
-            # طباعة الخطأ في اللوجز دائماً
-            LOGS.error(f"⚠️ كارثة في تنفيذ الأمر: {str(sys.exc_info()[1])}")
-            traceback.print_exc()
-            
-            if not Config.PRIVATE_GROUP_BOT_API_ID:
-                return
-            try:
-                date = (datetime.datetime.now()).strftime("%m/%d/%Y, %H:%M:%S")
-                ftext = f"\n**⚠️ تقرير خطأ:**\n\n**الأمر:** `{str(check.text)}`\n**الخطأ:** `{str(sys.exc_info()[1])}`"
-                await check.client.send_message(
-                    Config.PRIVATE_GROUP_BOT_API_ID, ftext, link_preview=False
-                )
-            except:
-                pass
-    return wrapper
+        # ⚡ فحص الرام السريع (الرد الفوري)
+        if hasattr(zedub, 'redis') and zedub.redis:
+            # هل الكلمة اللي وصلت هي "فلتر" مسجل في الرام؟
+            fast_reply = await zedub.redis.hget(f"filters:{check.chat_id}", check.text)
+            if fast_reply:
+                await check.reply(fast_reply)
+                return # انتهى! رد بلمح البصر بدون ما يفتح أي ملف
 
+        # إذا لم يكن فلتر، يكمل للأوامر العادية في مسار منفصل
+        asyncio.create_task(func(check))
+        
+    return wrapper
 
 def register(**args):
     args["func"] = lambda e: e.via_bot_id is None
