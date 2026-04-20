@@ -28,6 +28,7 @@ try:
         auto_reconnect=True,
         connection_retries=None,
     )
+    zedub.sequential_updates = False
 except Exception as e:
     print(
         f"STRING_SESSION CODE WRONG MAKE A NEW SESSION - {e}\n كود سيشن تيليثـون غير صالح .. قم باستخـراج كود جديد ؟!"
