@@ -1,15 +1,15 @@
 import sys, asyncio
 import zlzl
-import redis.asyncio as redis
-# رابط الرام الخاص بك (Upstash)
-REDIS_URL = "rediss://default:gQAAAAAAAZMqAAIocDE5OTg0NmFmMzhlYzY0NGQ1YWQ1M2I2OTk0OGU4ZjU1NnAxMTAzMjEw@pleasant-crab-103210.upstash.io:6379"
-RedisCache = redis.from_url(REDIS_URL, decode_responses=True)
-zedub.redis = RedisCache # ربط الرام بالبوت
 from zlzl import BOTLOG_CHATID, HEROKU_APP, PM_LOGGER_GROUP_ID
 from telethon import functions
 from .Config import Config
 from .core.logger import logging
 from .core.session import zedub
+import redis.asyncio as redis
+# رابط الرام الخاص بك (Upstash)
+REDIS_URL = "rediss://default:gQAAAAAAAZMqAAIocDE5OTg0NmFmMzhlYzY0NGQ1YWQ1M2I2OTk0OGU4ZjU1NnAxMTAzMjEw@pleasant-crab-103210.upstash.io:6379"
+RedisCache = redis.from_url(REDIS_URL, decode_responses=True)
+zedub.redis = RedisCache
 from .utils import mybot, autoname, autovars, saves, supscrips
 from .utils import add_bot_to_logger_group, load_plugins, setup_bot, startupmessage, verifyLoggerGroup
 
