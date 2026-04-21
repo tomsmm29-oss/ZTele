@@ -1,53 +1,56 @@
 import os
 from telethon.tl import functions
 from telethon.errors import UsernameOccupiedError
-from zlzl.utils import admin_cmd
-from zlzl.core.session import zedub
 
-# 1. ميزة: ضع بروفايل (بالرد على صورة)
-@zedub.on(admin_cmd(pattern="ضع بروفايل$"))
+# استدعاءات زدثون الرسمية
+from . import zedub
+from ..core.managers import edit_or_reply
+
+plugin_category = "الادمن"
+
+# =================  Z T H O N  S T Y L E  =================
+
+@zedub.zed_cmd(pattern="^[.,]ضع بروفايل$")
 async def set_pfp(event):
     reply = await event.get_reply_message()
     if not reply or not reply.media:
-        return await event.edit("⚠️ **بالرد على صورة أولاً!**")
+        return await edit_or_reply(event, "**•❐• عـذراً .. يجـب الـرد علـى صـورة أولاً**")
     
-    await event.edit("🔄 **جاري تغيير صورة البروفايل...**")
+    zed = await edit_or_reply(event, "**•❐• جـاري تعييـن صـورة البروفايـل الجـديدة ..**")
     photo = await event.client.download_media(reply)
     try:
         await event.client(functions.photos.UploadProfilePhotoRequest(
             file=await event.client.upload_file(photo)
         ))
-        await event.edit("✅ **تم تغيير صورة البروفايل بنجاح!**")
+        await zed.edit("**•❐• تـم تغييـر صـورة البروفايـل بنجـاح**")
     except Exception as e:
-        await event.edit(f"❌ **فشل التغيير:** {str(e)}")
+        await zed.edit(f"**•❐• عـذراً .. حـدث خـطأ أثنـاء التغييـر :** `{str(e)}`")
     finally:
         if os.path.exists(photo):
             os.remove(photo)
 
-# 2. ميزة: ضع بايو (بالرد على نص)
-@zedub.on(admin_cmd(pattern="ضع بايو$"))
+@zedub.zed_cmd(pattern="^[.,]ضع بايو$")
 async def set_bio(event):
     reply = await event.get_reply_message()
     if not reply or not reply.text:
-        return await event.edit("⚠️ **بالرد على نص لوضعه كـ بايو!**")
+        return await edit_or_reply(event, "**•❐• عـذراً .. يجـب الـرد علـى نـص لتعيينـه بـايـو**")
     
-    await event.edit("🔄 **جاري تغيير البايو...**")
+    zed = await edit_or_reply(event, "**•❐• جـاري تحديـث نـبذة الحسـاب (البيـو) ..**")
     try:
         await event.client(functions.account.UpdateProfileRequest(
             about=reply.text
         ))
-        await event.edit("✅ **تم تحديث البايو بنجاح!**")
+        await zed.edit("**•❐• تـم تحديـث نـبذة الحسـاب بنجـاح**")
     except Exception as e:
-        await event.edit(f"❌ **فشل التغيير:** {str(e)}")
+        await zed.edit(f"**•❐• عـذراً .. حـدث خـطأ أثنـاء التحديث :** `{str(e)}`")
 
-# 3. ميزة: ضع اسم (بالرد على نص)
-@zedub.on(admin_cmd(pattern="ضع اسم$"))
+@zedub.zed_cmd(pattern="^[.,]ضع اسم$")
 async def set_name(event):
     reply = await event.get_reply_message()
     if not reply or not reply.text:
-        return await event.edit("⚠️ **بالرد على نص لوضعه كاسم!**")
+        return await edit_or_reply(event, "**•❐• عـذراً .. يجـب الـرد علـى نـص لتعيينـه كاسـم**")
     
-    await event.edit("🔄 **جاري تغيير الاسم...**")
+    zed = await edit_or_reply(event, "**•❐• جـاري تغييـر اسـم الحسـاب الآن ..**")
     names = reply.text.split(maxsplit=1)
     first_name = names[0]
     last_name = names[1] if len(names) > 1 else ""
@@ -57,26 +60,27 @@ async def set_name(event):
             first_name=first_name,
             last_name=last_name
         ))
-        await event.edit(f"✅ **تم تغيير الاسم إلى: {reply.text}**")
+        await zed.edit(f"**•❐• تـم تغييـر اسـم الحسـاب بـنجـاح الـى :** {reply.text}")
     except Exception as e:
-        await event.edit(f"❌ **فشل التغيير:** {str(e)}")
+        await zed.edit(f"**•❐• عـذراً .. حـدث خـطأ أثنـاء التغيير :** `{str(e)}`")
 
-# 4. ميزة: ضع يوزر (بالرد على يوزر)
-@zedub.on(admin_cmd(pattern="ضع يوزر$"))
+@zedub.zed_cmd(pattern="^[.,]ضع يوزر$")
 async def set_username(event):
     reply = await event.get_reply_message()
     if not reply or not reply.text:
-        return await event.edit("⚠️ **بالرد على اليوزر المطلوب!**")
+        return await edit_or_reply(event, "**•❐• عـذراً .. يجـب الـرد علـى المعـرف المطلوب**")
     
     new_username = reply.text.replace("@", "").strip()
-    await event.edit(f"🔄 **جاري محاولة تغيير اليوزر إلى @{new_username}...**")
+    zed = await edit_or_reply(event, f"**•❐• جـاري محاولـة تغييـر اليـوزر إلـى @{new_username} ..**")
     
     try:
         await event.client(functions.account.UpdateUsernameRequest(
             username=new_username
         ))
-        await event.edit(f"✅ **تم تغيير اليوزر بنجاح إلى @{new_username}**")
+        await zed.edit(f"**•❐• تـم تغييـر معـرف الحسـاب بـنجـاح الـى :** @{new_username}")
     except UsernameOccupiedError:
-        await event.edit("❌ **اليوزر مستخدم بالفعل! اختر يوزراً آخر.**")
+        await zed.edit("**•❐• عـذراً .. هـذا اليـوزر مـستخدم بالفعـل**")
     except Exception as e:
-        await event.edit(f"❌ **فشل التغيير:** {str(e)}")
+        await zed.edit(f"**•❐• عـذراً .. حـدث خـطأ أثنـاء التغييـر :** `{str(e)}`")
+
+# ===========================================================
