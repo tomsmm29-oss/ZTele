@@ -17,29 +17,29 @@ from ..sql_helper.globals import gvarstatus
 
 LOGS = logging.getLogger("ZThon_Decorators")
 
-# دالة لتصحيح النمط (Regex) - هنا كان مربط الفرس
-def compile_pattern(pattern, handler):
-    if pattern.startswith(r"\#"):
+
+    def compile_pattern(pattern, handler):
+    # إذا كان الأمر يبدأ أصلاً برموز نظام خاصة نتركه كما هو
+    if pattern.startswith(r"\#") or pattern.startswith(r"^"):
         return re.compile(pattern), pattern
-    elif pattern.startswith(r"^"):
-        return re.compile(pattern), pattern
+
+    # 🔥 الترسانة الشاملة: وضعنا كل الرموز اللي طلبتها داخل [ ]
+    # لاحظ وضعنا الـ - في البداية والـ \ قبل الـ . والـ * لضمان الأمان التام
+    # الرموز المدعومة: . ، , + ? ! / : ' * " % = ( ) - _ & $ # @
+    symbols = r"[.\,،+?!/:’*\"%=()\- _&$#@]"
     
-    # تنظيف الهاندلر: إذا كان نقطة، لازم يصير \.
+    # البادئة تعني: ابدأ البحث من بداية الرسالة ^ عن أحد هذه الرموز
+    zedreg = "^" + symbols
+
     try:
-        if handler == ".":
-            zedreg = r"^\."
-        elif len(handler) == 1:
-            zedreg = "^\\" + handler
-        else:
-            zedreg = "^" + handler
-    except:
-        zedreg = r"^\."
-
-    # دمج الهاندلر مع الأمر
-    final_regex = zedreg + pattern
-    return re.compile(final_regex), handler + pattern
-
-
+        # دمج البادئة مع نص الأمر
+        final_regex = zedreg + pattern
+        return re.compile(final_regex), "." + pattern
+    except Exception as e:
+        # في حال حدوث خطأ نادر، نعود للنقطة الافتراضية كأمان
+        LOGS.error(f"⚠️ خطأ في نمط الرموز: {e}")
+        return re.compile(r"^\." + pattern), "." + pattern
+    
 
 
 def admin_cmd(pattern=None, command=None, **args):
