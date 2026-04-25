@@ -37,7 +37,7 @@ async def get_llama_assistant_reply(user_msg, user_name, ret_stamp):
                     data = await response.json()
                     ai_text = data.get("response", "")
                     # تنسيق الخط بأسلوب زدثون (عريض مع شرطة)
-                    return f"**•❐• مـسـاعـد الـحـسـاب (Gamini) :**\n\n**- {ai_text}**"
+                    return f"**•❐• مـسـاعـد الـحـسـاب (llama ) :**\n\n**- {ai_text}**"
                 return FAV_RESPONSE
     except:
         return FAV_RESPONSE
