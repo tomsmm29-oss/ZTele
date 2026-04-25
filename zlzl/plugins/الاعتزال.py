@@ -17,10 +17,10 @@ async def get_llama_assistant_reply(user_msg, user_name, ret_stamp):
     system_prompt = (
         f"أنت 'مساعد الحساب' الوفي. اعتزل صاحب هذا الحساب في {ret_stamp}. "
         f"المستخدم الذي يراسلنا اسمه {user_name}. "
-        "مهمتك: الرد كشخص حزين جداً لرحيل صاحبه، كن وفياً ومهذباً ولكن حازماً بأن المالك لن يعود. "
-        "تحدث بنبرة عاطفية تعبر عن اشتياقك لصاحب الحساب، قل لهم أنك هنا فقط لحماية ذكراه. "
-        "اجعل الردود قصيرة، فخمة، وباللغة العربية الفصحى. "
-        "ممنوع استخدام الإيموجي نهائياً. ردك يجب أن يكون سطر واحد فقط."
+        "مهمتك: الرد بنبرة حزينة جداً لرحيل صاحب الحساب. أنت وفيّ ومهذب وتشتاق للمالك. "
+        "أخبرهم أنك هنا فقط لحماية حسابه وذكراه وأن الرحيل كان قراراً صعباً. "
+        "اجعل الردود فخمة، قصيرة جداً (سطر واحد)، وباللغة العربية الفصحى. "
+        "ممنوع استخدام الإيموجي. ردك يجب أن يكون نصاً جاداً."
     )
     
     url = "https://darkness.ashlynn.workers.dev/chat/"
@@ -36,8 +36,8 @@ async def get_llama_assistant_reply(user_msg, user_name, ret_stamp):
                 if response.status == 200:
                     data = await response.json()
                     ai_text = data.get("response", "")
-                    # تنسيق الخط بأسلوب زدثون العريض
-                    return f"**•❐• مـسـاعـد الـحـسـاب (Llama 4) :**\n\n**- {ai_text}**"
+                    # تنسيق الخط بأسلوب زدثون (عريض مع شرطة)
+                    return f"**•❐• مـسـاعـد الـحـسـاب (Gamini) :**\n\n**- {ai_text}**"
                 return FAV_RESPONSE
     except:
         return FAV_RESPONSE
@@ -50,11 +50,20 @@ async def start_retirement(event):
     zed = await edit_or_reply(event, "**•❐• جـاري تـنفيـذ مـراسيـم الاعـتزال وإغـلاق الـحساب ..**")
     
     me = await event.client.get_me()
-    full = await event.client(functions.users.GetFullUserRequest(me.id))
+    
+    # جلب البايو بطريقة آمنة جداً لتفادي الخطأ AttributeError
+    try:
+        full = await event.client(functions.users.GetFullUserRequest(me.id))
+        if hasattr(full, 'full_user'):
+            old_bio = full.full_user.about or ""
+        else:
+            old_bio = getattr(full, 'about', "") or ""
+    except:
+        old_bio = ""
     
     addgvar("old_first_name", me.first_name)
     addgvar("old_last_name", me.last_name or "")
-    addgvar("old_bio", getattr(full.full_user, 'about', "") or "")
+    addgvar("old_bio", old_bio)
     addgvar("zed_retired", "true")
     
     now = datetime.now()
@@ -87,7 +96,7 @@ async def stop_retirement(event):
     if not gvarstatus("zed_retired"):
         return await edit_or_reply(event, "**•❐• أنـت لـست مـعتـزلاً بـالأسـاس**")
 
-    # 1. استعادة خصوصية الصورة
+    # 1. استعادة خصوصية الصورة (للجميع)
     try:
         await event.client(functions.account.SetPrivacyRequest(
             key=types.InputPrivacyKeyProfilePhoto(),
@@ -96,7 +105,7 @@ async def stop_retirement(event):
     except:
         pass
 
-    # 2. استعادة المعلومات
+    # 2. استعادة المعلومات الأصلية
     try:
         await event.client(functions.account.UpdateProfileRequest(
             first_name=gvarstatus("old_first_name"),
@@ -111,7 +120,7 @@ async def stop_retirement(event):
     await edit_or_reply(event, "**•❐• أهـلاً بـعودتـك .. تـم إلـغاء وضـع الاعـتزال وإعـادة كـافة الإعـدادات**")
 
 
-# --- المحرك الذكي (المساعد الوفي) ---
+# --- المحرك الذكي (الردود التلقائية) ---
 @zedub.on(events.NewMessage(incoming=True))
 async def retirement_ai_watcher(event):
     if not gvarstatus("zed_retired") or event.out:
@@ -120,6 +129,7 @@ async def retirement_ai_watcher(event):
     me = await event.client.get_me()
     should_reply = False
     
+    # التحقق من الخاص أو الرد على رسائلك في المجموعات
     if event.is_private:
         should_reply = True
     elif event.is_group and event.reply_to:
@@ -137,10 +147,10 @@ async def retirement_ai_watcher(event):
         user_name = sender.first_name
 
         if not gvarstatus(user_replied_key):
-            # أول رد: الكليشة الملكية
+            # الرد الأول بالكليشة الملكية
             await event.reply(FAV_RESPONSE)
             addgvar(user_replied_key, "done")
         else:
-            # الردود التالية: ذكاء المساعد الوفي Llama 4
+            # الردود التالية بذكاء Llama 4 وبخط زدثون الفخم
             ai_msg = await get_llama_assistant_reply(event.text, user_name, ret_stamp)
             await event.reply(ai_msg)
