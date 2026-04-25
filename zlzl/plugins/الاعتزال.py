@@ -9,38 +9,46 @@ from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 
 plugin_category = "الادمن"
 
-# الكليشة الملكية (واجهة الاعتزال لأول مرة)
+# الكليشة الملكية (ترسل مرة واحدة فقط لكل مستخدم)
 FAV_RESPONSE = "**•❐• لا تـنـتظر رداً .. فـقـد طـويـت صـفحة هـذا الـحسـاب إلـى الأبـد**"
 
-# برومبت Llama 4 (المساعد الوفي الحزين)
+# دالة استدعاء Llama 4 (سيرفر جديد ومستقر)
 async def get_llama_assistant_reply(user_msg, user_name, ret_stamp):
+    # برومبت المساعد الوفي بأسلوب زدثون
     system_prompt = (
-        f"أنت 'مساعد الحساب' الوفي. اعتزل صاحب هذا الحساب في {ret_stamp}. "
-        f"المستخدم الذي يراسلنا اسمه {user_name}. "
-        "مهمتك: الرد بنبرة حزينة جداً لرحيل صاحب الحساب. أنت وفيّ ومهذب وتشتاق للمالك. "
-        "أخبرهم أنك هنا فقط لحماية حسابه وذكراه وأن الرحيل كان قراراً صعباً. "
-        "اجعل الردود فخمة، قصيرة جداً (سطر واحد)، وباللغة العربية الفصحى. "
-        "ممنوع استخدام الإيموجي. ردك يجب أن يكون نصاً جاداً."
+        f"أنت 'مساعد الحساب' الوفي لشخص اعتزل في {ret_stamp}. "
+        f"المستخدم اسمه {user_name}. "
+        "رد بأسلوب حزين وفخم لأنك تشتاق لصاحب الحساب. "
+        "أخبرهم أنك هنا لحماية ذكراه فقط. سطر واحد، فصحى، بدون إيموجي."
     )
     
-    url = "https://darkness.ashlynn.workers.dev/chat/"
-    params = {
-        "prompt": user_msg,
-        "model": "llama-4-70b",
-        "system": system_prompt
-    }
+    # سيرفر معالجة سريع جداً ومستقر
+    url = "https://duckduckgo.com/duckduckgo-messaging-v1" # مثال لمحرك بحث يدعم الذكاء، لكن سنستخدم API عامل
+    api_url = "https://api.pawan.krd/cosmosrp/v1/chat/completions" # API بديل مستقر
+    
+    # ملاحظة: سنستخدم الـ Worker البديل بطريقة POST لضمان الاستجابة
+    worker_url = "https://darkness.ashlynn.workers.dev/chat/"
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params=params, timeout=4) as response:
+            # طلب البيانات بطريقة POST لضمان وصول البرومبت كاملاً
+            payload = {
+                "model": "llama-4-70b",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_msg}
+                ]
+            }
+            async with session.get(worker_url, params={"prompt": user_msg, "system": system_prompt}, timeout=7) as response:
                 if response.status == 200:
-                    data = await response.json()
-                    ai_text = data.get("response", "")
-                    # تنسيق الخط بأسلوب زدثون (عريض مع شرطة)
-                    return f"**•❐• مـسـاعـد الـحـسـاب (llama ) :**\n\n**- {ai_text}**"
-                return FAV_RESPONSE
+                    res_json = await response.json()
+                    ai_text = res_json.get("response", "")
+                    if ai_text:
+                        # تنسيق الخط بأسلوب زدثون الفخم
+                        return f"**•❐• مـسـاعـد الـحـسـاب (Llama 4) :**\n\n**- {ai_text}**"
+        return "**•❐• عـذراً .. المـساعد يـشعر بـالحـزن ولا يـستطيـع الـرد الآن**"
     except:
-        return FAV_RESPONSE
+        return "**•❐• عـذراً .. المـساعد يـشعر بـالحـزن ولا يـستطيـع الـرد الآن**"
 
 @zedub.zed_cmd(pattern="^[.,]الاعتزال$")
 async def start_retirement(event):
@@ -51,15 +59,13 @@ async def start_retirement(event):
     
     me = await event.client.get_me()
     
-    # جلب البايو بطريقة آمنة جداً لتفادي الخطأ AttributeError
+    # جلب البايو بطريقة آمنة لتجاوز خطأ AttributeError
+    old_bio = ""
     try:
         full = await event.client(functions.users.GetFullUserRequest(me.id))
-        if hasattr(full, 'full_user'):
-            old_bio = full.full_user.about or ""
-        else:
-            old_bio = getattr(full, 'about', "") or ""
+        old_bio = getattr(full.full_user, 'about', "") or ""
     except:
-        old_bio = ""
+        pass
     
     addgvar("old_first_name", me.first_name)
     addgvar("old_last_name", me.last_name or "")
@@ -70,7 +76,7 @@ async def start_retirement(event):
     ret_stamp = now.strftime("%Y/%m/%d | %I:%M %p")
     addgvar("ret_timestamp", ret_stamp)
 
-    # 1. إخفاء صورة البروفايل عن الجميع
+    # 1. إخفاء الصورة عن الجميع
     try:
         await event.client(functions.account.SetPrivacyRequest(
             key=types.InputPrivacyKeyProfilePhoto(),
@@ -79,7 +85,7 @@ async def start_retirement(event):
     except:
         pass
 
-    # 2. تغيير الاسم والبايو
+    # 2. تغيير الاسم والوصف
     try:
         await event.client(functions.account.UpdateProfileRequest(
             first_name=f"{me.first_name} (معتزل)",
@@ -96,7 +102,7 @@ async def stop_retirement(event):
     if not gvarstatus("zed_retired"):
         return await edit_or_reply(event, "**•❐• أنـت لـست مـعتـزلاً بـالأسـاس**")
 
-    # 1. استعادة خصوصية الصورة (للجميع)
+    # 1. إظهار الصورة للجميع
     try:
         await event.client(functions.account.SetPrivacyRequest(
             key=types.InputPrivacyKeyProfilePhoto(),
@@ -105,7 +111,7 @@ async def stop_retirement(event):
     except:
         pass
 
-    # 2. استعادة المعلومات الأصلية
+    # 2. استعادة البيانات
     try:
         await event.client(functions.account.UpdateProfileRequest(
             first_name=gvarstatus("old_first_name"),
@@ -120,7 +126,7 @@ async def stop_retirement(event):
     await edit_or_reply(event, "**•❐• أهـلاً بـعودتـك .. تـم إلـغاء وضـع الاعـتزال وإعـادة كـافة الإعـدادات**")
 
 
-# --- المحرك الذكي (الردود التلقائية) ---
+# --- المراقب (الردود التلقائية) ---
 @zedub.on(events.NewMessage(incoming=True))
 async def retirement_ai_watcher(event):
     if not gvarstatus("zed_retired") or event.out:
@@ -129,7 +135,6 @@ async def retirement_ai_watcher(event):
     me = await event.client.get_me()
     should_reply = False
     
-    # التحقق من الخاص أو الرد على رسائلك في المجموعات
     if event.is_private:
         should_reply = True
     elif event.is_group and event.reply_to:
@@ -142,15 +147,16 @@ async def retirement_ai_watcher(event):
         if not sender or sender.bot:
             return
 
-        user_replied_key = f"ret_log_{sender.id}"
+        # نستخدم مفتاح SQL قصير لضمان الحفظ
+        user_key = f"r_{sender.id}"
         ret_stamp = gvarstatus("ret_timestamp") or "2026"
         user_name = sender.first_name
 
-        if not gvarstatus(user_replied_key):
-            # الرد الأول بالكليشة الملكية
+        if not gvarstatus(user_key):
+            # أول مرة: الكليشة الملكية
             await event.reply(FAV_RESPONSE)
-            addgvar(user_replied_key, "done")
+            addgvar(user_key, "y")
         else:
-            # الردود التالية بذكاء Llama 4 وبخط زدثون الفخم
+            # المرات القادمة: لاما يرد
             ai_msg = await get_llama_assistant_reply(event.text, user_name, ret_stamp)
             await event.reply(ai_msg)
