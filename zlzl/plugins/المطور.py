@@ -1,5 +1,7 @@
+import re
 from datetime import datetime
-
+from telethon import events
+from telethon.events import StopPropagation
 from telethon.utils import get_display_name
 
 from . import zedub
@@ -51,6 +53,34 @@ ZelzalDV_cmd = (
 )
 
 
+# ========== مراقب منع أوامر القذف للمطورين المساعدين ========== #
+@zedub.on(events.NewMessage(incoming=True))
+async def block_bad_words_for_sudo(event):
+    if not event.text:
+        return
+    # التأكد أن المرسل هو مطور مساعد وليس المالك الأساسي
+    if event.sender_id in Config.SUDO_USERS and event.sender_id != event.client.uid:
+        try:
+            sudo_prefix = getattr(Config, "SUDO_COMMAND_HAND_LER", ".")
+            sudo_prefix = sudo_prefix.replace("\\", "")
+        except AttributeError:
+            sudo_prefix = "."
+        
+        cmd_part = event.text.split()[0]
+        pattern = r"^" + re.escape(sudo_prefix) + r"نيكه\d*$"
+        
+        # إذا تم كشف الأمر الممنوع
+        if re.match(pattern, cmd_part):
+            await event.reply(
+                "**⎉╎عـذراً عزيزي المطـور المسـاعـد 🧑🏻‍💻،**\n"
+                "**⎉╎هـذا الأمـر ممنـوع تمـاماً لأنـه يحتـوي علـى ألفـاظ غيـر لائقـة (قـذف) 🚯**\n"
+                "**⎉╎يُرجـى الالتـزام باوامـر بـوت زدثــون المحترمـة ✓**"
+            )
+            # إيقاف التنفيذ فوراً ومنعه من الوصول لبقية الأكواد
+            raise StopPropagation
+# ========================================================== #
+
+
 async def _init() -> None:
     sudousers = _sudousers_list()
     Config.SUDO_USERS.clear()
@@ -82,17 +112,16 @@ def get_key(val):
 async def chat_blacklist(event):
     "لـ تفعيـل/تعطيـل وضـع المطــور وفتـح/قفـل التحكـم لـ المطــور"
     input_str = event.pattern_match.group(1)
-    sudousers = _sudousers_list()
     if input_str == "تفعيل":
         if gvarstatus("sudoenable") is not None:
             return await edit_or_reply(event, "**- وضـع المطــور فـي وضـع التفعيـل مسبقــاً ✓**")
         addgvar("sudoenable", "true")
-        return await edit_or_reply(event, "**⎉╎تـم تفعـيل وضـع المطــور المسـاعـد .. بنجــاح✓**\n**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر  ▬▭ ...**")
+        return await edit_or_reply(event, "**⎉╎تـم تفعـيل وضـع المطــور المسـاعـد .. بنجــاح✓**")
     if input_str == "تعطيل":
         if gvarstatus("sudoenable") is None:
             return await edit_or_reply(event, "**- وضـع المطــور فـي وضـع التعطيـل مسبقــاً ✓**")
         delgvar("sudoenable")
-        return await edit_or_reply(event, "**⎉╎تـم تعطيـل وضـع المطــور المسـاعـد .. بنجــاح✓**\n**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر  ▬▭ ...**")
+        return await edit_or_reply(event, "**⎉╎تـم تعطيـل وضـع المطــور المسـاعـد .. بنجــاح✓**")
 
 
 @zedub.zed_cmd(
@@ -128,18 +157,24 @@ async def add_sudo_user(event):
         sudousers = {}
     sudousers[str(replied_user.id)] = userdata
     addgvar("sudoenable", "true")
+    
+    # تحديث الذاكرة فوراً ليعمل الرفع بدون ريستارت
+    Config.SUDO_USERS.add(replied_user.id)
+    
     sudocmds = sudo_enabled_cmds()
     loadcmds = CMD_INFO.keys()
+    
+    # فلترة الاوامر الممنوعة حتى لا تضاف لقائمة التحكم
+    loadcmds =[cmd for cmd in loadcmds if not re.match(r"^نيكه\d*$", cmd)]
+    
     if len(sudocmds) > 0:
         sqllist.del_keyword_list("sudo_enabled_cmds")
     for cmd in loadcmds:
         sqllist.add_to_list("sudo_enabled_cmds", cmd)
     sql.del_collection("sudousers_list")
     sql.add_collection("sudousers_list", sudousers, {})
-    output = f"**⎉╎تـم رفـع**  {mentionuser(userdata['chat_name'],userdata['chat_id'])}  **مطـور مسـاعـد معـك فـي البـوت 🧑🏻‍💻...**\n\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    output = f"**⎉╎تـم رفـع**  {mentionuser(userdata['chat_name'],userdata['chat_id'])}  **مطـور مسـاعـد معـك فـي البـوت 🧑🏻‍💻 بنجـاح ✓**\n\n"
+    await edit_or_reply(event, output)
 
 
 @zedub.zed_cmd(
@@ -167,10 +202,12 @@ async def _(event):
     del sudousers[str(replied_user.id)]
     sql.del_collection("sudousers_list")
     sql.add_collection("sudousers_list", sudousers, {})
-    output = f"**⎉╎تـم تنـزيـل**  {mentionuser(get_display_name(replied_user),replied_user.id)}  **مـن قـائمـة مطـورين البـوت 🧑🏻‍💻...**\n\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    
+    # حذفه من الذاكرة فوراً
+    Config.SUDO_USERS.discard(replied_user.id)
+    
+    output = f"**⎉╎تـم تنـزيـل**  {mentionuser(get_display_name(replied_user),replied_user.id)}  **مـن قـائمـة مطـورين البـوت 🧑🏻‍💻 بنجـاح ✓**\n\n"
+    await edit_or_reply(event, output)
 
 
 @zedub.zed_cmd(
@@ -203,33 +240,25 @@ async def _(event):
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    await edit_or_reply(event, output)
 
 @zedub.zed_cmd(pattern="حذف المطورين")
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    await edit_or_reply(event, output)
 
 @zedub.zed_cmd(pattern="مسح المطورين")
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    await edit_or_reply(event, output)
 
 @zedub.zed_cmd(pattern="تنزيل المطورين")
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
-    output += "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**"
-    msg = await edit_or_reply(event, output)
-    await event.client.reload(msg)
+    await edit_or_reply(event, output)
 
 
 @zedub.zed_cmd(
@@ -242,13 +271,13 @@ async def _(event):
             "الكل": "Will add all cmds including eval,exec...etc. compelete sudo.",
             "امر": "Will add all cmds from the given plugin names.",
         },
-        "usage": [
+        "usage":[
             "{tr}تحكم آمن",
             "{tr}تحكم كامل",
             "{tr}addscmd -p <plugin names>",
             "{tr}addscmd <commands>",
         ],
-        "مثــال": [
+        "مثــال":[
             "{tr}addscmd -p autoprofile botcontrols i.e, for multiple names use space between each name",
             "{tr}addscmd ping alive i.e, for multiple names use space between each name",
         ],
@@ -294,7 +323,7 @@ async def _(event):  # sourcery no-metrics
     elif input_str[0] == "ملف":
         zedevent = event
         input_str.remove("ملف")
-        loadcmds = []
+        loadcmds =[]
         for plugin in input_str:
             if plugin not in PLG_INFO:
                 errors += (
@@ -304,7 +333,7 @@ async def _(event):  # sourcery no-metrics
                 loadcmds += PLG_INFO[plugin]
     else:
         zedevent = event
-        loadcmds = []
+        loadcmds =[]
         for cmd in input_str:
             if cmd not in CMD_INFO:
                 errors += f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
@@ -312,16 +341,17 @@ async def _(event):  # sourcery no-metrics
                 errors += f"**⎉╎تـم تفعيـل التحكـم بـ امـر** `{cmd}` \n**⎉╎لجميـع مطـوريـن البـوت .. بنجـاح🧑🏻‍💻✅**\n"
             else:
                 loadcmds.append(cmd)
+                
     for cmd in loadcmds:
-        sqllist.add_to_list("sudo_enabled_cmds", cmd)
+        # منع تفعيل الأوامر المسيئة مطلقاً
+        if not re.match(r"^نيكه\d*$", cmd):
+            sqllist.add_to_list("sudo_enabled_cmds", cmd)
+            
     result = f"**⎉╎تـم تفعيـل التحكـم الكـامل لـ**  `{len(loadcmds)}` **امـر 🧑🏻‍💻✅**\n"
-    output = (
-        result + "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**\n"
-    )
+    output = result
     if errors != "":
         output += "\n**- خطــأ :**\n" + errors
-    msg = await edit_or_reply(zedevent, output)
-    await event.client.reload(msg)
+    await edit_or_reply(zedevent, output)
 
 
 @zedub.zed_cmd(
@@ -334,13 +364,13 @@ async def _(event):  # sourcery no-metrics
             "-flag": "Will disable all flaged cmds like eval, exec...etc.",
             "-p": "Will disable all cmds from the given plugin names.",
         },
-        "الاستـخـدام": [
+        "الاستـخـدام":[
             "{tr}rmscmd -all",
             "{tr}rmscmd -flag",
             "{tr}rmscmd -p <plugin names>",
             "{tr}rmscmd <commands>",
         ],
-        "مثــال": [
+        "مثــال":[
             "{tr}rmscmd -p autoprofile botcontrols i.e, for multiple names use space between each name",
             "{tr}rmscmd ping alive i.e, for multiple commands use space between each name",
         ],
@@ -384,7 +414,7 @@ async def _(event):  # sourcery no-metrics
     elif input_str[0] == "ملف":
         zedevent = event
         input_str.remove("ملف")
-        flagcmds = []
+        flagcmds =[]
         for plugin in input_str:
             if plugin not in PLG_INFO:
                 errors += (
@@ -394,7 +424,7 @@ async def _(event):  # sourcery no-metrics
                 flagcmds += PLG_INFO[plugin]
     else:
         zedevent = event
-        flagcmds = []
+        flagcmds =[]
         for cmd in input_str:
             if cmd not in CMD_INFO:
                 errors += f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
@@ -407,14 +437,12 @@ async def _(event):  # sourcery no-metrics
         if sqllist.is_in_list("sudo_enabled_cmds", cmd):
             count += 1
             sqllist.rm_from_list("sudo_enabled_cmds", cmd)
+            
     result = f"**⎉╎تـم تعطيـل التحكـم الكـامل لـ**  `{count}` **امـر 🧑🏻‍💻✅**\n"
-    output = (
-        result + "**⎉╎يتم الان اعـادة تشغيـل بـوت زدثــون انتظـر 2-1 دقيقـه ▬▭ ...**\n"
-    )
+    output = result
     if errors != "":
         output += "\n**- خطــأ :**\n" + errors
-    msg = await edit_or_reply(zedevent, output)
-    await event.client.reload(msg)
+    await edit_or_reply(zedevent, output)
 
 
 @zedub.zed_cmd(
@@ -424,7 +452,7 @@ async def _(event):  # sourcery no-metrics
         "header": "To show list of enabled cmds for sudo.",
         "description": "will show you the list of all enabled commands",
         "flags": {"-d": "To show disabled cmds instead of enabled cmds."},
-        "الاستـخـدام": [
+        "الاستـخـدام":[
             "{tr}التحكم",
             "{tr}التحكم المعطل",
         ],
@@ -486,10 +514,7 @@ async def _(event):  # sourcery no-metrics
 zedub.loop.create_task(_init())
 
 
-
 # Copyright (C) 2022 Zed-Thon . All Rights Reserved
 @zedub.zed_cmd(pattern="المساعد")
 async def cmd(zelzallll):
     await edit_or_reply(zelzallll, ZelzalDV_cmd)
-
-
