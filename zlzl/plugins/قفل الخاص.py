@@ -1,4 +1,4 @@
-import asyncio
+دimport asyncio
 from telethon import functions, events
 from telethon.tl.types import User
 
@@ -17,7 +17,7 @@ except ImportError:
 plugin_category = "الحماية"
 
 # --- كليشة زدثون الفخمة ---
-Z_HEADER = "**🖥┊نظام الحماية - 𝙎𝙊𝙐𝙍𝘾𝞝 𝙕𝞝𝘿𝙏𝙃𝙊𝙉**\n\n"
+Z_HEADER = "**🖥┊نظام الحماية - 𝙎𝙊𝙐𝙍𝘾𝞝 𝙕𝞝𝘿𝙏𝐇𝙊𝙉**\n\n"
 
 # VIP🥀
 VIP_USERS = [8569444589, 7668115898, 6184030144]
@@ -160,31 +160,26 @@ async def unblock_all_users(event):
         await msg.edit(f"**حدث خطأ:** {str(e)}")
 
 # =========================================================
-# الرادار الصامت - إصلاح نهائي لتجنب خطأ incoming
+# الرادار الصامت - الإصلاح النهائي والأكيد 
 # =========================================================
 
 @zedub.on(events.NewMessage)
 async def nuclear_block_action(event):
-    # 1. التأكد أن الرسالة واردة (ليست صادرة منك) وفـي الخاص فقط
-    if not event.incoming or not event.is_private:
+    # استخدام event.out للتأكد أن الرسالة ليست صادرة من حسابك
+    if event.out or not event.is_private:
         return
 
-    # 2. التأكد من حالة القفل النووي
     if not gvarstatus("strict_pm_lock"):
         return
 
-    # 3. جلب بيانات المرسل
     sender = await event.get_sender()
 
-    # 4. الاستثناءات الأساسية (نفسك، البوتات، القنوات، الموثقين)
     if not sender or not isinstance(sender, User) or sender.bot or sender.verified or sender.is_self:
         return
 
-    # 5. استثناء قائمة VIP والقائمة البيضاء المضافة يدوياً
     if event.chat_id in VIP_USERS or event.chat_id in get_whitelist():
         return
 
-    # 6. كليشة الإعدام النهائية
     block_msg = (
         Z_HEADER +
         "**⎉╎عـذراً، الخـاص مـغلق حـالياً مـن قـبل الـمالك 🔒**\n"
@@ -199,7 +194,6 @@ async def nuclear_block_action(event):
         pass
 
     try:
-        # تنفيذ الحظر
         await event.client(functions.contacts.BlockRequest(id=sender.id))
     except:
         pass
