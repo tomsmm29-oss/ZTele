@@ -14,21 +14,14 @@ except ImportError:
     def addgvar(k, v): pass
     def delgvar(k): pass
 
-
 plugin_category = "الحماية"
 
- 
-ZED_LINK = "https://t.me/ZThon"
-Z_LOGO = f"[𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁]({ZED_LINK})"
+# --- كليشة زدثون الفخمة ---
+Z_HEADER = "**🖥┊نظام الحماية - 𝙎𝙊𝙐𝙍𝘾𝞝 𝙕𝞝𝘿𝙏𝙃𝙊𝙉**\n\n"
 
-#VIP🥀 
-
- 
+# VIP🥀
 VIP_USERS = [8569444589, 7668115898, 6184030144]
- 
 
-
- 
 def get_whitelist():
     wl = gvarstatus("nuclear_whitelist")
     return [int(x) for x in str(wl).split()] if wl else []
@@ -39,10 +32,8 @@ def update_whitelist(wl_list):
     else:
         addgvar("nuclear_whitelist", " ".join(map(str, wl_list)))
 
-
-
 @zedub.zed_cmd(
-    pattern="ق خاص(?: |$)",
+    pattern="^ق خاص$",
     command=("ق خاص", plugin_category),
     info={
         "header": "تفعيل وضع الإبادة الشامل (يغلق الخاص تماماً)",
@@ -51,14 +42,13 @@ def update_whitelist(wl_list):
 )
 async def strict_lock(event):
     if gvarstatus("strict_pm_lock"):
-        return await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔒 الوضع النووي مفعل مسبقاً .. لا أحد يمر.**")
-
+        return await edit_or_reply(event, Z_HEADER + "**⎉╎وضـع الإبـادة مـفعل مـسبقاً 🔒\n⎉╎لا أحـد يـستطيع المـرور.**")
+    
     addgvar("strict_pm_lock", "active")
-    await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔒 تم تشغيل الدروع .. الخاص مغلق للجميع (باستثناء قائمة السماح).**")
-
+    await edit_or_reply(event, Z_HEADER + "**⎉╎تـم تـفعيل وضـع الإبـادة الشـاملـة 🔒\n⎉╎الخـاص مـغلق نهـائياً بـوجه الجـميع.**")
 
 @zedub.zed_cmd(
-    pattern="ف خاص(?: |$)",
+    pattern="^ف خاص$",
     command=("ف خاص", plugin_category),
     info={
         "header": "تعطيل وضع الإبادة الشامل (يفتح الخاص للجميع)",
@@ -67,14 +57,13 @@ async def strict_lock(event):
 )
 async def strict_unlock(event):
     if not gvarstatus("strict_pm_lock"):
-        return await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔓 الدروع متوقفة بالفعل .. الخاص مفتوح.**")
-
+        return await edit_or_reply(event, Z_HEADER + "**⎉╎وضـع الإبـادة مـعطل بـالفعل 🔓\n⎉╎الخـاص مـفتوح للـجميع.**")
+    
     delgvar("strict_pm_lock")
-    await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n🔓 تم إيقاف الدروع .. الخاص مفتوح.**")
-
+    await edit_or_reply(event, Z_HEADER + "**•❐• أهـلاً بـعودتـك .. تـم إلـغاء وضـع الإبـادة 🔓\n⎉╎الخـاص مـفتوح للـجميع الآن.**")
 
 @zedub.zed_cmd(
-    pattern="فتح(?: |$)",
+    pattern="^فتح$",
     command=("فتح", plugin_category),
     info={
         "header": "استثناء المستخدم الحالي من الحظر (يسمح له بالتحدث)",
@@ -83,7 +72,7 @@ async def strict_unlock(event):
 )
 async def allow_user_nuclear(event):
     if not event.is_private:
-        return await edit_delete(event, "**⚠️ هذا الأمر يعمل في الخاص فقط.**")
+        return await edit_delete(event, "**⚠️╎هـذا الأمـر يـعمل فـي الخـاص فـقط.**")
 
     chat_id = event.chat_id
     wl = get_whitelist()
@@ -91,11 +80,10 @@ async def allow_user_nuclear(event):
         wl.append(chat_id)
         update_whitelist(wl)
 
-    await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n✅ تم منح العفو لهذا المستخدم.\n لن يتم حظره أثناء قفل الخاص.**")
-
+    await edit_or_reply(event, Z_HEADER + "**⎉╎تـم اسـتثناء هـذا الشـخص مـن الحـظر ✅\n⎉╎يـمكنه الـتحدث فـي الخـاص بـحرية.**")
 
 @zedub.zed_cmd(
-    pattern="قفل(?: |$)",
+    pattern="^قفل$",
     command=("قفل", plugin_category),
     info={
         "header": "إزالة العفو عن الشخص (ليتم حظره فور إرساله رسالة)",
@@ -104,7 +92,7 @@ async def allow_user_nuclear(event):
 )
 async def reset_user_nuclear(event):
     if not event.is_private:
-        return await edit_delete(event, "**⚠️ هذا الأمر يعمل في الخاص فقط.**")
+        return await edit_delete(event, "**⚠️╎هـذا الأمـر يـعمل فـي الخـاص فـقط.**")
 
     chat_id = event.chat_id
     wl = get_whitelist()
@@ -112,11 +100,22 @@ async def reset_user_nuclear(event):
         wl.remove(chat_id)
         update_whitelist(wl)
 
-    await edit_or_reply(event, f"**🖥┊نظام الحماية {Z_LOGO}\n\n♻️ تم تصفير وضع المستخدم.\n🚫 سيتم حظره فوراً عند إرسال أي رسالة.**")
-
+    await edit_or_reply(event, Z_HEADER + "**⎉╎تـم إزالـة الاسـتثناء عـن هـذا الشـخص ⚠️\n⎉╎سـيتم حـظره فـور إرسـاله أي رسـالة.**")
 
 @zedub.zed_cmd(
-    pattern="المحظورين(?: |$)",
+    pattern="^صفرهم$",
+    command=("صفرهم", plugin_category),
+    info={
+        "header": "تصفير ذاكرة المسموح لهم بمرور الخاص",
+        "الاستـخـدام": "{tr}صفرهم",
+    },
+)
+async def clear_whitelist_nuclear(event):
+    delgvar("nuclear_whitelist")
+    await edit_or_reply(event, Z_HEADER + "**⎉╎تـم تـصفير ذاكـرة المـستثنيين بـنجاح ♻️\n⎉╎تـم مـسح قـائمة السـماح بالـكامل.**")
+
+@zedub.zed_cmd(
+    pattern="^المحظورين$",
     command=("المحظورين", plugin_category),
     info={
         "header": "عرض عدد الضحايا (المحظورين) في حسابك",
@@ -124,16 +123,15 @@ async def reset_user_nuclear(event):
     },
 )
 async def count_blocked(event):
-    msg = await edit_or_reply(event, "** جارِ جلب قائمة الضحايا...**")
+    msg = await edit_or_reply(event, "**⎉╎جـارِ جـلب قـائمة الـضحايـا...**")
     try:
         result = await event.client(functions.contacts.GetBlockedRequest(offset=0, limit=1))
-        await msg.edit(f"**🖥┊نظام الحماية {Z_LOGO}**\n\n**☠️ عدد المحظورين في حسابك:** `{result.count}`")
+        await msg.edit(Z_HEADER + f"**⎉╎عـدد الـضحايا (المـحظورين) فـي حـسابك ⩥** `{result.count}` **☠️**")
     except Exception as e:
         await msg.edit(f"**خطأ:** {str(e)}")
 
-
 @zedub.zed_cmd(
-    pattern="تصفير المحظورين(?: |$)",
+    pattern="^تصفير المحظورين$",
     command=("تصفير المحظورين", plugin_category),
     info={
         "header": "فك الحظر عن جميع المحظورين بحسابك دفعة واحدة",
@@ -141,11 +139,11 @@ async def count_blocked(event):
     },
 )
 async def unblock_all_users(event):
-    msg = await edit_or_reply(event, "**⚠️ جارِ بدء عملية العفو العام (فك الحظر عن الجميع)...**")
+    msg = await edit_or_reply(event, "**⚠️╎جـارِ بـدء عـملية العـفو العـام (فـك الحـظر)...**")
     try:
         blocked_users = await event.client(functions.contacts.GetBlockedRequest(offset=0, limit=10000))
         if not blocked_users.users:
-            return await msg.edit(f"**🖥┊نظام الحماية {Z_LOGO}**\n\n**✅ القائمة نظيفة، لا يوجد محظورين.**")
+            return await msg.edit(Z_HEADER + "**⎉╎الـقائمـة نـظيفـة ، لا يـوجـد مـحظوريـن ✅**")
 
         done = 0
         for user in blocked_users.users:
@@ -153,23 +151,21 @@ async def unblock_all_users(event):
                 await event.client(functions.contacts.UnblockRequest(id=user.id))
                 done += 1
                 if done % 20 == 0:
-                    await msg.edit(f"** جارِ تنظيف القائمة.. ({done}/{len(blocked_users.users)})**")
+                    await msg.edit(f"**⎉╎جـارِ تـنظيـف الـقائمـة.. ({done}/{len(blocked_users.users)}) ♻️**")
             except:
                 continue
 
-        await msg.edit(f"**🖥┊نظام الحماية {Z_LOGO}**\n\n**✅ تم تصفير المحظورين بنجاح.**\n**🗑 تم فك الحظر عن:** `{done}` **مستخدم.**")
+        await msg.edit(Z_HEADER + f"**⎉╎تـم تـصفيـر المـحظوريـن بـنجـاح ✅**\n**⎉╎تـم فـك الحـظر عـن ⩥** `{done}` **مـستخـدم 🗑**")
     except Exception as e:
         await msg.edit(f"**حدث خطأ:** {str(e)}")
 
+# =========================================================
+# الرادار الصامت (المراقب الذي يعمل بالخلفية بدون إيقاف السورس)
+# =========================================================
 
-# =========================================================
-#  الرادار الصامت (المراقب الذي يعمل بالخلفية بدون إيقاف السورس)
-# =========================================================
 @zedub.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
 async def nuclear_block_action(event):
-    """
-    يعمل بتلقائية للقبض على أي شخص يرسل رسالة إذا كان القفل مفعلاً
-    """
+    """ يعمل بتلقائية للقبض على أي شخص يرسل رسالة إذا كان القفل مفعلاً """
     # 1. إذا الوضع معطل، اخرج فوراً
     if not gvarstatus("strict_pm_lock"):
         return
@@ -186,10 +182,10 @@ async def nuclear_block_action(event):
 
     # 4. رسالة الإعدام
     block_msg = (
-        f"**🖥┊نظام الحماية {Z_LOGO}**\n\n"
-        "**🔒 الخاص مقفل (Strict Lockdown)**\n"
-        "**🚫 تم تفعيل الحظر التلقائي للجميع.**\n"
-        "**⚠️ 𝗕𝗹𝗼𝗰𝗸𝗲𝗱.**"
+        Z_HEADER +
+        "**⎉╎عـذراً، الخـاص مـغلق مـن قـبل الـمالك 🔒**\n"
+        "**⎉╎تـم تـفعيل الحـظر التـلقائي.**\n\n"
+        "**•❐• 𝗕𝗹𝗼𝗰𝗸𝗲𝗱 🚫**"
     )
 
     try:
