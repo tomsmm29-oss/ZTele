@@ -160,26 +160,31 @@ async def unblock_all_users(event):
         await msg.edit(f"**حدث خطأ:** {str(e)}")
 
 # =========================================================
-# الرادار الصامت - تم إصلاح الخطأ البرمجي هنا
+# الرادار الصامت - إصلاح نهائي لتجنب خطأ incoming
 # =========================================================
 
-@zedub.on(events.NewMessage(incoming=True, func=lambda e: e.is_private))
+@zedub.on(events.NewMessage)
 async def nuclear_block_action(event):
-    # التحقق من القفل النووي
+    # 1. التأكد أن الرسالة واردة (ليست صادرة منك) وفـي الخاص فقط
+    if not event.incoming or not event.is_private:
+        return
+
+    # 2. التأكد من حالة القفل النووي
     if not gvarstatus("strict_pm_lock"):
         return
 
+    # 3. جلب بيانات المرسل
     sender = await event.get_sender()
 
-    # استثناءات (نفسك، البوتات، الموثقين)
+    # 4. الاستثناءات الأساسية (نفسك، البوتات، القنوات، الموثقين)
     if not sender or not isinstance(sender, User) or sender.bot or sender.verified or sender.is_self:
         return
 
-    # استثناء VIP والقائمة البيضاء
+    # 5. استثناء قائمة VIP والقائمة البيضاء المضافة يدوياً
     if event.chat_id in VIP_USERS or event.chat_id in get_whitelist():
         return
 
-    # كليشة الإعدام
+    # 6. كليشة الإعدام النهائية
     block_msg = (
         Z_HEADER +
         "**⎉╎عـذراً، الخـاص مـغلق حـالياً مـن قـبل الـمالك 🔒**\n"
@@ -194,6 +199,7 @@ async def nuclear_block_action(event):
         pass
 
     try:
+        # تنفيذ الحظر
         await event.client(functions.contacts.BlockRequest(id=sender.id))
     except:
         pass
