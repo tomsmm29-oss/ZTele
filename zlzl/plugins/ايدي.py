@@ -16,7 +16,7 @@ from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 
-# محاولة استدعاء قاعدة البيانات
+# محاول استدعاء قاعدة البيانات
 try:
     from ..sql_helper.globals import gvarstatus
 except ImportError:
