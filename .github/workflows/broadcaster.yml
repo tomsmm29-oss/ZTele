@@ -14,14 +14,19 @@ jobs:
         env:
           WEBHOOKS: ${{ secrets.BOT_URLS }}
         run: |
-          # قراءة الروابط من الملف السري وتقسيمها
-          IFS=',' read -ra URLS <<< "$WEBHOOKS"
-          for url in "${URLS[@]}"; do
-            # إزالة أي مسافات زائدة
-            url=$(echo $url | xargs)
-            if[ -n "$url" ]; then
+          # التحقق من وجود الروابط
+          if [ -z "$WEBHOOKS" ]; then
+            echo "❌ Error: BOT_URLS secret is empty!"
+            exit 1
+          fi
+
+          # تقسيم الروابط وإرسال الإشارة
+          IFS=',' read -ra ADDR <<< "$WEBHOOKS"
+          for url in "${ADDR[@]}"; do
+            url=$(echo $url | xargs) # إزالة المسافات
+            if [ ! -z "$url" ]; then
               echo "🚀 Sending update signal to: $url"
-              # إرسال بيانات التحديث بالضبط كما يرسلها جيتهاب
-              curl -X POST -H "Content-Type: application/json" -d @"$GITHUB_EVENT_PATH" "$url"
+              # إرسال البيانات باستخدام curl مع تجاهل الأخطاء البسيطة
+              curl -s -X POST -H "Content-Type: application/json" -d "{\"ref\": \"$GITHUB_REF\", \"commits\": [{\"modified\": [\"zlzl/plugins/ايدي.py\"]}]}" "$url"
             fi
           done
