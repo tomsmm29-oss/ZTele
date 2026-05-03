@@ -5,12 +5,12 @@ import base64
 import random
 from datetime import datetime
 from requests import get
+
 from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from telethon.tl.types import MessageEntityMentionName
 from telethon.tl.functions.photos import GetUserPhotosRequest
-from telethon.tl.types import ChannelParticipantsAdmins
+from telethon.tl.functions.users import GetFullUserRequest
 
-# --- منطقة الحقن النسبي ---
 from . import zedub
 from ..Config import Config
 from ..core.logger import logging
@@ -20,37 +20,43 @@ from ..core.managers import edit_delete, edit_or_reply
 try:
     from ..sql_helper.globals import gvarstatus
 except ImportError:
-    def gvarstatus(val): return None
+    def gvarstatus(val):
+        return None
 
 plugin_category = "العروض"
 LOGS = logging.getLogger(__name__)
 
-# --- النصوص الفخمة ---
-ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم سـورس زدثــون"
-ZEDF = gvarstatus("CUSTOM_ALIVE_FONT") or "⋆─┄─┄─┄─ ᶻᵗʰᵒᶰ ─┄─┄─┄─⋆"
+# --- نصوص الكليشة الفخمة (تصميم زدثون) ---
+ZED_TEXT = gvarstatus("CUSTOM_ALIVE_TEXT") or "•⎚• مـعلومـات المسـتخـدم مـن بـوت زدثــون"
+ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
 
-# معرفات المطورين
-zed_dev = [5176749470, 1895219306, 925972505, 5280339206, 5426390871]
-zel_dev = [5176749470, 5426390871 ]
-zelzal = [6114298715, 8241311871, 1111565135]
+# التحقق من الخطوط المخصصة أو وضع خطوط زدثون المطلوبة
+CUSTOM_FONT = gvarstatus("CUSTOM_ALIVE_FONT")
+ZEDF_TOP = CUSTOM_FONT or "⋆─┄─┄─┄─ 𝙎𝙊𝙐𝙍𝘾𝞝 𝙕𝞝𝘿𝙏𝙃𝙊𝙉─┄─┄─┄─⋆"
+ZEDF_BOT = CUSTOM_FONT or "⋆─┄─┄─┄─   🛂 ─┄─┄─┄─⋆"
 
+# معرفات المطورين مدمجة (أيديك هو الأول والأساسي)
+zed_dev =[6114298715, 1207625726, 6060337233, 5176749470, 1895219306, 925972505, 5280339206, 5426390871]
+zel_dev =[6114298715, 1207625726, 6060337233, 5176749470, 5426390871]
+zelzal =[6114298715, 1207625726, 1264384082, 8241311871, 1111565135]
 
+# --- نظام التواريخ المطور ---
 def get_real_looking_date(user_id):
     uid_str = str(user_id)
-    if len(uid_str) < 9: year = "2016"
-    elif uid_str.startswith("1"): year = random.choice(["2017", "2018"])
-    elif uid_str.startswith("5"): year = random.choice(["2020", "2021"])
-    elif uid_str.startswith("6"): year = "2023"
-    elif uid_str.startswith("7"): year = "2024"
-    elif uid_str.startswith("8"): year = "2025"
-    else: year = "2024"
+    if len(uid_str) < 9: year = random.choice(["2015", "2016"])
+    elif uid_str.startswith("1"): year = random.choice(["2017", "2018", "2019"])
+    elif uid_str.startswith("5"): year = random.choice(["2020", "2021", "2022"])
+    elif uid_str.startswith("6"): year = random.choice(["2022", "2023"])
+    elif uid_str.startswith("7"): year = random.choice(["2024", "2025"])
+    elif uid_str.startswith("8"): year = "2026"
+    else: year = "2026"
 
     random.seed(int(uid_str))
     month = random.randint(1, 12)
     day = random.randint(1, 28)
     return f"{year}-{month:02d}-{day:02d}"
 
-
+# --- محرك البحث عن المستخدم الحديث ---
 async def get_user_from_event_local(event):
     if event.reply_to_msg_id:
         previous_message = await event.get_reply_message()
@@ -63,7 +69,6 @@ async def get_user_from_event_local(event):
         input_str = event.pattern_match.group(1)
         if not input_str:
             return await event.client.get_me()
-
         try:
             if input_str.isnumeric():
                 user = await event.client.get_entity(int(input_str))
@@ -73,114 +78,79 @@ async def get_user_from_event_local(event):
         except:
             return None
 
-
+# --- جلب البيانات القوي وبناء الكليشة المطلوبة ---
 async def fetch_info(replied_user, event):
+    user_id = replied_user.id
+    me_id = (await event.client.get_me()).id
+    common_chat = 0
 
-    # ==============================
-    #    دمج 5 طرق جلب البايو 2025
-    # ==============================
-
+    # 5 طرق قوية لجلب البايو والمجموعات المشتركة بدون أخطاء
     async def fast_bio_fetch():
+        nonlocal common_chat
         uid = replied_user.id
         uname = replied_user.username
 
-        # 1 — get_entity
         try:
             ent = await event.client.get_entity(uid)
-            if hasattr(ent, "about") and ent.about:
-                return ent.about.strip()
-        except:
-            pass
+            if hasattr(ent, "about") and ent.about: return ent.about.strip()
+        except: pass
 
-        # 2 — القديم GetFullUserRequest
         try:
-            from telethon.tl.functions.users import GetFullUserRequest
             full_old = await event.client(GetFullUserRequest(uid))
-            if full_old and full_old.about:
-                return full_old.about.strip()
-        except:
-            pass
+            if full_old:
+                if hasattr(full_old, "common_chats_count"):
+                    common_chat = full_old.common_chats_count
+                if full_old.about: return full_old.about.strip()
+                if full_old.full_user and full_old.full_user.about: return full_old.full_user.about.strip()
+        except: pass
 
-        # 3 — الجديد users.GetFullUser
         try:
             from telethon.tl.functions.users import GetFullUser
             full_new = await event.client(GetFullUser(id=uid))
-            if full_new and full_new.full_user and full_new.full_user.about:
-                return full_new.full_user.about.strip()
-        except:
-            pass
+            if full_new and full_new.full_user:
+                if hasattr(full_new.full_user, "common_chats_count"):
+                    common_chat = full_new.full_user.common_chats_count
+                if full_new.full_user.about: return full_new.full_user.about.strip()
+        except: pass
 
-        # 4 — ResolveUsername
         try:
             if uname:
                 from telethon.tl.functions.contacts import ResolveUsernameRequest
                 res = await event.client(ResolveUsernameRequest(uname))
                 ent2 = res.users[0] if res.users else None
-                if ent2 and hasattr(ent2, "about") and ent2.about:
-                    return ent2.about.strip()
-        except:
-            pass
+                if ent2 and hasattr(ent2, "about") and ent2.about: return ent2.about.strip()
+        except: pass
 
-        # 5 — GetStatuses
         try:
             from telethon.tl.functions.contacts import GetStatusesRequest
             st = await event.client(GetStatusesRequest())
             for s in st:
                 if s.user_id == uid:
                     ent3 = await event.client.get_entity(uid)
-                    if hasattr(ent3, "about") and ent3.about:
-                        return ent3.about.strip()
-        except:
-            pass
+                    if hasattr(ent3, "about") and ent3.about: return ent3.about.strip()
+        except: pass
 
         return "لا يـوجـد"
 
-    # جلب البايو النهائي
+    # البايو
     user_bio = await fast_bio_fetch()
     if not user_bio:
         user_bio = "لا يـوجـد"
     else:
         user_bio = user_bio.replace("\n", " ")
-        if len(user_bio) > 40:
-            user_bio = user_bio[:40] + "..."
 
-    # ==============================
-    #   باقي كودك كما هو بدون لمس
-    # ==============================
-
+    # جلب الصور
     try:
-        photos = await event.client.get_profile_photos(replied_user.id)
-        photos_count = len(photos)
+        photos = await event.client.get_profile_photos(user_id)
+        replied_user_profile_photos_count = len(photos)
     except:
-        photos_count = 0
+        replied_user_profile_photos_count = "لا يـوجـد بروفـايـل"
 
-    msg_count = "0"
-    interaction_rank = "لا ينطبق"
-
-    if event.is_group:
-        try:
-            results = await event.client.get_messages(
-                event.chat_id,
-                from_user=replied_user.id,
-                limit=0
-            )
-            count = results.total
-            msg_count = f"{count}"
-
-            if count == 0: interaction_rank = "أصنام 🗿"
-            elif count < 50: interaction_rank = "عابر سبيل 🚶"
-            elif count < 100: interaction_rank = "ماشي الحال 🏄🏻‍♂"
-            elif count < 500: interaction_rank = "متفاعل 🔥"
-            else: interaction_rank = "ملك التفاعل 🎖"
-        except:
-            pass
-
-    user_id = replied_user.id
-    first_name = replied_user.first_name or "بدون اسم"
-
+    # المتغيرات الأساسية
+    first_name = replied_user.first_name
+    first_name = first_name.replace("\u2060", "") if first_name else "هذا المستخدم ليس له اسم أول"
     full_name = first_name
     username = f"@{replied_user.username}" if replied_user.username else "لا يـوجـد"
-
     creation_date = get_real_looking_date(user_id)
 
     photo = await event.client.download_profile_photo(
@@ -189,30 +159,38 @@ async def fetch_info(replied_user, event):
         download_big=True,
     )
 
-    me_id = (await event.client.get_me()).id
-    if user_id in zelzal: rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁"
-    elif user_id in zel_dev: rotbat = "⌁ مطـور مسـاعـد 𐏕⌁"
-    elif user_id == me_id and user_id not in zed_dev: rotbat = "⌁ مـالك الحساب 𓀫 ⌁"
-    else: rotbat = "العضـو 𓅫"
+    # الرتب 
+    if user_id in zelzal:
+        rotbat = "⌁ مطـور السـورس 𓄂𓆃 ⌁" 
+    elif user_id in zel_dev:
+        rotbat = "⌁ مطـور مسـاعـد 𐏕⌁" 
+    elif user_id == me_id and user_id not in zed_dev:
+        rotbat = "⌁ مـالك الحساب 𓀫 ⌁" 
+    else:
+        rotbat = "⌁ العضـو 𓅫 ⌁"
 
+    # =========================================================
+    # الكليشة - ظهور البريميوم دائماً وإضافة التصميم المطلوب
+    # =========================================================
     caption = f"<b> {ZED_TEXT} </b>\n"
-    caption += f"ٴ<b>{ZEDF}</b>\n"
-
-    caption += f"<b>✦ الاســم    ⤎ </b>"
+    caption += f"ٴ<b>{ZEDF_TOP}</b>\n"
+    caption += f"<b>{ZEDM}الاسـم    ⇠ </b> "
     caption += f'<a href="tg://user?id={user_id}">{full_name}</a>'
-
-    caption += f"\n<b>✦ اليـوزر    ⤎ </b> {username}"
-    caption += f"\n<b>✦ الايـدي    ⤎ </b> <code>{user_id}</code>\n"
-    caption += f"<b>✦ الرتبــه    ⤎ </b> {rotbat} \n"
-
-    caption += f"<b>✦ الصـور    ⤎ </b> {photos_count}\n"
-    caption += f"<b>✦ الرسائل   ⤎ </b> {msg_count}  💌\n"
-    caption += f"<b>✦ التفاعل   ⤎ </b> {interaction_rank}\n"
-
-    caption += f"<b>✦ الإنشـاء   ⤎ </b> {creation_date}  🗓\n"
-
-    caption += f"<b>✦ البايـو      {user_bio}</b> \n"
-    caption += f"ٴ<b>{ZEDF}</b>"
+    caption += f"\n<b>{ZEDM}المعـرف  ⇠  {username}</b>"
+    caption += f"\n<b>{ZEDM}الايـدي   ⇠ </b> <code>{user_id}</code>\n"
+    caption += f"<b>{ZEDM}الرتبـــه   ⇠ {rotbat} </b>\n"
+    
+    # سطر البريميوم صار ثابت دائماً بدون أي شرط
+    caption += f"<b>{ZEDM}الحسـاب ⇠  بـريميـوم 🌟</b>\n"
+        
+    caption += f"<b>{ZEDM}الصـور    ⇠ </b> {replied_user_profile_photos_count}\n"
+    
+    if user_id != me_id:
+        caption += f"<b>{ZEDM}الـمجموعات المشتـركة ⇠ </b> {common_chat} \n"
+        
+    caption += f"<b>{ZEDM}الانشـاء  ⇠ </b> {creation_date} \n"
+    caption += f"<b>{ZEDM}البايـو     ⇠  {user_bio}</b> \n"
+    caption += f"ٴ<b>{ZEDF_BOT}</b>"
 
     return photo, caption
 
@@ -221,12 +199,14 @@ async def fetch_info(replied_user, event):
     pattern="ايدي(?: |$)(.*)",
     command=("ايدي", plugin_category),
     info={
-        "header": "نسخـة كربونيـة مـن ايدي زدثـون الأصـلي 2025",
-        "الاستـخـدام": " {tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
+        "header": "لـ عـرض معلومـات الشخـص",
+        "الاستـخـدام": "{tr}ايدي بالـرد او {tr}ايدي + معـرف/ايـدي الشخص",
     },
 )
-async def who(event):
+async def who_id(event):
+    "Gets info of an user"
     zed = await edit_or_reply(event, "⇆")
+    
     if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
         os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
 
@@ -239,9 +219,7 @@ async def who(event):
     except:
         return await edit_or_reply(zed, "**- حدث خطأ غير متوقع، حاول مرة أخرى!**")
 
-    message_id_to_reply = event.message.reply_to_msg_id
-    if not message_id_to_reply:
-        message_id_to_reply = None
+    message_id_to_reply = event.message.reply_to_msg_id or None
 
     try:
         if photo:
@@ -272,7 +250,7 @@ async def who(event):
     },
 )
 async def who_short(event):
-    return await who(event)
+    return await who_id(event)
 
 
 @zedub.zed_cmd(
@@ -280,7 +258,7 @@ async def who_short(event):
     command=("صورته", plugin_category),
     info={
         "header": "لـ جـلب بـروفـايـلات الشخـص",
-        "الاستـخـدام": [
+        "الاستـخـدام":[
             "{tr}صورته + عدد",
             "{tr}صورته الكل",
             "{tr}صورته",
@@ -288,9 +266,11 @@ async def who_short(event):
     },
 )
 async def potocmd(event):
+    "To get user or group profile pic"
     uid = "".join(event.raw_text.split(maxsplit=1)[1:])
     user = await event.get_reply_message()
     chat = event.input_chat
+    
     if user and user.sender:
         photos = await event.client.get_profile_photos(user.sender)
         u = True
@@ -323,11 +303,10 @@ async def potocmd(event):
         try:
             uid = int(uid)
             if uid <= 0:
-                await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
-                return
+                return await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
         except:
-            await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
-            return
+            return await edit_or_reply(event, "**- رقـم خـاطـئ . . .**")
+            
         if int(uid) > len(photos):
             return await edit_delete(event, "**- لا يـوجـد هنـاك صـور لهـذا الشخـص ؟! **")
 
