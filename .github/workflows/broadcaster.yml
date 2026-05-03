@@ -1,0 +1,27 @@
+name: Broadcast Update to All Bots
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  ping-bots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Webhook Payload to all configured bots
+        env:
+          WEBHOOKS: ${{ secrets.BOT_URLS }}
+        run: |
+          # قراءة الروابط من الملف السري وتقسيمها
+          IFS=',' read -ra URLS <<< "$WEBHOOKS"
+          for url in "${URLS[@]}"; do
+            # إزالة أي مسافات زائدة
+            url=$(echo $url | xargs)
+            if[ -n "$url" ]; then
+              echo "🚀 Sending update signal to: $url"
+              # إرسال بيانات التحديث بالضبط كما يرسلها جيتهاب
+              curl -X POST -H "Content-Type: application/json" -d @"$GITHUB_EVENT_PATH" "$url"
+            fi
+          done
