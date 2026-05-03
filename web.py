@@ -12,57 +12,64 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """هذا المسار سيستقبل إشعار التحديث من جيتهاب"""
+    """استقبال التحديث الفوري من جيتهاب"""
     data = request.json
-    if not data:
-        return jsonify({"status": "ignored", "message": "No JSON payload"}), 200
+    print("📡 استلمت إشارة تحديث من GitHub...")
 
     try:
-        # 1. سحب التحديثات فوراً من جيتهاب
-        print("📥 جاري سحب التحديثات الجديدة من GitHub...")
-        subprocess.run(["git", "pull"], check=True)
+        # 1. تنظيف أي تغييرات محلية قد تعيق السحب
+        subprocess.run(["git", "reset", "--hard", "HEAD"], check=True)
+        
+        # 2. محاولة السحب من main أو master بشكل صريح
+        # سنحاول سحب التحديث من الريموت origin
+        try:
+            print("📥 جاري محاولة السحب من main...")
+            subprocess.run(["git", "pull", "origin", "main"], check=True)
+        except:
+            print("📥 فشل main، جاري محاولة السحب من master...")
+            subprocess.run(["git", "pull", "origin", "master"], check=True)
+            
+        print("✅ تم سحب الملفات بنجاح!")
     except Exception as e:
-        print(f"❌ خطأ في سحب التحديثات: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        print(f"❌ خطأ في جيت: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 200 # نرجع 200 عشان جيتهاب ما يعيد المحاولة
 
-    # 2. استخراج قائمة الملفات التي تم تعديلها أو إضافتها
+    # استخراج الملفات المعدلة
     modified_files = []
-    if 'commits' in data:
+    if data and 'commits' in data:
         for commit in data['commits']:
-            modified_files.extend(commit.get('modified',[]))
-            modified_files.extend(commit.get('added',[]))
+            modified_files.extend(commit.get('modified', []))
+            modified_files.extend(commit.get('added', []))
 
-    # 3. فلترة التعديلات لتحديد نوع التحديث
-    plugins_modified =[]
+    plugins_modified = []
     core_modified = False
 
-    for file in modified_files:
-        if file == "requirements.txt":
-            print("📦 تم رصد تعديل في المكتبات! جاري التثبيت...")
-            subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-            core_modified = True
-        elif file.startswith("zlzl/plugins/") and file.endswith(".py"):
-            plugins_modified.append(file)
-        else:
-            # إذا التعديل في أي ملف أساسي آخر
-            core_modified = True
+    # إذا لم تصلنا قائمة ملفات (إشارة يدوية)، سنعتبره تحديث شامل
+    if not modified_files:
+        core_modified = True
+    else:
+        for file in modified_files:
+            if file == "requirements.txt":
+                print("📦 تحديث مكتبات...")
+                subprocess.run([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+                core_modified = True
+            elif file.startswith("zlzl/plugins/") and file.endswith(".py"):
+                plugins_modified.append(file)
+            else:
+                core_modified = True
 
-    # 4. تنفيذ الأكشن المناسب
+    # التنفيذ
     if core_modified:
-        # إعادة تشغيل السكربت بالكامل (Soft Restart)
-        print("🔄 تحديثات أساسية تمت! جاري إعادة تشغيل السكربت...")
-        os.execl(sys.executable, sys.executable, *sys.argv)
-        
+        print("🔄 تحديث ملفات النظام.. إعادة تشغيل...")
+        with open("reload_queue.txt", "w") as f: f.write("RESTART")
     elif plugins_modified:
-        # التحديث الذكي: إرسال الملفات لكي يتم تحديثها بدون إطفاء البوت
-        print(f"⚡ تعديلات في الإضافات: {plugins_modified}")
+        print(f"⚡ تحديث إضافات: {plugins_modified}")
         with open("reload_queue.txt", "a", encoding="utf-8") as f:
             for plugin in plugins_modified:
-                # نستخرج اسم الملف فقط (مثال: الادمن.py -> الادمن)
                 plugin_name = os.path.basename(plugin).replace('.py', '')
                 f.write(plugin_name + "\n")
                 
-    return jsonify({"status": "success", "message": "تم تطبيق التحديث بنجاح!"}), 200
+    return jsonify({"status": "success"}), 200
 
 def run():
     app.run(host='0.0.0.0', port=8080)
