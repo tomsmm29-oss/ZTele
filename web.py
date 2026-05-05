@@ -12,41 +12,47 @@ def home():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """استقبال التحديث الفوري من جيتهاب"""
     data = request.json
-    print("📡 استلمت إشارة تحديث من GitHub...")
+    if not data:
+        return jsonify({"status": "no data"}), 400
+
+    print("📡 استلمت إشارة تحديث... جاري المعالجة")
 
     try:
-        # 1. تنظيف أي تغييرات محلية قد تعيق السحب
-        subprocess.run(["git", "reset", "--hard", "HEAD"], check=True)
-        
-        # 2. محاولة السحب من main أو master بشكل صريح
-        # سنحاول سحب التحديث من الريموت origin
-        try:
-            print("📥 جاري محاولة السحب من main...")
-            subprocess.run(["git", "pull", "origin", "main"], check=True)
-        except:
-            print("📥 فشل main، جاري محاولة السحب من master...")
-            subprocess.run(["git", "pull", "origin", "master"], check=True)
-            
-        print("✅ تم سحب الملفات بنجاح!")
-    except Exception as e:
-        print(f"❌ خطأ في جيت: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 200 # نرجع 200 عشان جيتهاب ما يعيد المحاولة
+        # 1. استخراج رابط المستودع والفرع من بيانات جيتهاب
+        repo_url = data.get('repository', {}).get('clone_url')
+        ref = data.get('ref', 'refs/heads/main')
+        branch = ref.split('/')[-1] # يستخرج main أو master
 
-    # استخراج الملفات المعدلة
+        if not repo_url:
+            # رابط احتياطي في حال فشل الاستخراج
+            repo_url = "https://github.com/tomsmm29/oss-ztele.git"
+
+        print(f"📥 جاري سحب التحديث من {repo_url} (فرع: {branch})...")
+
+        # 2. تنفيذ السحب المباشر بدون الحاجة لـ origin
+        subprocess.run(["git", "reset", "--hard", "HEAD"], check=True)
+        # جلب البيانات من الرابط مباشرة وضخها في الفرع الحالي
+        subprocess.run(["git", "fetch", repo_url, branch], check=True)
+        subprocess.run(["git", "reset", "--hard", "FETCH_HEAD"], check=True)
+        
+        print("✅ تم سحب الملفات وتحديث المستودع بنجاح!")
+    except Exception as e:
+        print(f"❌ فشل تحديث الملفات: {e}")
+        return jsonify({"status": "git error", "details": str(e)}), 200
+
+    # 3. تحديد الملفات المتأثرة لإعادة التشغيل
     modified_files = []
-    if data and 'commits' in data:
+    if 'commits' in data:
         for commit in data['commits']:
             modified_files.extend(commit.get('modified', []))
             modified_files.extend(commit.get('added', []))
 
-    plugins_modified = []
     core_modified = False
+    plugins_modified = []
 
-    # إذا لم تصلنا قائمة ملفات (إشارة يدوية)، سنعتبره تحديث شامل
     if not modified_files:
-        core_modified = True
+        core_modified = True # تحديث شامل إذا لم تصل قائمة ملفات
     else:
         for file in modified_files:
             if file == "requirements.txt":
@@ -58,9 +64,9 @@ def webhook():
             else:
                 core_modified = True
 
-    # التنفيذ
+    # 4. إصدار أمر إعادة التشغيل للبوت
     if core_modified:
-        print("🔄 تحديث ملفات النظام.. إعادة تشغيل...")
+        print("🔄 تحديث نظامي: سيتم إعادة تشغيل البوت بالكامل")
         with open("reload_queue.txt", "w") as f: f.write("RESTART")
     elif plugins_modified:
         print(f"⚡ تحديث إضافات: {plugins_modified}")
@@ -68,7 +74,7 @@ def webhook():
             for plugin in plugins_modified:
                 plugin_name = os.path.basename(plugin).replace('.py', '')
                 f.write(plugin_name + "\n")
-                
+
     return jsonify({"status": "success"}), 200
 
 def run():
