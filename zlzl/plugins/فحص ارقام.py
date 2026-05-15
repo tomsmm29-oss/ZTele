@@ -33,20 +33,21 @@ plugin_category = "العروض"
 APP_ID = getattr(Config, 'APP_ID', None) or 28797361
 API_HASH = getattr(Config, 'API_HASH', None) or '771041b32e83ab232e066b7adeee700b'
 
-# مخزن الجلسات في الذاكرة
+# مخزن الجلسات في الذاكرة لعمليات الفحص
 ACCOUNT_CLIENTS = {}
 CHECK_RESULTS = {}
 IMPORTED_IDS = []
 
 # ═══════════════════════════════
-# إدارة البيانات
+# إدارة البيانات (SQL)
 # ═══════════════════════════════
 
 def get_accounts_data():
     raw = gvarstatus("ZED_ACCOUNTS")
-    if not raw: return {}
+    if raw is None or not str(raw).strip(): return {}
     try:
-        return json.loads(raw)
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else {}
     except:
         return {}
 
@@ -54,105 +55,108 @@ def save_accounts_data(data):
     addgvar("ZED_ACCOUNTS", json.dumps(data, ensure_ascii=False))
 
 # ═══════════════════════════════
-# أمر إضافة حساب (سيشن أو رقم)
+# أمر إضافة حساب (حل مشكلة Peer)
 # ═══════════════════════════════
 
 @zedub.zed_cmd(pattern="اضافه حساب$", command=("اضافه حساب", plugin_category))
-async def add_account_pro(event):
-    "إضافة حساب فحص (سيشن أو رقم هاتف)"
-    zed = await edit_or_reply(event, "**📱 جاري تهيئة معالج الإضافة...**")
+async def add_account_final(event):
+    "إضافة حساب فحص جديد (سيشن أو رقم)"
+    zed = await edit_or_reply(event, "**📱 جاري تشغيل معالج الإضافة...**")
     
+    chat_id = event.chat_id
     try:
-        async with event.client.conversation(event.chat_id, timeout=300) as conv:
-            # الخطوة 1: طلب نوع الإضافة
+        async with event.client.conversation(chat_id, timeout=300) as conv:
             await conv.send_message(
-                "**⎉╎مرحباً بك في معالج إضافة الحسابات**\n\n"
-                "**1️⃣ أرسل كود (السيشن) مباشرة**\n"
-                "**2️⃣ أو أرسل (رقم الهاتف) مع رمز الدولة (مثال: +964...)**\n\n"
-                "**• للتراجع أرسل** `.الغاء`"
+                "**⎉╎مرحباً بك في معالج إضافة الحسابات - زدثون**\n\n"
+                "**1️⃣ أرسل كود السيشن (String Session)**\n"
+                "**2️⃣ أو أرسل رقم الهاتف مع مفتاح الدولة (مثال: +964...)**\n\n"
+                "**• للإلغاء أرسل** `.الغاء`"
             )
             
             response = await conv.get_response()
-            input_data = response.text.strip()
+            input_text = response.text.strip()
             
-            if input_data.startswith('.'):
+            if input_text.startswith('.'):
                 return await conv.send_message("**✅ تم إلغاء العملية.**")
 
-            # الحالة الأولى: إذا كان المدخل "سيشن" (طويل غالباً)
-            if len(input_data) > 50:
-                await zed.edit("**🔍 جاري التحقق من السيشن...**")
-                new_client = TelegramClient(StringSession(input_data), APP_ID, API_HASH)
+            # --- الحالة 1: إضافة عبر سيشن جاهز ---
+            if len(input_text) > 50:
+                await zed.edit("**🔍 جاري فحص السيشن...**")
+                # حل مشكلة InputPeer: نستخدم StringSession ونتصل فوراً
+                new_client = TelegramClient(StringSession(input_text), APP_ID, API_HASH)
                 try:
                     await new_client.connect()
-                    if not await new_client.is_user_authorized():
-                        return await conv.send_message("**❌ السيشن غير صالح أو منتهي الصلاحية.**")
-                    
-                    me = await new_client.get_me()
-                    await save_new_acc(input_data, me)
-                    return await conv.send_message(f"**✅ تمت إضافة الحساب بنجاح!**\n**👤 الاسم:** {me.first_name}\n**📱 الرقم:** `{me.phone}`")
+                    # أهم خطوة لحل خطأ Peer:
+                    me = await new_client.get_me() 
+                    if me:
+                        await save_new_acc(input_text, me)
+                        return await conv.send_message(f"**✅ تمت الإضافة بنجاح!**\n**👤 الاسم:** {me.first_name}\n**📱 الرقم:** `{me.phone}`")
+                    else:
+                        return await conv.send_message("**❌ السيشن غير صالح.**")
                 except Exception as e:
-                    return await conv.send_message(f"**❌ خطأ في السيشن:** `{str(e)}` ")
+                    return await conv.send_message(f"**❌ خطأ:** `{e}`")
                 finally:
                     await new_client.disconnect()
 
-            # الحالة الثانية: إذا كان المدخل "رقم هاتف"
-            elif input_data.startswith('+'):
-                phone = input_data
-                await zed.edit(f"**📩 جاري إرسال الكود للرقم:** `{phone}`")
+            # --- الحالة 2: إضافة عبر رقم الهاتف ---
+            elif input_text.startswith('+'):
+                phone = input_text
+                await zed.edit(f"**📩 جاري طلب الكود للرقم:** `{phone}`")
                 
-                # استخدام StringSession فارغ لبدء عملية تسجيل دخول جديدة
+                # إنشاء جلسة جديدة تماماً
                 new_client = TelegramClient(StringSession(), APP_ID, API_HASH)
                 await new_client.connect()
                 
                 try:
+                    # طلب الكود
                     send_code = await new_client.send_code_request(phone)
-                except PhoneNumberInvalidError:
-                    return await conv.send_message("**❌ رقم الهاتف غير صحيح.**")
+                    phone_code_hash = send_code.phone_code_hash
                 except Exception as e:
-                    return await conv.send_message(f"**❌ حدث خطأ:** `{e}`")
+                    await new_client.disconnect()
+                    return await conv.send_message(f"**❌ خطأ في إرسال الكود:** `{e}`")
 
-                await conv.send_message("**⎉╎وصلك كود التحقق؟ أرسله الآن:**\n(ضع مسافة بين الأرقام إذا لم يصل الكود)")
+                await conv.send_message("**⎉╎أرسل الكود الذي وصلك الآن:**\n(يفضل وضع مسافات بين الأرقام مثل: 1 2 3 4 5)")
                 
                 code_res = await conv.get_response()
-                code = code_res.text.strip().replace(" ", "")
+                raw_code = code_res.text.strip().replace(" ", "")
                 
                 try:
-                    await new_client.sign_in(phone, code)
+                    # محاولة تسجيل الدخول
+                    await new_client.sign_in(phone, raw_code, phone_code_hash=phone_code_hash)
                 except SessionPasswordNeededError:
-                    # معالجة التحقق بخطوتين (2FA)
-                    await conv.send_message("**🔐 هذا الحساب محمي بالتحقق بخطوتين. أرسل كلمة المرور:**")
-                    pwd_res = await conv.get_response()
+                    # معالجة التحقق بخطوتين
+                    await conv.send_message("**🔐 الحساب محمي بكلمة سر (2FA)، أرسلها الآن:**")
+                    pw_res = await conv.get_response()
                     try:
-                        await new_client.sign_in(password=pwd_res.text.strip())
+                        await new_client.sign_in(password=pw_res.text.strip())
                     except Exception as e:
-                        return await conv.send_message(f"**❌ كلمة المرور خاطئة:** `{e}`")
-                except (PhoneCodeInvalidError, PhoneCodeExpiredError):
-                    return await conv.send_message("**❌ الكود خاطئ أو منتهي الصلاحية.**")
+                        return await conv.send_message(f"**❌ كلمة السر خاطئة:** `{e}`")
+                except Exception as e:
+                    return await conv.send_message(f"**❌ كود غير صحيح أو منتهي:** `{e}`")
                 
-                # نجاح الدخول
+                # نجاح العملية
                 me = await new_client.get_me()
                 session_str = new_client.session.save()
                 await save_new_acc(session_str, me)
-                await conv.send_message(f"**✅ تم تسجيل الدخول وإضافة الحساب!**\n**👤 الاسم:** {me.first_name}\n**📱 الرقم:** `{me.phone}`")
+                await conv.send_message(f"**✅ تم تسجيل الدخول وحفظ الحساب!**\n**👤 الاسم:** {me.first_name}\n**📱 الرقم:** `{me.phone}`")
                 await new_client.disconnect()
             
             else:
-                await conv.send_message("**❌ مدخلات غير معروفة. يرجى إرسال سيشن صحيح أو رقم هاتف يبدأ بـ +**")
+                await conv.send_message("**❌ يرجى إرسال رقم هاتف يبدأ بـ (+) أو سيشن صحيح.**")
 
     except Exception as e:
         LOGS.error(f"Error in add_account: {e}")
-        await event.reply(f"**❌ حدث خطأ غير متوقع:** `{e}`")
+        await event.reply(f"**❌ حدث خطأ فني:** `{e}`\nجرب استخدام سيشن جاهز إذا استمر الخطأ.")
 
 # ═══════════════════════════════
-# دوال مساعدة
+# دوال مساعدة وحفظ
 # ═══════════════════════════════
 
 async def save_new_acc(session, me):
-    """حفظ الحساب في قاعدة البيانات"""
     data = get_accounts_data()
-    # إيجاد رقم تسلسلي
-    nums = [int(k) for k in data.keys() if k.isdigit()]
-    new_idx = str(max(nums) + 1 if nums else 2)
+    # الحصول على رقم الحساب القادم
+    existing_nums = [int(k) for k in data.keys() if k.isdigit()]
+    new_idx = str(max(existing_nums) + 1 if existing_nums else 2)
     
     data[new_idx] = {
         "session": session,
@@ -166,7 +170,7 @@ async def list_accs(event):
     "عرض حسابات الفحص"
     data = get_accounts_data()
     me = await zedub.get_me()
-    msg = f"**👥 حسابات الفحص المضافة:**\n\n**1 • الرئيسي** - {me.first_name} (`{me.phone}`)\n"
+    msg = f"**👥 حسابات الفحص المضافة - زدثون**\n\n**1 • الرئيسي** - {me.first_name} (`{me.phone}`)\n"
     for k, v in data.items():
         msg += f"**{k} • إضافي** - {v['name']} (`{v['phone']}`)\n"
     await edit_or_reply(event, msg)
@@ -175,30 +179,24 @@ async def list_accs(event):
 async def mass_check(event):
     "فحص الأرقام بالرد"
     reply = await event.get_reply_message()
-    if not reply or not reply.text:
-        return await edit_or_reply(event, "**⎉╎يرجى الرد على قائمة أرقام.**")
+    if not reply or not reply.text: return await edit_or_reply(event, "**⎉╎رد على قائمة أرقام.**")
     
     phones = list(dict.fromkeys(re.findall(r'\+\d{7,15}', reply.text)))
-    if not phones:
-        return await edit_or_reply(event, "**⎉╎لا توجد أرقام دولية في الرسالة.**")
+    if not phones: return await edit_or_reply(event, "**⎉╎لا توجد أرقام.**")
     
     zed = await edit_or_reply(event, f"**🔍 جاري فحص {len(phones)} رقم...**")
-    
     CHECK_RESULTS.clear()
-    count = 0
+    
     for ph in phones:
         try:
-            # استخدام الحساب الرئيسي للفحص
             res = await zedub(ImportContactsRequest([InputPhoneContact(client_id=0, phone=ph, first_name="Z", last_name="C")]))
             if res.users:
                 u = res.users[0]
                 CHECK_RESULTS[ph] = {"id": u.id, "name": u.first_name, "prem": getattr(u, 'premium', False)}
                 if u.id not in IMPORTED_IDS: IMPORTED_IDS.append(u.id)
         except: pass
-        count += 1
-        if count % 10 == 0: await zed.edit(f"**🔍 جاري الفحص... ({count}/{len(phones)})**")
-
-    await zed.edit(f"**✅ انتهى الفحص.**\n**📱 الإجمالي:** {len(phones)}\n**✅ مسجل:** {len(CHECK_RESULTS)}\n**❌ غير مسجل:** {len(phones)-len(CHECK_RESULTS)}\n\nللعرض أرسل `.عرض الكل` وللتنظيف `.مسح` ")
+    
+    await zed.edit(f"**✅ انتهى الفحص.**\n**📱 الإجمالي:** {len(phones)}\n**✅ مسجل:** {len(CHECK_RESULTS)}\n**❌ غير مسجل:** {len(phones)-len(CHECK_RESULTS)}\n\nاستخدم `.عرض الكل` للمعاينة.")
 
 @zedub.zed_cmd(pattern="عرض الكل$", command=("عرض الكل", plugin_category))
 async def show_all(event):
@@ -209,8 +207,9 @@ async def show_all(event):
     await edit_or_reply(event, out)
 
 @zedub.zed_cmd(pattern="مسح$", command=("مسح", plugin_category))
-async def clear_it(event):
+async def clear_contacts_pro(event):
+    "حذف جهات الاتصال المستوردة"
     if not IMPORTED_IDS: return await edit_or_reply(event, "**❌ القائمة فارغة.**")
     await zedub(DeleteContactsRequest(id=IMPORTED_IDS))
     IMPORTED_IDS.clear()
-    await edit_or_reply(event, "**🗑️ تم مسح جهات الاتصال المستوردة بنجاح.**")
+    await edit_or_reply(event, "**🗑️ تم تنظيف جهات الاتصال بنجاح.**")
