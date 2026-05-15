@@ -321,7 +321,7 @@ async def hunterusername(event):
                     # إرسال النتائج بنفس الأسلوب الفخم
                     msg_text = (
                         "ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - صيـد زدثــون \U0001f4a1\n**•────────────────────•**\n"
-                        f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys} ❳\n- Type: {choice}\n- Save: ❲ Channel ❳\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
+                        f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys[0]} ❳\n- Type: {choice}\n- Save: ❲ Channel ❳\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
                     )
                     await event.client.send_message(event.chat_id, msg_text)
                     await event.client.send_message(ch, msg_text)
@@ -364,12 +364,27 @@ async def hunterusername(event):
 
 @zedub.zed_cmd(pattern="تثبيت (.*)")
 async def _(event):
-    msg = event.text.split()
-    try:
-        ch = str(msg[2])
-        ch = ch.replace("@", "")
-        await event.edit(f"حسناً سيتم بدء التثبيت في**-  @{ch} .**")
-    except:
+    msg = event.pattern_match.group(1).split()
+    target_type = "قناة"
+    username = ""
+
+    # فصل المدخلات: هل هو (قناة، حساب، بوت)
+    if len(msg) >= 2:
+        target_type = msg[0]
+        username = msg[1].replace("@", "")
+    else:
+        username = msg[0].replace("@", "")
+
+    isauto.clear()
+    isauto.append("on")
+    trys2[0] = 0 # تصفير العداد لعملية تثبيت جديدة
+
+    ch_id = None
+
+    if target_type == "حساب":
+        await event.edit(f"**- تم بـدء التثبيت في الحساب .. بنجـاح ☑️**\n**- اليـوزر : @{username}**")
+    else:
+        # للقناة أو البوت، نؤمن اليوزر في قناة لضمان عدم ضياعه
         try:
             ch = await zedub(
                 functions.channels.CreateChannelRequest(
@@ -377,17 +392,15 @@ async def _(event):
                     about="This channel to hunt username by - @ZedThon ",
                 )
             )
-            ch = ch.updates[1].channel_id
-            await event.edit(f"**- تم بـدء التثبيت .. بنجـاح ☑️**")
+            ch_id = ch.updates[1].channel_id
+            await event.edit(f"**- تم بـدء التثبيت ({target_type}) .. بنجـاح ☑️**\n**- اليـوزر : @{username}**")
         except Exception as e:
             await zedub.send_message(
                 event.chat_id, f"خطأ في انشاء القناة , الخطأ : {str(e)}"
             )
+            isauto.clear()
+            isauto.append("off")
             return
-
-    isauto.clear()
-    isauto.append("on")
-    username = str(msg[1])
 
     swapmod = True
     while swapmod:
@@ -399,19 +412,28 @@ async def _(event):
         isav = await check_user(username, client=zedub)
         if isav:
             try:
-                await zedub(
-                    functions.channels.UpdateUsernameRequest(
-                        channel=ch, username=username
+                # محاولة الحجز حسب النوع
+                if target_type == "حساب":
+                    await zedub(
+                        functions.account.UpdateUsernameRequest(username=username)
                     )
-                )
+                else:
+                    await zedub(
+                        functions.channels.UpdateUsernameRequest(
+                            channel=ch_id, username=username
+                        )
+                    )
+
                 msg_text = (
-                    "ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - صيـد زدثــون \U0001f4a1\n**•────────────────────•**\n"
-                    f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys2} ❳\n- Save: ❲ Channel ❳\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
+                    "ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - تثبيـت زدثــون \U0001f4a1\n**•────────────────────•**\n"
+                    f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys2[0]} ❳\n- Save: ❲ {target_type} ❳\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
                 )
-                await event.client.send_message(ch, msg_text)
+                if target_type != "حساب" and ch_id:
+                    await event.client.send_message(ch_id, msg_text)
                 await event.client.send_message(event.chat_id, msg_text)
                 swapmod = False
                 break
+
             except UsernameInvalidError:
                 await event.client.send_message(
                     event.chat_id, f"**المعرف @{username} غير صالح ؟!**"
@@ -425,12 +447,51 @@ async def _(event):
                 swapmod = False
                 break
             except Exception as eee:
-                await zedub.send_message(
-                    event.chat_id,
-                    f"خطأ مع {username} , الخطأ :{str(eee)}",
-                )
-                swapmod = False
-                break
+                err_str = str(eee).lower()
+                # معالجة ذكية لمشكلة الحد الأقصى للقنوات العامة
+                if "channels_admin_public_too_much" in err_str or "too much" in err_str or "too many" in err_str:
+                    try:
+                        # جلب قنواتك العامة
+                        public_channels = await zedub(functions.channels.GetAdminedPublicChannelsRequest())
+                        if public_channels.chats:
+                            # تفريغ يوزر أول قناة عامة تواجهنا
+                            target_revoke = public_channels.chats[0]
+                            await zedub(functions.channels.UpdateUsernameRequest(
+                                channel=target_revoke.id,
+                                username=""
+                            ))
+                            # إعادة المحاولة فورا لليوزر الجديد
+                            await zedub(functions.channels.UpdateUsernameRequest(
+                                channel=ch_id, username=username
+                            ))
+                            
+                            msg_text = (
+                                "ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - تثبيـت زدثــون \U0001f4a1\n**•────────────────────•**\n"
+                                f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys2[0]} ❳\n- Save: ❲ {target_type} ❳\n*(تم تفريغ قناة عامة تلقائياً للحجز)*\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
+                            )
+                            await event.client.send_message(ch_id, msg_text)
+                            await event.client.send_message(event.chat_id, msg_text)
+                            swapmod = False
+                            break
+                        else:
+                            await zedub.send_message(
+                                event.chat_id, f"**- عذراً، وصلت للحد الأقصى للقنوات العامة ولا توجد قناة عامة بصلاحياتك لتفريغها!**"
+                            )
+                            swapmod = False
+                            break
+                    except Exception as revoke_err:
+                        await zedub.send_message(
+                            event.chat_id, f"**- حدث خطأ أثناء محاولة تفريغ قناة عامة: {str(revoke_err)}**"
+                        )
+                        swapmod = False
+                        break
+                else:
+                    await zedub.send_message(
+                        event.chat_id,
+                        f"خطأ مع {username} , الخطأ :{str(eee)}",
+                    )
+                    swapmod = False
+                    break
         trys2[0] += 1
 
     isauto.clear()
