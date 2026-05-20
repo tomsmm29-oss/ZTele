@@ -12,15 +12,15 @@ from ..utils import is_admin
 
 logger = logging.getLogger(__name__)
 
-@zedub.zed_cmd(incoming=True, groups_only=True)
+# تمت إزالة groups_only=True لكي يعمل الحذف في الخاص والقروبات كما طلبت
+@zedub.zed_cmd(incoming=True)
 async def on_new_message(event):
-    # الحصول على معرف الميديا (صورة، ملصق، فيديو) اذا وجدت
+    # الحصول على معرف الميديا (صورة، ملصق، فيديو، جيف) بشكل صحيح وثابت
     media_id = None
-    if event.media:
-        if hasattr(event.media, "document") and event.media.document:
-            media_id = str(event.media.document.id)
-        elif hasattr(event.media, "photo") and event.media.photo:
-            media_id = str(event.media.photo.id)
+    if event.document:
+        media_id = str(event.document.id)
+    elif event.photo:
+        media_id = str(event.photo.id)
 
     name = event.raw_text
     snips = spl.get_chat_blacklist(event.chat_id)
@@ -29,9 +29,9 @@ async def on_new_message(event):
     zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
     if not zthonadmin:
         return
-    
+
     for snip in snips:
-        # التحقق من الميديا (تطابق تام للمعرف)
+        # التحقق من الميديا (تطابق تام لمعرف الملصق/الصورة)
         if media_id and snip == media_id:
             try:
                 await event.delete()
@@ -65,18 +65,18 @@ async def _(event):
     text = event.pattern_match.group(1)
     to_blacklist = []
 
-    # حالة الرد على رسالة (صورة، ملصق، نص، الخ)
+    # حالة الرد على رسالة (صورة، ملصق، نص، جيف، الخ) بشكل ذكي
     if reply_msg:
-        # اذا كان الرد على ميديا (ملصق، صورة، فيديو، ملف)
-        if reply_msg.media:
-            if hasattr(reply_msg.media, "document") and reply_msg.media.document:
-                to_blacklist.append(str(reply_msg.media.document.id))
-            elif hasattr(reply_msg.media, "photo") and reply_msg.media.photo:
-                to_blacklist.append(str(reply_msg.media.photo.id))
+        # اذا كان الرد على ميديا (ملصق، ملف، جيف، فيديو)
+        if reply_msg.document:
+            to_blacklist.append(str(reply_msg.document.id))
+        # اذا كان الرد على صورة
+        elif reply_msg.photo:
+            to_blacklist.append(str(reply_msg.photo.id))
         # اذا كان الرد على نص
         elif reply_msg.text:
             to_blacklist.append(reply_msg.text.strip())
-    
+
     # حالة كتابة الكلمات بجانب الأمر مباشرة (بدون رد أو مع رد لإضافة المزيد)
     if text:
         to_blacklist.extend(
@@ -84,11 +84,11 @@ async def _(event):
         )
 
     if not to_blacklist:
-        return await edit_or_reply(event, "**⎉╎يجب الرد على (صورة/ملصق/نص) أو كتابة الكلمة لمنعها !**")
+        return await edit_or_reply(event, "**⎉╎يجب الرد على (صورة/ملصق/جيف/نص) أو كتابة الكلمة لمنعها !**")
 
     for trigger in to_blacklist:
         spl.add_to_blacklist(event.chat_id, trigger.lower())
-        
+
     await edit_or_reply(
         event,
         f"**⎉╎تم اضافة (** {len(to_blacklist)} **)**\n**⎉╎الى قائمة الممنوعـات هنـا .. بنجـاح ✓**",
@@ -106,11 +106,10 @@ async def _(event):
 
     # حالة الرد لإلغاء المنع
     if reply_msg:
-        if reply_msg.media:
-            if hasattr(reply_msg.media, "document") and reply_msg.media.document:
-                to_unblacklist.append(str(reply_msg.media.document.id))
-            elif hasattr(reply_msg.media, "photo") and reply_msg.media.photo:
-                to_unblacklist.append(str(reply_msg.media.photo.id))
+        if reply_msg.document:
+            to_unblacklist.append(str(reply_msg.document.id))
+        elif reply_msg.photo:
+            to_unblacklist.append(str(reply_msg.photo.id))
         elif reply_msg.text:
             to_unblacklist.append(reply_msg.text.strip())
 
@@ -123,12 +122,12 @@ async def _(event):
         bool(spl.rm_from_blacklist(event.chat_id, trigger.lower()))
         for trigger in to_unblacklist
     )
-    
+
     if len(to_unblacklist) == 0:
          return await edit_or_reply(event, "**⎉╎يجب الرد على الميديا الممنوعة أو كتابة الكلمة لالغاء منعها !**")
 
     await edit_or_reply(
-        event, f"**⎉╎تم حذف (** {successful} / {len(to_unblacklist)} **(**\n**⎉╎من قائمة الممنوعـات هنـا .. بنجـاح ✓**"
+        event, f"**⎉╎تم حذف (** {successful} / {len(to_unblacklist)} **)**\n**⎉╎من قائمة الممنوعـات هنـا .. بنجـاح ✓**"
     )
 
 
