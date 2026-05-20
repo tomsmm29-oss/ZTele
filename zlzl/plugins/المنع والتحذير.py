@@ -12,14 +12,44 @@ from ..utils import is_admin
 
 logger = logging.getLogger(__name__)
 
+# دالة خارقة لاستخراج أيدي الميديا مهما كان اصدار تيليثون في سورس زدثون
+def get_media_id_from_msg(msg):
+    if not msg or not msg.media:
+        return None
+    # محاولة أولى: الخصائص المباشرة (للإصدارات الحديثة)
+    try:
+        if hasattr(msg, 'document') and msg.document:
+            return str(msg.document.id)
+        if hasattr(msg, 'photo') and msg.photo:
+            return str(msg.photo.id)
+    except:
+        pass
+        
+    # محاولة ثانية: من داخل الميديا نفسها (للإصدارات القديمة)
+    try:
+        if hasattr(msg.media, 'document') and msg.media.document:
+            return str(msg.media.document.id)
+        if hasattr(msg.media, 'photo') and msg.media.photo:
+            return str(msg.media.photo.id)
+    except:
+        pass
+        
+    # محاولة ثالثة: تفكيك الكائن بالكامل (مضمونة 100% لسحب الملصق)
+    try:
+        m_dict = msg.media.to_dict()
+        if 'document' in m_dict and m_dict['document'] and 'id' in m_dict['document']:
+            return str(m_dict['document']['id'])
+        if 'photo' in m_dict and m_dict['photo'] and 'id' in m_dict['photo']:
+            return str(m_dict['photo']['id'])
+    except:
+        pass
+        
+    return None
+
 @zedub.zed_cmd(incoming=True)
 async def on_new_message(event):
-    # الحصول على معرف الميديا (صورة، ملصق، جيف) بشكل صحيح وثابت
-    media_id = None
-    if event.document:
-        media_id = str(event.document.id)
-    elif event.photo:
-        media_id = str(event.photo.id)
+    # جلب الايدي عبر الدالة الخارقة
+    media_id = get_media_id_from_msg(event.message)
 
     name = event.raw_text
     snips = spl.get_chat_blacklist(event.chat_id)
@@ -73,10 +103,9 @@ async def _(event):
 
     # حالة الرد على ميديا أو نص
     if reply_msg:
-        if reply_msg.document:
-            to_blacklist.append(str(reply_msg.document.id))
-        elif reply_msg.photo:
-            to_blacklist.append(str(reply_msg.photo.id))
+        m_id = get_media_id_from_msg(reply_msg)
+        if m_id:
+            to_blacklist.append(m_id)
         elif reply_msg.text:
             to_blacklist.append(reply_msg.text.strip())
 
@@ -89,7 +118,8 @@ async def _(event):
         return await edit_or_reply(event, "**⎉╎يجب الرد على (صورة/ملصق/نص) أو كتابة الكلمة لمنعها !**")
 
     for trigger in to_blacklist:
-        spl.add_to_blacklist(event.chat_id, trigger.lower())
+        if trigger:
+            spl.add_to_blacklist(event.chat_id, trigger.lower())
 
     await edit_or_reply(
         event,
@@ -109,10 +139,9 @@ async def _(event):
     to_unblacklist = []
 
     if reply_msg:
-        if reply_msg.document:
-            to_unblacklist.append(str(reply_msg.document.id))
-        elif reply_msg.photo:
-            to_unblacklist.append(str(reply_msg.photo.id))
+        m_id = get_media_id_from_msg(reply_msg)
+        if m_id:
+            to_unblacklist.append(m_id)
         elif reply_msg.text:
             to_unblacklist.append(reply_msg.text.strip())
 
