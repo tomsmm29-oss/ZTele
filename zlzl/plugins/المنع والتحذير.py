@@ -12,10 +12,9 @@ from ..utils import is_admin
 
 logger = logging.getLogger(__name__)
 
-# تمت إزالة groups_only=True لكي يعمل الحذف في الخاص والقروبات كما طلبت
 @zedub.zed_cmd(incoming=True)
 async def on_new_message(event):
-    # الحصول على معرف الميديا (صورة، ملصق، فيديو، جيف) بشكل صحيح وثابت
+    # الحصول على معرف الميديا (صورة، ملصق، جيف) بشكل صحيح وثابت
     media_id = None
     if event.document:
         media_id = str(event.document.id)
@@ -26,9 +25,12 @@ async def on_new_message(event):
     snips = spl.get_chat_blacklist(event.chat_id)
     if not snips:
         return
-    zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
-    if not zthonadmin:
-        return
+
+    # فحص صلاحيات الإشراف فقط اذا كانت الدردشة ليست خاصة
+    if not event.is_private:
+        zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
+        if not zthonadmin:
+            return
 
     for snip in snips:
         # التحقق من الميديا (تطابق تام لمعرف الملصق/الصورة)
@@ -37,54 +39,54 @@ async def on_new_message(event):
                 await event.delete()
                 break # تم الحذف لا داعي لإكمال اللوب
             except Exception:
-                pass # اذا فشل الحذف لا تفعل شيئاً
+                pass 
 
-        # التحقق من النصوص (نظام Regex السابق)
-        # نتجاوز هذا الفحص اذا كان الممنوع هو ايدي ميديا (أرقام طويلة) لتجنب الخطأ
-        if not snip.isdigit(): 
+        # التحقق من النصوص
+        if name and not snip.isdigit(): 
             pattern = f"( |^|[^\\w]){re.escape(snip)}( |$|[^\\w])"
             if re.search(pattern, name, flags=re.IGNORECASE):
                 try:
                     await event.delete()
                 except Exception:
-                    await event.client.send_message(
-                        BOTLOG_CHATID,
-                        f"**⎉╎عـذراً عـزيـزي مـالك البـوت\n⎉╎ليست لدي صلاحية الحذف في** {get_display_name(await event.get_chat())}.\n**⎉╎لذا لن يتم إزالة الكلمات الممنوعـه في تلك الدردشـه ؟!**",
-                    )
-                    for word in snips:
-                        spl.rm_from_blacklist(event.chat_id, word.lower())
+                    # ارسال رسالة فشل الحذف فقط في القروبات وليس الخاص
+                    if not event.is_private:
+                        await event.client.send_message(
+                            BOTLOG_CHATID,
+                            f"**⎉╎عـذراً عـزيـزي مـالك البـوت\n⎉╎ليست لدي صلاحية الحذف في** {get_display_name(await event.get_chat())}.\n**⎉╎لذا لن يتم إزالة الكلمات الممنوعـه في تلك الدردشـه ؟!**",
+                        )
+                        for word in snips:
+                            spl.rm_from_blacklist(event.chat_id, word.lower())
                 break
 
 
-@zedub.zed_cmd(
-    pattern="منع(?:\s|$)([\s\S]*)",
-    require_admin=True,
-)
+@zedub.zed_cmd(pattern="منع(?:\s|$)([\s\S]*)")
 async def _(event):
+    # التحقق من الصلاحيات بالقروبات فقط
+    if not event.is_private:
+        zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
+        if not zthonadmin:
+            return await edit_or_reply(event, "**⎉╎عذراً، يجب أن أمتلك صلاحية مشرف هنا لمنع الأشياء!**")
+
     reply_msg = await event.get_reply_message()
     text = event.pattern_match.group(1)
     to_blacklist = []
 
-    # حالة الرد على رسالة (صورة، ملصق، نص، جيف، الخ) بشكل ذكي
+    # حالة الرد على ميديا أو نص
     if reply_msg:
-        # اذا كان الرد على ميديا (ملصق، ملف، جيف، فيديو)
         if reply_msg.document:
             to_blacklist.append(str(reply_msg.document.id))
-        # اذا كان الرد على صورة
         elif reply_msg.photo:
             to_blacklist.append(str(reply_msg.photo.id))
-        # اذا كان الرد على نص
         elif reply_msg.text:
             to_blacklist.append(reply_msg.text.strip())
 
-    # حالة كتابة الكلمات بجانب الأمر مباشرة (بدون رد أو مع رد لإضافة المزيد)
     if text:
         to_blacklist.extend(
             [trigger.strip() for trigger in text.split("\n") if trigger.strip()]
         )
 
     if not to_blacklist:
-        return await edit_or_reply(event, "**⎉╎يجب الرد على (صورة/ملصق/جيف/نص) أو كتابة الكلمة لمنعها !**")
+        return await edit_or_reply(event, "**⎉╎يجب الرد على (صورة/ملصق/نص) أو كتابة الكلمة لمنعها !**")
 
     for trigger in to_blacklist:
         spl.add_to_blacklist(event.chat_id, trigger.lower())
@@ -95,16 +97,17 @@ async def _(event):
     )
 
 
-@zedub.zed_cmd(
-    pattern="الغاء منع(?:\s|$)([\s\S]*)",
-    require_admin=True,
-)
+@zedub.zed_cmd(pattern="الغاء منع(?:\s|$)([\s\S]*)")
 async def _(event):
+    if not event.is_private:
+        zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
+        if not zthonadmin:
+            return await edit_or_reply(event, "**⎉╎عذراً، يجب أن أمتلك صلاحية مشرف هنا!**")
+
     reply_msg = await event.get_reply_message()
     text = event.pattern_match.group(1)
     to_unblacklist = []
 
-    # حالة الرد لإلغاء المنع
     if reply_msg:
         if reply_msg.document:
             to_unblacklist.append(str(reply_msg.document.id))
@@ -118,29 +121,25 @@ async def _(event):
             [trigger.strip() for trigger in text.split("\n") if trigger.strip()]
         )
 
+    if not to_unblacklist:
+         return await edit_or_reply(event, "**⎉╎يجب الرد على الميديا الممنوعة أو كتابة الكلمة لالغاء منعها !**")
+
     successful = sum(
         bool(spl.rm_from_blacklist(event.chat_id, trigger.lower()))
         for trigger in to_unblacklist
     )
-
-    if len(to_unblacklist) == 0:
-         return await edit_or_reply(event, "**⎉╎يجب الرد على الميديا الممنوعة أو كتابة الكلمة لالغاء منعها !**")
 
     await edit_or_reply(
         event, f"**⎉╎تم حذف (** {successful} / {len(to_unblacklist)} **)**\n**⎉╎من قائمة الممنوعـات هنـا .. بنجـاح ✓**"
     )
 
 
-@zedub.zed_cmd(
-    pattern="قائمة المنع$",
-    require_admin=True,
-)
+@zedub.zed_cmd(pattern="قائمة المنع$")
 async def _(event):
     all_blacklisted = spl.get_chat_blacklist(event.chat_id)
     OUT_STR = "**⎉╎قائمة الممنوعـات هنـا هـي :\n**"
     if len(all_blacklisted) > 0:
         for trigger in all_blacklisted:
-            # اذا كان الممنوع عبارة عن ايدي (ارقام) نكتب انه ميديا
             if trigger.isdigit():
                  OUT_STR += f"- (ميديا/ملصق) : `{trigger}` \n"
             else:
@@ -150,10 +149,7 @@ async def _(event):
     await edit_or_reply(event, OUT_STR)
 
 
-@zedub.zed_cmd(
-    pattern="قائمه المنع$",
-    require_admin=True,
-)
+@zedub.zed_cmd(pattern="قائمه المنع$")
 async def _(event):
     all_blacklisted = spl.get_chat_blacklist(event.chat_id)
     OUT_STR = "**⎉╎قائمة الممنوعـات هنـا هـي :\n**"
