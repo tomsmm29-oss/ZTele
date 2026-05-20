@@ -1,5 +1,6 @@
 import re
 import html
+import json
 
 from telethon.utils import get_display_name
 
@@ -12,73 +13,99 @@ from ..utils import is_admin
 
 logger = logging.getLogger(__name__)
 
-# دالة خارقة لاستخراج أيدي الميديا مهما كان اصدار تيليثون في سورس زدثون
-def get_media_id_from_msg(msg):
-    if not msg or not msg.media:
+# دالة الاستخراج الشاملة بـ 5 طرق جبارة لجلب آيدي الملصقات والصور غصب
+def get_media_id(msg):
+    if not msg:
         return None
-    # محاولة أولى: الخصائص المباشرة (للإصدارات الحديثة)
+
+    # الطريقة 1: عبر الكائنات المباشرة لتيليثون (الإصدارات الأحدث)
     try:
         if hasattr(msg, 'document') and msg.document:
             return str(msg.document.id)
         if hasattr(msg, 'photo') and msg.photo:
             return str(msg.photo.id)
-    except:
+    except Exception:
         pass
-        
-    # محاولة ثانية: من داخل الميديا نفسها (للإصدارات القديمة)
+
+    # الطريقة 2: عبر كائن media الداخلي
     try:
-        if hasattr(msg.media, 'document') and msg.media.document:
-            return str(msg.media.document.id)
-        if hasattr(msg.media, 'photo') and msg.media.photo:
-            return str(msg.media.photo.id)
-    except:
+        if getattr(msg, 'media', None):
+            if hasattr(msg.media, 'document') and msg.media.document:
+                return str(msg.media.document.id)
+            if hasattr(msg.media, 'photo') and msg.media.photo:
+                return str(msg.media.photo.id)
+    except Exception:
         pass
-        
-    # محاولة ثالثة: تفكيك الكائن بالكامل (مضمونة 100% لسحب الملصق)
+
+    # الطريقة 3: عبر القاموس to_dict() (حسب إحداثيات السيرفر الأصلية)
     try:
-        m_dict = msg.media.to_dict()
-        if 'document' in m_dict and m_dict['document'] and 'id' in m_dict['document']:
-            return str(m_dict['document']['id'])
-        if 'photo' in m_dict and m_dict['photo'] and 'id' in m_dict['photo']:
-            return str(m_dict['photo']['id'])
-    except:
+        m_dict = msg.to_dict()
+        if 'media' in m_dict and m_dict['media']:
+            if 'document' in m_dict['media'] and 'id' in m_dict['media']['document']:
+                return str(m_dict['media']['document']['id'])
+            if 'photo' in m_dict['media'] and 'id' in m_dict['media']['photo']:
+                return str(m_dict['media']['photo']['id'])
+    except Exception:
         pass
-        
+
+    # الطريقة 4: عبر JSON الخام (هذي تفكك الإحداثيات اللي أنت أرسلتها لي وتجيب الـ ID غصب)
+    try:
+        msg_json = json.loads(msg.to_json())
+        if 'media' in msg_json:
+            if 'document' in msg_json['media']:
+                return str(msg_json['media']['document']['id'])
+            if 'photo' in msg_json['media']:
+                return str(msg_json['media']['photo']['id'])
+    except Exception:
+        pass
+
+    # الطريقة 5: التحقق من وجود ملف (file) أو ملصق (sticker) بشكل مباشر
+    try:
+        if getattr(msg, 'sticker', None) and getattr(msg.sticker, 'id', None):
+            return str(msg.sticker.id)
+        if getattr(msg, 'file', None) and getattr(msg.file, 'id', None):
+            file_id = str(msg.file.id)
+            if file_id.isdigit():
+                return file_id
+    except Exception:
+        pass
+
     return None
+
 
 @zedub.zed_cmd(incoming=True)
 async def on_new_message(event):
-    # جلب الايدي عبر الدالة الخارقة
-    media_id = get_media_id_from_msg(event.message)
-
-    name = event.raw_text
     snips = spl.get_chat_blacklist(event.chat_id)
     if not snips:
         return
 
-    # فحص صلاحيات الإشراف فقط اذا كانت الدردشة ليست خاصة
+    # التحقق من أن المستخدم مشرف فقط إذا كانت الدردشة ليست خاصة
     if not event.is_private:
         zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
         if not zthonadmin:
             return
 
+    # جلب المعرف بـ 5 طرق
+    media_id = get_media_id(event.message)
+    name = event.raw_text
+
     for snip in snips:
-        # التحقق من الميديا (تطابق تام لمعرف الملصق/الصورة)
+        # فحص الملصق/الميديا
         if media_id and snip == media_id:
             try:
                 await event.delete()
-                break # تم الحذف لا داعي لإكمال اللوب
+                break
             except Exception:
                 pass 
 
-        # التحقق من النصوص
+        # فحص النص
         if name and not snip.isdigit(): 
             pattern = f"( |^|[^\\w]){re.escape(snip)}( |$|[^\\w])"
             if re.search(pattern, name, flags=re.IGNORECASE):
                 try:
                     await event.delete()
                 except Exception:
-                    # ارسال رسالة فشل الحذف فقط في القروبات وليس الخاص
+                    # التنبيه بعدم وجود صلاحية يرسل بالقروبات فقط وليس الخاص
                     if not event.is_private:
                         await event.client.send_message(
                             BOTLOG_CHATID,
@@ -91,7 +118,7 @@ async def on_new_message(event):
 
 @zedub.zed_cmd(pattern="منع(?:\s|$)([\s\S]*)")
 async def _(event):
-    # التحقق من الصلاحيات بالقروبات فقط
+    # إعفاء الخاص من شرط الإشراف
     if not event.is_private:
         zthonadmin = await is_admin(event.client, event.chat_id, event.client.uid)
         if not zthonadmin:
@@ -101,9 +128,9 @@ async def _(event):
     text = event.pattern_match.group(1)
     to_blacklist = []
 
-    # حالة الرد على ميديا أو نص
+    # استخدام الـ 5 طرق لجلب ID الملصق المردود عليه
     if reply_msg:
-        m_id = get_media_id_from_msg(reply_msg)
+        m_id = get_media_id(reply_msg)
         if m_id:
             to_blacklist.append(m_id)
         elif reply_msg.text:
@@ -139,7 +166,7 @@ async def _(event):
     to_unblacklist = []
 
     if reply_msg:
-        m_id = get_media_id_from_msg(reply_msg)
+        m_id = get_media_id(reply_msg)
         if m_id:
             to_unblacklist.append(m_id)
         elif reply_msg.text:
