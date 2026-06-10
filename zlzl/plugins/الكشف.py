@@ -36,7 +36,7 @@ ORIGINAL_LAST_NAME = ""
 MY_ID = 0
 
 # =======================================================
-# دالة لتنظيف الاسم الأخير من الحالات السابقة لو وجدت بالخطأ
+# دالة لتنظيف الاسم الأخير من الحالات السابقة
 # =======================================================
 def clean_last_name(name):
     if not name:
@@ -51,6 +51,7 @@ def clean_last_name(name):
 async def update_profile_name(client, state):
     global CURRENT_NAME_STATE, ORIGINAL_FIRST_NAME, ORIGINAL_LAST_NAME
     
+    # فلتر الحماية من الحظر: لا ترسل طلب إذا كانت الحالة لم تتغير
     if CURRENT_NAME_STATE == state:
         return
         
@@ -71,7 +72,7 @@ async def update_profile_name(client, state):
         pass
 
 # =======================================================
-# 2. حلقة الموت الصامت (مؤقت الـ 45 ثانية في الخلفية)
+# 2. حلقة الموت الصامت (مؤقت الـ 20 ثانية في الخلفية)
 # =======================================================
 async def radar_background_worker(client):
     global RADAR_ENABLED, LAST_HUMAN_ACTION
@@ -79,9 +80,11 @@ async def radar_background_worker(client):
         await asyncio.sleep(1)
         time_passed = time.time() - LAST_HUMAN_ACTION
         
-        if time_passed < 45:
+        # طالما العداد أقل من 20، ستبقى متصلاً ولن يرسل طلبات متكررة بفضل فلتر الحماية
+        if time_passed < 20:
             await update_profile_name(client, "online")
-        elif time_passed >= 45:
+        # بمجرد أن تتعدى 20 ثانية، تتغير الحالة وتتوقف الطلبات
+        elif time_passed >= 20:
             await update_profile_name(client, "offline")
 
 # =======================================================
@@ -93,17 +96,19 @@ async def session_sync_radar(event):
     if not RADAR_ENABLED or MY_ID == 0:
         return
 
+    # التقاط الأونلاين الفعلي
     if isinstance(event, UpdateUserStatus):
         if getattr(event, 'user_id', 0) == MY_ID:
             if isinstance(event.status, UserStatusOnline):
                 LAST_HUMAN_ACTION = time.time()
         return
 
+    # التقاط القراءة والكتابة
     if isinstance(event, (UpdateReadHistoryOutbox, UpdateReadChannelOutbox, UpdateDraftMessage)):
         LAST_HUMAN_ACTION = time.time()
 
 # =======================================================
-# 4. أوامر التشغيل والإيقاف بالكليشات المختصرة
+# 4. أوامر التشغيل، الإيقاف، والاختبار
 # =======================================================
 @zedub.zed_cmd(
     pattern="تفعيل الكشف$",
@@ -130,11 +135,10 @@ async def enable_radar(event):
     if RADAR_TASK is None or RADAR_TASK.done():
         RADAR_TASK = event.client.loop.create_task(radar_background_worker(event.client))
         
-    # --- كليشة التفعيل المختصرة ---
     caption = f"<b>🛂┊نـظـام الـكـشـف - 𝙕𝞝𝘿𝙏𝙃𝙊𝙉</b>\n\n"
     caption += f"⎉╎الـحـالـة ⩥ مـفـعـل ✅\n"
     caption += f"⎉╎الاسـم ⩥ {ORIGINAL_FIRST_NAME} {ORIGINAL_LAST_NAME}\n"
-    caption += f"⎉╎الـرادار ⩥ 45 ثـانـيـة ⏱️\n\n"
+    caption += f"⎉╎الـرادار ⩥ 20 ثـانـيـة ⏱️\n\n"
     caption += f"ـ ━─━── 𝙕𝞝𝘿 ──━─━ ـ\n\n"
     caption += f"<b>{ZEDM}يـتـم الآن تـحـديـث حـالـتـك تـلـقـائـيـاً بـصـمـت...</b>"
     
@@ -168,7 +172,6 @@ async def disable_radar(event):
     except:
         pass
         
-    # --- كليشة التعطيل المختصرة ---
     caption = f"<b>🛂┊نـظـام الـكـشـف - 𝙕𝞝𝘿𝙏𝙃𝙊𝙉</b>\n\n"
     caption += f"⎉╎الـحـالـة ⩥ مـعـطـل ❌\n"
     caption += f"⎉╎الـرادار ⩥ مـتـوقـف 🔕\n\n"
@@ -176,3 +179,17 @@ async def disable_radar(event):
     caption += f"<b>{ZEDM}تـم إرجـاع إسـمـك لـوضـعـه الـطـبـيـعـي بـنـجـاح.</b>"
     
     await zed.edit(caption, parse_mode="html")
+
+# =======================================================
+# 5. أمر الاختبار الفخم
+# =======================================================
+@zedub.zed_cmd(pattern="اختبار$")
+async def test_cmd(event):
+    # علامة تحميل سريعة
+    zed = await edit_or_reply(event, "<b>⇆</b>", parse_mode="html")
+    
+    # كليشة V4
+    caption = f"<b>{ZEDM} 𝙑4 𝙄𝙎 𝙇𝙄𝙑𝙀 ⚡</b>"
+    
+    # إرسال الكليشة
+    await zed.edit(caption, parse_mode="html") 
