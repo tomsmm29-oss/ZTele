@@ -50,11 +50,11 @@ def clean_last_name(name):
 # =======================================================
 async def update_profile_name(client, state):
     global CURRENT_NAME_STATE, ORIGINAL_FIRST_NAME, ORIGINAL_LAST_NAME
-    
+
     # فلتر الحماية من الحظر: لا ترسل طلب إذا كانت الحالة لم تتغير
     if CURRENT_NAME_STATE == state:
         return
-        
+
     try:
         if state == "online":
             new_last_name = f"{ORIGINAL_LAST_NAME} (متصل)".strip()
@@ -79,7 +79,7 @@ async def radar_background_worker(client):
     while RADAR_ENABLED:
         await asyncio.sleep(1)
         time_passed = time.time() - LAST_HUMAN_ACTION
-        
+
         # طالما العداد أقل من 20، ستبقى متصلاً ولن يرسل طلبات متكررة بفضل فلتر الحماية
         if time_passed < 20:
             await update_profile_name(client, "online")
@@ -118,52 +118,52 @@ async def session_sync_radar(event):
 async def enable_radar(event):
     global RADAR_ENABLED, RADAR_TASK, LAST_HUMAN_ACTION
     global ORIGINAL_FIRST_NAME, ORIGINAL_LAST_NAME, MY_ID
-    
+
     zed = await edit_or_reply(event, "<b>⎉╎جـاري الـتـفـعـيـل...</b>", parse_mode="html")
-    
+
     if RADAR_ENABLED:
         return await zed.edit("<b>- نـظـام الـكـشـف مـفـعـل مـسـبـقـاً ✅</b>", parse_mode="html")
-        
+
     me = await event.client.get_me()
     MY_ID = me.id
     ORIGINAL_FIRST_NAME = me.first_name or "مستخدم"
     ORIGINAL_LAST_NAME = clean_last_name(me.last_name)
-    
+
     RADAR_ENABLED = True
     LAST_HUMAN_ACTION = time.time()
-    
+
     if RADAR_TASK is None or RADAR_TASK.done():
         RADAR_TASK = event.client.loop.create_task(radar_background_worker(event.client))
-        
+
     caption = f"<b>🛂┊نـظـام الـكـشـف - 𝙕𝞝𝘿𝙏𝙃𝙊𝙉</b>\n\n"
     caption += f"⎉╎الـحـالـة ⩥ مـفـعـل ✅\n"
     caption += f"⎉╎الاسـم ⩥ {ORIGINAL_FIRST_NAME} {ORIGINAL_LAST_NAME}\n"
     caption += f"⎉╎الـرادار ⩥ 20 ثـانـيـة ⏱️\n\n"
     caption += f"ـ ━─━── 𝙕𝞝𝘿 ──━─━ ـ\n\n"
     caption += f"<b>{ZEDM}يـتـم الآن تـحـديـث حـالـتـك تـلـقـائـيـاً بـصـمـت...</b>"
-    
+
     await zed.edit(caption, parse_mode="html")
 
 
 @zedub.zed_cmd(
-    pattern="تعطيل الكشف$",
-    command=("تعطيل الكشف", "الادمن"),
+    pattern="ايقاف الكشف$",
+    command=("ايقاف الكشف", "الادمن"),
     info={"header": "إيقاف نظام الكشف وإرجاع اسمك الطبيعي."}
 )
 async def disable_radar(event):
     global RADAR_ENABLED, RADAR_TASK, CURRENT_NAME_STATE
-    
+
     zed = await edit_or_reply(event, "<b>⎉╎جـاري الـتـعـطـيـل...</b>", parse_mode="html")
-    
+
     if not RADAR_ENABLED:
         return await zed.edit("<b>- نـظـام الـكـشـف مـعـطـل مـسـبـقـاً ❌</b>", parse_mode="html")
-        
+
     RADAR_ENABLED = False
     CURRENT_NAME_STATE = "none"
-    
+
     if RADAR_TASK and not RADAR_TASK.done():
         RADAR_TASK.cancel()
-        
+
     try:
         await event.client(UpdateProfileRequest(
             first_name=ORIGINAL_FIRST_NAME, 
@@ -171,13 +171,13 @@ async def disable_radar(event):
         ))
     except:
         pass
-        
+
     caption = f"<b>🛂┊نـظـام الـكـشـف - 𝙕𝞝𝘿𝙏𝙃𝙊𝙉</b>\n\n"
     caption += f"⎉╎الـحـالـة ⩥ مـعـطـل ❌\n"
     caption += f"⎉╎الـرادار ⩥ مـتـوقـف 🔕\n\n"
     caption += f"ـ ━─━── 𝙕𝞝𝘿 ──━─━ ـ\n\n"
     caption += f"<b>{ZEDM}تـم إرجـاع إسـمـك لـوضـعـه الـطـبـيـعـي بـنـجـاح.</b>"
-    
+
     await zed.edit(caption, parse_mode="html")
 
 # =======================================================
@@ -187,9 +187,9 @@ async def disable_radar(event):
 async def test_cmd(event):
     # علامة تحميل سريعة
     zed = await edit_or_reply(event, "<b>⇆</b>", parse_mode="html")
-    
+
     # كليشة V4
     caption = f"<b>{ZEDM} 𝙑4 𝙄𝙎 𝙇𝙄𝙑𝙀 ⚡</b>"
-    
+
     # إرسال الكليشة
-    await zed.edit(caption, parse_mode="html") 
+    await zed.edit(caption, parse_mode="html")
