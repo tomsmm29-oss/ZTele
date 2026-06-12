@@ -2,6 +2,7 @@ import json
 import os
 import urllib.parse
 import uuid
+
 import aiohttp
 from telethon import events
 from telethon.tl.types import DocumentAttributeAudio
@@ -21,15 +22,18 @@ DOWNLOAD_DIR = "yt_downloads"
 # إنشاء مجلد التحميل المحلي
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+
 def is_yt_public():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             return json.load(f).get("is_public", False)
     return False
 
+
 def set_yt_public(state: bool):
     with open(CONFIG_FILE, "w") as f:
         json.dump({"is_public": state}, f)
+
 
 # =========================================================
 # دالة التحميل السريعة (عبر API TNT الخاص بك)
@@ -46,12 +50,12 @@ async def download_via_tnt_api(query):
         async with session.get(api_url) as resp:
             if resp.status != 200:
                 raise Exception("سيرفر API التحميل لا يستجيب حالياً.")
-            
+
             data = await resp.json()
-            
+
             if not data.get("success"):
                 raise Exception("فشل العثور على المقطع عبر الـ API.")
-            
+
             audio_url = data.get("audio")
             title = data.get("title", "صوتية غير معروفة")
             channel = data.get("channel", "غير معروف")
@@ -63,20 +67,21 @@ async def download_via_tnt_api(query):
         # 2. تحميل الملف الصوتي من الـ API إلى سيرفر البوت محلياً
         # نستخدم uuid لضمان اسم ملف فريد وعدم تداخل التحميلات
         file_path = os.path.join(DOWNLOAD_DIR, f"{uuid.uuid4().hex}.mp3")
-        
+
         async with session.get(audio_url) as audio_resp:
             if audio_resp.status == 200:
                 with open(file_path, "wb") as f:
                     f.write(await audio_resp.read())
-                
+
                 return {
-                    'file_path': file_path,
-                    'title': title,
-                    'uploader': channel,
-                    'duration': duration
+                    "file_path": file_path,
+                    "title": title,
+                    "uploader": channel,
+                    "duration": duration,
                 }
             else:
                 raise Exception("فشل سحب الملف الصوتي من سيرفر الـ API.")
+
 
 # =========================================================
 # دالة الإرسال والرفع
@@ -88,7 +93,7 @@ async def process_and_send_audio(
     try:
         # 1. التحميل عبر الـ API
         info = await download_via_tnt_api(query)
-        file_path = info['file_path']
+        file_path = info["file_path"]
 
         # 2. تعديل الرسالة إلى "جاري الرفع" مع تخطي خطأ تليجرام
         if progress_msg:
@@ -103,9 +108,9 @@ async def process_and_send_audio(
         # دمج الاسم والفنان في معلومات الصوتية نفسها ليتعرف عليها تليجرام
         audio_attributes = [
             DocumentAttributeAudio(
-                duration=info['duration'],
-                title=info['title'],
-                performer=info['uploader'],
+                duration=info["duration"],
+                title=info["title"],
+                performer=info["uploader"],
             )
         ]
 
@@ -128,7 +133,7 @@ async def process_and_send_audio(
                 await progress_msg.edit(f"**⎉╎عـذراً، حـدث خـطأ:**\n`{str(e)}`")
             except:
                 pass
-            
+
     finally:
         # تنظيف السيرفر من الملف لتوفير المساحة
         if file_path and os.path.exists(file_path):
@@ -136,6 +141,7 @@ async def process_and_send_audio(
                 os.remove(file_path)
             except:
                 pass
+
 
 # =========================================================
 # أوامر التحكم للمالك
@@ -149,6 +155,7 @@ async def enable_yt_public(event):
         7,
     )
 
+
 @zedub.zed_cmd(pattern="تعطيل اليوتيوب")
 async def disable_yt_public(event):
     set_yt_public(False)
@@ -157,6 +164,7 @@ async def disable_yt_public(event):
         "**•❐• تـم تعطيـل بـحـث اليوتيـوب للـعـامـة ..**\n**⎉╎الآن يمكـنـك أنـت فـقـط استخـدام الأمـر**",
         7,
     )
+
 
 # =========================================================
 # أمر المالك
@@ -176,17 +184,21 @@ async def zed_yt_owner(event):
             event, "**╮ أرسـل أسـم المقطـع أو الرابـط مـع الأمـر أو بالـرد ... 𓅫╰**", 5
         )
 
-    zedevent = await edit_or_reply(
-        event, "**•❐• جـاري الـبـحـث والتـحـمـيـل ..**"
-    )
-    
+    zedevent = await edit_or_reply(event, "**•❐• جـاري الـبـحـث والتـحـمـيـل ..**")
+
     # إنشاء منشن ماركداون لاسم المالك
     me = await event.client.get_me()
     sender_mention = f"[{me.first_name}](tg://user?id={me.id})"
 
     await process_and_send_audio(
-        event.client, event.chat_id, query, await reply_id(event), sender_mention, zedevent
+        event.client,
+        event.chat_id,
+        query,
+        await reply_id(event),
+        sender_mention,
+        zedevent,
     )
+
 
 # =========================================================
 # مستمع الجروبات للأعضاء
@@ -204,13 +216,11 @@ async def public_yt_handler(event):
         if not query:
             return
 
-        progress_msg = await event.reply(
-            "**•❐• جـاري الـبـحـث والتـحـمـيـل ..**"
-        )
+        progress_msg = await event.reply("**•❐• جـاري الـبـحـث والتـحـمـيـل ..**")
         sender = await event.get_sender()
         sender_name = getattr(sender, "first_name", "عضو")
         sender_id = getattr(sender, "id", 0)
-        
+
         # إنشاء منشن ماركداون لاسم العضو
         sender_mention = f"[{sender_name}](tg://user?id={sender_id})"
 
