@@ -1125,4 +1125,4 @@ SECTION_DETAILS = {
 
  𓆩 [𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁](t.me/zed_thon) 𓆪
     """,
-} 
+}
