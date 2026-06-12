@@ -1,115 +1,115 @@
-import asyncio
 import os
+import asyncio
 from telethon import events
-from telethon.errors.rpcerrorlist import YouBlockedUserError
+from telethon.tl.types import DocumentAttributeAudio
+import yt_dlp
+
 from .. import zedub
 from ..core.managers import edit_delete, edit_or_reply
-from ..helpers import reply_id, progress
+from ..helpers import reply_id
 from ..Config import Config
 
-# اسم البوت الوسيط
-DL_BOT = "@yt_zthon_bot"
 plugin_category = "البحث"
 
-# دالة مساعدة للتحدث مع البوت وجلب الميديا
-async def fetch_media_from_bot(event, link):
-    async with event.client.conversation(DL_BOT) as conv:
-        try:
-            # إرسال الرابط للبوت
-            msg = await conv.send_message(link)
+# دالة مساعدة لتشغيل التحميل في الخلفية بدون تعليق البوت
+def download_yt_audio(query):
+    # إعدادات التحميل لأقصى سرعة وأفضل جودة
+    ydl_opts = {
+        'format': 'm4a/bestaudio/best', # جلب الصوت مباشرة بصيغة تدعمها تيليجرام لتجنب وقت التحويل
+        'outtmpl': '%(id)s.%(ext)s',     # اسم الملف (معرف الفيديو لمنع التداخل)
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
+    # إذا كان المدخل ليس رابطاً، نجعله يبحث في يوتيوب ويأخذ النتيجة الأولى
+    if not query.startswith("http"):
+        query = f"ytsearch1:{query}"
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(query, download=True)
+        # إذا كان بحث، نستخرج معلومات أول فيديو
+        if 'entries' in info_dict:
+            info_dict = info_dict['entries'][0]
             
-            # انتظار الرد (نتوقع ملف ميديا)
-            # ننتظر رد يحتوي على ميديا، البوت أحيانا يرسل رسالة "جاري المعالجة" ثم الملف
-            response = await conv.get_response()
-            
-            # لو الرد الأول نص فقط (مثل جاري التحميل)، ننتظر الثاني
-            if not response.media:
-                response = await conv.get_response()
-            
-            # التأكد النهائي من وجود ميديا
-            if not response.media:
-                return None
-                
-            return response
-        except YouBlockedUserError:
-            return "BLOCKED"
-        except Exception as e:
-            return None
+        file_path = ydl.prepare_filename(info_dict)
+        return file_path, info_dict
 
 # =========================================================
-# 1. التحميل العام (فيديو/صور) - تيك، انستا، يوتيوب، أو نقطة ورابط
+# 1. تحميل الصوتيات من يوتيوب (بحث مباشر أو رابط) بسرعة فائقة
 # =========================================================
 @zedub.zed_cmd(
-    pattern=r"(\.(?:تيك|انستا|فيس|يوتيوب|تحميل|رابط|)(?:\s+)([\s\S]*))|(\.(https?://[\s\S]*))",
-    command=("تحميل", plugin_category),
+    pattern=r"يوت(?:\s+([\s\S]*))?",
+    command=("يوت", plugin_category),
     info={
-        "header": "تحميل من كافة المنصات (فيديو/صور) عبر البوت المساعد",
-        "شرح": "يدعم تيك توك، انستقرام، يوتيوب، وغيرها. يسحب الملف ويرسله بدون تحويل.",
+        "header": "تحميل صوتيات يوتيوب بسرعة جنونية",
+        "شرح": "يبحث في يوتيوب وينزل الصوتية مباشرة بدون بوتات وبأعلى جودة",
         "طرق الاستخدام": [
-            "{tr}تحميل + رابط",
-            "{tr}تيك + رابط",
-            "{tr}.https://google.com (نقطة ثم الرابط مباشرة)",
-            "{tr}تحميل (بالرد على رابط)"
+            "{tr}يوت + اسم الاغنية أو المقطع",
+            "{tr}يوت + رابط يوتيوب",
+            "{tr}يوت (بالرد على اسم أو رابط)"
         ],
     },
 )
-async def zed_universal_dl(event):
-    # تحليل المدخلات (لدعم النقطة المباشرة والأوامر العادية)
-    # Group 1: الأمر مع مسافة ورابط (.تيك رابط)
-    # Group 2: الرابط من Group 1
-    # Group 3: الأمر المختصر (.رابط_مباشرة)
-    # Group 4: الرابط من Group 3
-    
-    msg_link = ""
-    
-    if event.pattern_match.group(3):
-        # حالة .https://...
-        msg_link = event.pattern_match.group(4) # الرابط فقط
-    else:
-        # حالة .تيك رابط
-        msg_link = event.pattern_match.group(2)
-        
-    # حالة الرد
-    if not msg_link and event.is_reply:
+async def zed_yt_audio(event):
+    query = event.pattern_match.group(1)
+
+    # حالة الرد على رسالة
+    if not query and event.is_reply:
         reply_msg = await event.get_reply_message()
-        msg_link = reply_msg.text
-        
-    msg_link = (msg_link or "").strip()
-    
-    if not msg_link:
-         # نتجاهل الأمر إذا لم يكن هناك رابط (خاصة مع النقطة)
-         if event.pattern_match.group(3): 
-             return
-         return await edit_delete(event, "**╮ أرسـل الرابـط مـع الأمـر أو بالـرد ... 𓅫╰**", 5)
+        query = reply_msg.text
 
-    zedevent = await edit_or_reply(event, "**⎉╎جـارِ جلـب المقطـع انتظر قليلا ▬▭ ...**")
+    query = (query or "").strip()
 
-    # التعامل مع البوت
-    response = await fetch_media_from_bot(event, msg_link)
-    
-    if response == "BLOCKED":
-        return await edit_delete(zedevent, f"**⎉╎عليك إلغاء حظر البوت {DL_BOT} أولاً ⚠️**", 10)
-    
-    if not response or not response.media:
-        return await edit_delete(zedevent, "**⎉╎فشل التحميل .. تأكد من صحة الرابط أو أن البوت لا يدعمه ⚠️**", 10)
+    if not query:
+        return await edit_delete(event, "**╮ أرسـل أسـم المقطـع أو الرابـط مـع الأمـر أو بالـرد ... 𓅫╰**", 5)
 
-    # الإرسال "الكلين" (بدون تحويل)
+    # كليشة التحميل بستايل زدثون المطلوب
+    zedevent = await edit_or_reply(event, "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**")
+
     try:
-        # تنسيق الكليشة
+        # تشغيل دالة التحميل بدون إيقاف مهام البوت الأخرى (Asyncio Executor)
+        loop = asyncio.get_event_loop()
+        file_path, info = await loop.run_in_executor(None, download_yt_audio, query)
+    except Exception as e:
+        return await edit_delete(zedevent, f"**⎉╎عـذراً، لـم أتمكـن مـن العثـور علـى المقطـع أو حـدث خـطأ:**\n`{str(e)}`", 10)
+
+    try:
+        title = info.get("title", "صوتية")
+        uploader = info.get("uploader", "YouTube")
+        duration = int(info.get("duration", 0))
+        webpage_url = info.get("webpage_url", "")
+
         caption_text = (
-            f"**⎉╎الرابـط :** `{msg_link}`\n"
+            f"**⎉╎الاسـم :** `{title}`\n"
             f"**⎉╎بواسطـة :** {event.client.me.first_name}"
         )
-        
-        # استخدام send_file مع ميديا الرسالة الأصلية = نسخ بدون تحويل
+
+        # تجهيز خصائص الصوتية لتظهر بشكل احترافي (مشغل الموسيقى)
+        audio_attributes = [
+            DocumentAttributeAudio(
+                duration=duration,
+                title=title,
+                performer=uploader
+            )
+        ]
+
+        # إرسال الملف لتيليجرام
         await event.client.send_file(
             event.chat_id,
-            response.media,
+            file_path,
             caption=caption_text,
+            attributes=audio_attributes,
             reply_to=await reply_id(event)
         )
-        await zedevent.delete()
         
-    except Exception as e:
-        await edit_delete(zedevent, f"**خطأ في الإرسال:** {e}", 5)
+        # حذف كليشة "جاري البحث"
+        await zedevent.delete()
 
+    except Exception as e:
+        await edit_delete(zedevent, f"**خطأ أثناء الإرسال:** `{e}`", 5)
+    
+    finally:
+        # حذف الملف من السيرفر بعد الإرسال لتوفير المساحة
+        if 'file_path' in locals() and os.path.exists(file_path):
+            os.remove(file_path)
