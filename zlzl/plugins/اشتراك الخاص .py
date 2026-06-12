@@ -142,9 +142,9 @@ async def set_grp_sub(event):
 # ================== تفعيل الاشتراك ==================
 
 
-@zedub.zed_cmd(pattern="اشتراك")
+@zedub.zed_cmd(pattern="اشتراك (كروب|جروب|قروب|مجموعة|مجموعه|خاص)$")
 async def enable_sub(event):
-    ty = event.text.replace(".اشتراك", "").replace(" ", "")
+    ty = event.pattern_match.group(1)
 
     if ty in ["كروب", "جروب", "قروب", "مجموعة", "مجموعه"]:
         if gvarstatus("sub_group"):
@@ -164,17 +164,13 @@ async def enable_sub(event):
             event, "⎉╎تم تفعيل الاشتراك الاجباري لـ الخـاص .. بنجـاح✓"
         )
 
-    await edit_delete(
-        event, "⎉╎اختـر نوع الاشتـراك الاجبـاري اولاً :\n\n.اشتراك كروب\n\n.اشتراك خاص"
-    )
-
 
 # ================== تعطيل الاشتراك ==================
 
 
-@zedub.zed_cmd(pattern="تعطيل")
+@zedub.zed_cmd(pattern="تعطيل (كروب|جروب|قروب|مجموعة|مجموعه|خاص)$")
 async def disable_sub(event):
-    ty = event.text.replace(".تعطيل", "").replace(" ", "")
+    ty = event.pattern_match.group(1)
 
     if ty in ["كروب", "جروب", "قروب", "مجموعة", "مجموعه"]:
         delgvar("sub_group")
@@ -185,8 +181,6 @@ async def disable_sub(event):
     if ty == "خاص":
         delgvar("sub_private")
         return await edit_delete(event, "⎉╎تم إلغاء الاشتراك الاجباري للخاص .. بنجـاح✓")
-
-    await edit_delete(event, "⎉╎اختـر نوع الاشتـراك الاجبـاري اولاً لـ الالغـاء")
 
 
 # ================== فحص الخاص ==================
