@@ -1,9 +1,7 @@
 import json
 import os
-import re
-import urllib.parse
-
-import aiohttp
+import asyncio
+import yt_dlp
 from telethon import events
 from telethon.tl.types import DocumentAttributeAudio
 
@@ -14,10 +12,13 @@ from ..helpers import reply_id
 plugin_category = "البحث"
 
 # =========================================================
-# نظام حفظ التفعيل/التعطيل
+# نظام حفظ التفعيل/التعطيل ومجلد التخزين
 # =========================================================
 CONFIG_FILE = "yt_public_config.json"
+DOWNLOAD_DIR = "yt_downloads"
 
+# إنشاء مجلد التحميل المحلي
+os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 def is_yt_public():
     if os.path.exists(CONFIG_FILE):
@@ -25,80 +26,70 @@ def is_yt_public():
             return json.load(f).get("is_public", False)
     return False
 
-
 def set_yt_public(state: bool):
     with open(CONFIG_FILE, "w") as f:
         json.dump({"is_public": state}, f)
 
+# =========================================================
+# دالة التحميل المحلي السريعة
+# =========================================================
+def download_audio_sync(query):
+    search_query = query if query.startswith("http") else f"ytsearch1:{query}"
+
+    ydl_opts = {
+        'format': 'bestaudio[ext=m4a]/bestaudio/best',
+        'outtmpl': f'{DOWNLOAD_DIR}/%(id)s.%(ext)s',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(search_query, download=True)
+        if 'entries' in info:
+            info = info['entries'][0]
+            
+        file_path = ydl.prepare_filename(info)
+        
+        return {
+            'file_path': file_path,
+            'title': info.get('title', 'صوتية غير معروفة'),
+            'uploader': info.get('uploader', 'غير معروف'),
+            'duration': info.get('duration', 0),
+        }
 
 # =========================================================
-# البحث وسحب الصوتية عبر API (الحل الجذري لتخطي الحظر)
-# =========================================================
-async def get_yt_audio_fast(query):
-    # 1. البحث السريع جداً وجلب الرابط (بدون مكتبات)
-    if not query.startswith("http"):
-        search_query = urllib.parse.quote(query)
-        search_url = f"https://www.youtube.com/results?search_query={search_query}"
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(search_url) as resp:
-                html = await resp.text()
-                # سحب أول آيدي فيديو من النتائج
-                video_ids = re.findall(r"watch\?v=(\S{11})", html)
-                if not video_ids:
-                    raise Exception("لم يتم العثور على المقطع.")
-                video_url = f"https://www.youtube.com/watch?v={video_ids[0]}"
-    else:
-        video_url = query
-
-    # 2. سحب الصوتية المباشرة باستخدام أقوى API مجاني (Cobalt)
-    api_url = "https://api.cobalt.tools/api/json"
-    headers = {"Accept": "application/json", "Content-Type": "application/json"}
-    payload = {"url": video_url, "aFormat": "mp3", "isAudioOnly": True}
-
-    async with aiohttp.ClientSession() as session:
-        async with session.post(api_url, json=payload, headers=headers) as resp:
-            if resp.status != 200:
-                raise Exception("سيرفر التحميل الخارجي عليه ضغط، جرب مرة أخرى.")
-
-            data = await resp.json()
-            if "url" not in data:
-                raise Exception("فشل في سحب الصوتية.")
-
-            # إرجاع الرابط المباشر للملف الصوتي
-            return data["url"], video_url
-
-
-# =========================================================
-# دالة الإرسال الأنيقة
+# دالة الإرسال والرفع
 # =========================================================
 async def process_and_send_audio(
-    client, chat_id, query, reply_msg_id, sender_name, progress_msg=None
+    client, chat_id, query, reply_msg_id, sender_mention, progress_msg=None
 ):
+    file_path = None
     try:
-        # جلب الرابط المباشر
-        audio_url, yt_url = await get_yt_audio_fast(query)
+        if progress_msg:
+            await progress_msg.edit("**•❐• جـاري الـبـحـث والتـحـمـيـل ..**")
+
+        info = await asyncio.to_thread(download_audio_sync, query)
+        file_path = info['file_path']
 
         if progress_msg:
-            await progress_msg.edit("**•❐• جـاري رفـع الصـوتـيـة ..**")
+            await progress_msg.edit("**•❐• جـاري الـرفـع ..**")
 
-        caption_text = (
-            f"**⎉╎الاسـم :** [المقطـع الصـوتـي]({yt_url})\n"
-            f"**⎉╎بطلب مـن :** {sender_name}"
-        )
+        # الكابشن يحتوي فقط على بطلب من (الاسم ماركداون)
+        caption_text = f"**⎉╎بطلـب مـن :** {sender_mention}"
 
+        # دمج الاسم والفنان في معلومات الصوتية نفسها ليتعرف عليها تليجرام
         audio_attributes = [
             DocumentAttributeAudio(
-                duration=0,
-                title=query if not query.startswith("http") else "صوتية",
-                performer="YouTube",
+                duration=info['duration'],
+                title=info['title'],
+                performer=info['uploader'],
             )
         ]
 
-        # تيليجرام يحمل من الرابط المباشر بسرعة البرق دون المرور بسيرفرك
         await client.send_file(
             chat_id,
-            audio_url,
+            file_path,
             caption=caption_text,
             attributes=audio_attributes,
             reply_to=reply_msg_id,
@@ -110,33 +101,37 @@ async def process_and_send_audio(
     except Exception as e:
         if progress_msg:
             await progress_msg.edit(f"**⎉╎عـذراً، حـدث خـطأ:**\n`{str(e)}`")
-
+            
+    finally:
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except:
+                pass
 
 # =========================================================
-# 1. أوامر التحكم للمالك (تفعيل / تعطيل)
+# أوامر التحكم للمالك
 # =========================================================
 @zedub.zed_cmd(pattern="تفعيل اليوتيوب")
 async def enable_yt_public(event):
     set_yt_public(True)
     await edit_delete(
         event,
-        "**⎉╎تـم تفعيـل اليوتيـوب للأعضـاء بنجـاح ✅\nالآن يمكن لأي شخص كتابة (يوت + اسم المقطع).**",
+        "**•❐• تـم تفعيـل بـحـث اليوتيـوب للـعـامـة ..**\n**⎉╎الآن يمكـن للجميـع استخـدام أمـر ( يوت )**",
         7,
     )
-
 
 @zedub.zed_cmd(pattern="تعطيل اليوتيوب")
 async def disable_yt_public(event):
     set_yt_public(False)
     await edit_delete(
         event,
-        "**⎉╎تـم تعطيـل اليوتيـوب للأعضـاء بنجـاح ❌\nالآن أنت فقط (المالك) من يمكنه استخدامه.**",
+        "**•❐• تـم تعطيـل بـحـث اليوتيـوب للـعـامـة ..**\n**⎉╎الآن يمكـنـك أنـت فـقـط استخـدام الأمـر**",
         7,
     )
 
-
 # =========================================================
-# 2. أمر المالك (يعمل في أي وقت)
+# أمر المالك
 # =========================================================
 @zedub.zed_cmd(pattern=r"يوت(?:\s+([\s\S]*))?")
 async def zed_yt_owner(event):
@@ -154,16 +149,19 @@ async def zed_yt_owner(event):
         )
 
     zedevent = await edit_or_reply(
-        event, "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**"
+        event, "**•❐• جـاري الـبـحـث والتـحـمـيـل ..**"
     )
-    sender_name = event.client.me.first_name
-    await process_and_send_audio(
-        event.client, event.chat_id, query, await reply_id(event), sender_name, zedevent
-    )
+    
+    # إنشاء منشن ماركداون لاسم المالك
+    me = await event.client.get_me()
+    sender_mention = f"[{me.first_name}](tg://user?id={me.id})"
 
+    await process_and_send_audio(
+        event.client, event.chat_id, query, await reply_id(event), sender_mention, zedevent
+    )
 
 # =========================================================
-# 3. مستمع الجروبات للأعضاء
+# مستمع الجروبات للأعضاء
 # =========================================================
 @zedub.on(events.NewMessage(incoming=True))
 async def public_yt_handler(event):
@@ -179,16 +177,20 @@ async def public_yt_handler(event):
             return
 
         progress_msg = await event.reply(
-            "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**"
+            "**•❐• جـاري الـبـحـث والتـحـمـيـل ..**"
         )
         sender = await event.get_sender()
         sender_name = getattr(sender, "first_name", "عضو")
+        sender_id = getattr(sender, "id", 0)
+        
+        # إنشاء منشن ماركداون لاسم العضو
+        sender_mention = f"[{sender_name}](tg://user?id={sender_id})"
 
         await process_and_send_audio(
             event.client,
             event.chat_id,
             query,
             event.message.id,
-            sender_name,
+            sender_mention,
             progress_msg,
         )
