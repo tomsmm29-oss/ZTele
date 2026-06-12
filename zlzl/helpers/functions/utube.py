@@ -1,9 +1,9 @@
-import os
-import re
 import glob
+import os
+import random
+import re
 import urllib.request
 from collections import defaultdict
-import random
 
 import ujson
 import yt_dlp
@@ -23,7 +23,7 @@ LOGS = logging.getLogger(__name__)
 
 def get_cookies_file():
     folder_path = f"{os.getcwd()}/zion"
-    txt_files = glob.glob(os.path.join(folder_path, '*.txt'))
+    txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
     if not txt_files:
         raise FileNotFoundError("No .txt files found in the specified folder.")
     cookie_txt_file = random.choice(txt_files)
@@ -40,9 +40,8 @@ song_dl = "yt-dlp --cookies {get_cookies_file()} --force-ipv4 --write-thumbnail 
 
 thumb_dl = "yt-dlp --cookies {get_cookies_file()} --force-ipv4 -o './temp/%(title)s.%(ext)s' --write-thumbnail --skip-download {video_link}"
 video_dl = "yt-dlp --cookies {get_cookies_file()} --force-ipv4 --write-thumbnail --add-metadata --embed-thumbnail -o './temp/%(title)s.%(ext)s' -f 'best[height<=480]' {video_link}"
-name_dl = (
-    "yt-dlp --cookies {get_cookies_file()} --force-ipv4 --get-filename -o './temp/%(title)s.%(ext)s' {video_link}"
-)
+name_dl = "yt-dlp --cookies {get_cookies_file()} --force-ipv4 --get-filename -o './temp/%(title)s.%(ext)s' {video_link}"
+
 
 async def yt_search(zed):
     try:
@@ -224,9 +223,9 @@ def yt_search_btns(
 def download_button(vid: str, body: bool = False):  # sourcery no-metrics
     # sourcery skip: low-code-quality
     try:
-        vid_data = yt_dlp.YoutubeDL({"no-playlist": True, "cookiefile": get_cookies_file()}).extract_info(
-            BASE_YT_URL + vid, download=False
-        )
+        vid_data = yt_dlp.YoutubeDL(
+            {"no-playlist": True, "cookiefile": get_cookies_file()}
+        ).extract_info(BASE_YT_URL + vid, download=False)
     except ExtractorError:
         vid_data = {"formats": []}
     buttons = [
@@ -253,11 +252,13 @@ def download_button(vid: str, body: bool = False):  # sourcery no-metrics
                     if fr_note in (frmt_, f"{frmt_}60"):
                         qual_dict[frmt_][fr_id] = fr_size
             if video.get("acodec") != "none":
-                bitrrate = int(video.get("abr", 0)) if video.get("abr", 0) else 0 # تم اضافتها مع الكوكيز
+                bitrrate = (
+                    int(video.get("abr", 0)) if video.get("abr", 0) else 0
+                )  # تم اضافتها مع الكوكيز
                 if bitrrate != 0:
-                    audio_dict[
-                        bitrrate
-                    ] = f"🎵 {bitrrate}Kbps ({humanbytes(fr_size) or 'N/A'})"
+                    audio_dict[bitrrate] = (
+                        f"🎵 {bitrrate}Kbps ({humanbytes(fr_size) or 'N/A'})"
+                    )
 
     video_btns = []
     for frmt in qual_list:
@@ -273,7 +274,11 @@ def download_button(vid: str, body: bool = False):  # sourcery no-metrics
             )
     buttons += sublists(video_btns, width=2)
     buttons += [
-        [Button.inline("⭐️ اعلى دقـه - 🎵 320Kbps - MP3", data=f"ytdl_download_{vid}_mp3_a")]
+        [
+            Button.inline(
+                "⭐️ اعلى دقـه - 🎵 320Kbps - MP3", data=f"ytdl_download_{vid}_mp3_a"
+            )
+        ]
     ]
     buttons += sublists(
         [
@@ -308,7 +313,7 @@ def _tubeDl(url: str, starttime, uid: str):
         ],
         "quiet": True,
         "no_warnings": True,
-        "cookiefile" : get_cookies_file(),
+        "cookiefile": get_cookies_file(),
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -342,7 +347,7 @@ def _mp3Dl(url: str, starttime, uid: str):
         ],
         "quiet": True,
         "no_warnings": True,
-        "cookiefile" : get_cookies_file(),
+        "cookiefile": get_cookies_file(),
     }
     try:
         with yt_dlp.YoutubeDL(_opts) as ytdl:

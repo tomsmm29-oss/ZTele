@@ -1,17 +1,29 @@
-import sys, asyncio
-import zlzl
+import sys
+
+import redis.asyncio as redis
+
 from zlzl import BOTLOG_CHATID, HEROKU_APP, PM_LOGGER_GROUP_ID
-from telethon import functions
+
 from .Config import Config
 from .core.logger import logging
 from .core.session import zedub
-import redis.asyncio as redis
+
 # رابط الرام الخاص بك (Upstash)
 REDIS_URL = "rediss://default:gQAAAAAAAZMqAAIocDE5OTg0NmFmMzhlYzY0NGQ1YWQ1M2I2OTk0OGU4ZjU1NnAxMTAzMjEw@pleasant-crab-103210.upstash.io:6379"
 RedisCache = redis.from_url(REDIS_URL, decode_responses=True)
 zedub.redis = RedisCache
-from .utils import mybot, autoname, autovars, saves, supscrips
-from .utils import add_bot_to_logger_group, load_plugins, setup_bot, startupmessage, verifyLoggerGroup
+from .utils import (
+    add_bot_to_logger_group,
+    autoname,
+    autovars,
+    load_plugins,
+    mybot,
+    saves,
+    setup_bot,
+    startupmessage,
+    supscrips,
+    verifyLoggerGroup,
+)
 
 LOGS = logging.getLogger("ZTele")
 cmdhr = Config.COMMAND_HAND_LER
@@ -39,9 +51,12 @@ except Exception as e:
     LOGS.error(f"{str(e)}")
     sys.exit()
 
+
 class CatCheck:
     def __init__(self):
         self.sucess = True
+
+
 Catcheck = CatCheck()
 
 try:
@@ -70,19 +85,19 @@ async def startup_process():
     await verifyLoggerGroup()
     await load_plugins("plugins")
     await load_plugins("assistant")
-    
+
     # 🚀 بدء مزامنة الرام (نقل البيانات من SQL إلى Redis)
     print("🔄 جاري مزامنة البيانات إلى الرام الخارجي (Redis)...")
     try:
-        from zlzl.sql_helper.filter_sql import Filters
         from zlzl.sql_helper import SESSION
-        
+        from zlzl.sql_helper.filter_sql import Filters
+
         # مزامنة الفلاتر كمثال (تقدر تضيف الباقي بنفس الطريقة)
         all_filters = SESSION.query(Filters).all()
         for filt in all_filters:
             # تخزين الفلتر في الرام: filters:chat_id -> {keyword: reply}
             await zedub.redis.hset(f"filters:{filt.chat_id}", filt.keyword, filt.reply)
-        
+
         print(f"✅ تمت مزامنة {len(all_filters)} فلتر إلى الرام بنجاح!")
     except Exception as e:
         print(f"⚠️ خطأ أثناء المزامنة: {e}")

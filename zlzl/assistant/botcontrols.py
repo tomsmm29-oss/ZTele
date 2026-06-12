@@ -3,8 +3,6 @@ from datetime import datetime
 
 from telethon.errors import BadRequestError, FloodWaitError, ForbiddenError
 
-from . import zedub
-
 from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
@@ -13,7 +11,7 @@ from ..helpers.utils import _format
 from ..sql_helper.bot_blacklists import check_is_black_list, get_all_bl_users
 from ..sql_helper.bot_starters import del_starter_from_db, get_all_starters
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG, BOTLOG_CHATID
+from . import BOTLOG, BOTLOG_CHATID, zedub
 from .botmanagers import (
     ban_user_from_bot,
     get_user_and_reason,
@@ -30,8 +28,7 @@ cmhd = Config.COMMAND_HAND_LER
 
 @zedub.bot_cmd(pattern="^/help$", from_users=Config.OWNER_ID)
 async def bot_help(event):
-    await event.reply(
-        """ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗯𝗼𝘁 **- قائمــة اوامــر البـوت المسـاعـد 🤖♥️**
+    await event.reply("""ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗯𝗼𝘁 **- قائمــة اوامــر البـوت المسـاعـد 🤖♥️**
 **⋆┄─┄─┄─┄┄─┄─┄─┄─┄┄⋆**
 **📑 اولاً الاوامــر الإداريـة الخاصـه بالبــوت المسـاعــد الخـاص بـك :**
 **ملاحـظــه :**
@@ -77,8 +74,7 @@ async def bot_help(event):
 
 ⪼ `.اضف صورة البوت`
 **بالـرد ع صـورة او ميديـا لـ اضـافة صـورة ستـارت للبـوت**
-"""
-    )
+""")
 
 
 @zedub.bot_cmd(pattern="^/broadcast$", from_users=Config.OWNER_ID)
@@ -99,7 +95,8 @@ async def bot_broadcast(event):
     for user in users:
         try:
             await event.client.send_message(
-                int(user.user_id), "**- تم الاذاعـه لجميـع مشتركيـن البـوت .. بنجـاح 🔊✓**"
+                int(user.user_id),
+                "**- تم الاذاعـه لجميـع مشتركيـن البـوت .. بنجـاح 🔊✓**",
             )
             await event.client.send_message(int(user.user_id), replied)
             await asyncio.sleep(0.8)
@@ -134,9 +131,7 @@ async def bot_broadcast(event):
     b_info = f"**🔊  تمت الاذاعـه بنجـاح لـ ➜**  <b>{count} شخـص.</b>"
     if blocked_users:
         b_info += f"\n <b>- المحظـوريـن 🚫 : {len(blocked_users)} مشتـرك </b> تم حظـرهم من البـوت المسـاعد مؤخـراً .. لذلك تم استبعـادهم 🚯"
-    b_info += (
-        f"\n⏳  <code>- جـارِ : {time_formatter((end_ - start_).seconds)}</code>."
-    )
+    b_info += f"\n⏳  <code>- جـارِ : {time_formatter((end_ - start_).seconds)}</code>."
     await br_cast.edit(b_info, parse_mode="html")
 
 
@@ -169,7 +164,9 @@ async def ban_botpms(event):
         )
     if not reason:
         return await event.client.send_message(
-            event.chat_id, "**- لحظـر الشخـص اولا عليـك بذكـر السبب مـع الامـر**", reply_to=reply_to
+            event.chat_id,
+            "**- لحظـر الشخـص اولا عليـك بذكـر السبب مـع الامـر**",
+            reply_to=reply_to,
         )
     try:
         user = await event.client.get_entity(user_id)

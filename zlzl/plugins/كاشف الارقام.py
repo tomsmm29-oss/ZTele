@@ -1,13 +1,16 @@
 import asyncio
+
 from telethon import events
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.utils import _format, get_user_from_event
+
 # --- تصحيح المسارات للمشروع الجديد ZTele ---
 from . import zedub
-from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import reply_id, get_user_from_event, _format
 
 plugin_category = "البحث"
+
 
 # --- دالة مساعدة لفك رد بوت الأسماء (عشان لو مش موجودة في المساعدات) ---
 async def sanga_seperator(responses):
@@ -19,6 +22,7 @@ async def sanga_seperator(responses):
         elif "Username History" in response:
             usernames.append(response)
     return names, usernames
+
 
 # ====================================================================
 #                       كـاشـف الارقـام (زلزال)
@@ -39,6 +43,7 @@ ZelzalPH_cmd = (
     "\n𓆩 [𐇮 𝙕𝞝𝙇𝙕𝘼𝙇 الهہـيـٖ͡ـ͢ـبـه 𐇮](t.me/zzzzl1l) 𓆪"
 )
 
+
 @zedub.zed_cmd(
     pattern="كاشف ?(.*)",
     command=("كاشف", plugin_category),
@@ -57,15 +62,18 @@ async def _(event):
         reply_to_id = str(reply_msg.message)
     else:
         reply_to_id = str(input_str)
-    
+
     if not reply_to_id or not input_str:
         return await edit_or_reply(
-            event, "**╮ . كـاشف الاࢪقـام الـ؏ـࢪبيـة 📲.. اࢪسـل** `.الكاشف` **للتعليـمات 𓅫╰**"
+            event,
+            "**╮ . كـاشف الاࢪقـام الـ؏ـࢪبيـة 📲.. اࢪسـل** `.الكاشف` **للتعليـمات 𓅫╰**",
         )
-    
+
     chat = "@jdjskzkk_bot"
-    zzzzl1l = await edit_or_reply(event, "**╮•⎚ جـارِ الكـشف ؏ــن الـرقـم  📲 ⌭ . . .**")
-    
+    zzzzl1l = await edit_or_reply(
+        event, "**╮•⎚ جـارِ الكـشف ؏ــن الـرقـم  📲 ⌭ . . .**"
+    )
+
     async with event.client.conversation(chat) as conv:
         try:
             # تم حذف ID البوت المحدد لضمان العمل مع أي تحديث، أو ممكن نرجعه لو البوت ده بس اللي شغال
@@ -76,14 +84,17 @@ async def _(event):
             response = await response
             await event.client.send_read_acknowledge(conv.chat_id)
         except YouBlockedUserError:
-            await zzzzl1l.edit("**╮•⎚ تحـقق من انـك لم تقـم بحظر البوت @Zelzalybot .. ثم اعـد استخدام الامـر ...🤖♥️**")
+            await zzzzl1l.edit(
+                "**╮•⎚ تحـقق من انـك لم تقـم بحظر البوت @Zelzalybot .. ثم اعـد استخدام الامـر ...🤖♥️**"
+            )
             return
-        
+
         if response.text.startswith("I can't find that"):
             await zzzzl1l.edit("**╮•⎚ عـذراً .. لـم استطـع ايجـاد المطلـوب ☹️💔**")
         else:
             await zzzzl1l.delete()
             await event.client.send_message(event.chat_id, response.message)
+
 
 @zedub.zed_cmd(pattern="الكاشف")
 async def cmd(zelzallll):
@@ -93,6 +104,7 @@ async def cmd(zelzallll):
 # ====================================================================
 #                       كـاشـف الاسماء (سجل الأسماء)
 # ====================================================================
+
 
 @zedub.zed_cmd(
     pattern="(كشف|الاسماء)(المعرف)?(?:\s|$)([\s\S]*)",
@@ -109,32 +121,34 @@ async def cmd(zelzallll):
         "examples": "{tr}sg @missrose_bot",
     },
 )
-async def _(event): 
+async def _(event):
     "To get name/username history."
     input_str = "".join(event.text.split(maxsplit=1)[1:])
     reply_message = await event.get_reply_message()
-    
+
     if not input_str and not reply_message:
         return await edit_delete(
             event,
             "`reply to user's text message to get name/username history or give userid/username`",
         )
-    
+
     user, rank = await get_user_from_event(event, secondgroup=True)
     if not user:
         return
-    
+
     uid = user.id
     chat = "@SangMata_beta_bot"
     zedevent = await edit_or_reply(event, "**⎉╎جـارِ الكشـف ...**")
-    
+
     async with event.client.conversation(chat) as conv:
         try:
             await conv.send_message(f"{uid}")
         except YouBlockedUserError:
-            await edit_delete(zedevent, "**- اضغط ستارت هنـا @SangMata_BOT ثم اعد ارسال الامر**")
+            await edit_delete(
+                zedevent, "**- اضغط ستارت هنـا @SangMata_BOT ثم اعد ارسال الامر**"
+            )
             return
-        
+
         responses = []
         while True:
             try:
@@ -143,22 +157,22 @@ async def _(event):
                 break
             responses.append(response.text)
         await event.client.send_read_acknowledge(conv.chat_id)
-    
+
     if not responses:
         await edit_delete(zedevent, "**- الامـر في وضع الصيانه حاليـاً ...**")
         return
-        
+
     if "No data available" in responses:
         await edit_delete(zedevent, "**⎉╎المستخدم ليس لديه أي سجل اسمـاء بعـد ...**")
         return
 
     # استخدام الدالة المحلية اللي كتبناها فوق عشان ميعملش مشاكل
     names, usernames = await sanga_seperator(responses)
-    
-    cmd_trigger = event.pattern_match.group(2) # (المعرف)
+
+    cmd_trigger = event.pattern_match.group(2)  # (المعرف)
     sandy = None
     check = usernames if cmd_trigger == "المعرف" else names
-    
+
     for i in check:
         if sandy:
             await event.reply(i, parse_mode=_format.parse_pre)

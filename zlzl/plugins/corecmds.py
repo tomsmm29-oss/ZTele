@@ -5,7 +5,7 @@ from pathlib import Path
 from ..Config import Config
 from ..core import CMD_INFO, PLG_INFO
 from ..utils import load_module, remove_plugin
-from . import CMD_HELP, CMD_LIST, SUDO_LIST, zedub, edit_delete, edit_or_reply, reply_id
+from . import CMD_HELP, CMD_LIST, SUDO_LIST, edit_delete, edit_or_reply, reply_id, zedub
 
 plugin_category = "الادوات"
 
@@ -31,7 +31,9 @@ def plug_checker(plugin):
 async def install(event):
     zelzal = event.sender_id
     if zelzal != MAIN_DEV:
-        return await edit_delete(event, "**- عـذراً .. هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+        return await edit_delete(
+            event, "**- عـذراً .. هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10
+        )
 
     if event.reply_to_msg_id:
         try:
@@ -67,14 +69,18 @@ async def install(event):
 async def load(event):
     zelzal = event.sender_id
     if zelzal != MAIN_DEV:
-        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+        return await edit_delete(
+            event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10
+        )
 
     shortname = event.pattern_match.group(1)
     try:
         with contextlib.suppress(BaseException):
             remove_plugin(shortname)
         load_module(shortname)
-        await edit_delete(event, f"**⎉╎تـم تحميـل الملـف** {shortname} **بنجـاح ✓**", 10)
+        await edit_delete(
+            event, f"**⎉╎تـم تحميـل الملـف** {shortname} **بنجـاح ✓**", 10
+        )
     except Exception as e:
         await edit_or_reply(
             event,
@@ -93,7 +99,9 @@ async def load(event):
 async def send(event):
     zelzal = event.sender_id
     if zelzal != MAIN_DEV:
-        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+        return await edit_delete(
+            event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10
+        )
 
     reply_to_id = await reply_id(event)
     thumb = thumb_image_path if os.path.exists(thumb_image_path) else None
@@ -126,14 +134,18 @@ async def send(event):
 async def unload(event):
     zelzal = event.sender_id
     if zelzal != MAIN_DEV:
-        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+        return await edit_delete(
+            event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10
+        )
 
     shortname = event.pattern_match.group(1)
     try:
         remove_plugin(shortname)
         await edit_or_reply(event, f"**⎉╎تـم الغـاء تحميـل** {shortname} **بنجاح ✓**")
     except Exception as e:
-        await edit_or_reply(event, f"**⎉╎تم الغـاء التحميل** {shortname} **بنجـاح ✓**\n{e}")
+        await edit_or_reply(
+            event, f"**⎉╎تم الغـاء التحميل** {shortname} **بنجـاح ✓**\n{e}"
+        )
 
 
 @zedub.zed_cmd(
@@ -147,13 +159,17 @@ async def unload(event):
 async def uninstall(event):
     zelzal = event.sender_id
     if zelzal != MAIN_DEV:
-        return await edit_delete(event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10)
+        return await edit_delete(
+            event, "**- هذا الأمر خاص بالمطوّر الأساسي فقط ⚠️**", 10
+        )
 
     shortname = event.pattern_match.group(1)
     path = plug_checker(shortname)
 
     if not os.path.exists(path):
-        return await edit_delete(event, f"**- الملف `{shortname}` غير موجود لإلغاء تنصيبه !**")
+        return await edit_delete(
+            event, f"**- الملف `{shortname}` غير موجود لإلغاء تنصيبه !**"
+        )
 
     os.remove(path)
 
@@ -166,11 +182,15 @@ async def uninstall(event):
 
     try:
         remove_plugin(shortname)
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**")
+        await edit_or_reply(
+            event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**"
+        )
     except Exception as e:
-        await edit_or_reply(event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**\n{e}")
+        await edit_or_reply(
+            event, f"**⎉╎تـم الغـاء تنصيب الملف** {shortname} **بنجـاح ✓**\n{e}"
+        )
 
     if shortname in PLG_INFO:
         for cmd in PLG_INFO[shortname]:
             CMD_INFO.pop(cmd)
-        PLG_INFO.pop(shortname) 
+        PLG_INFO.pop(shortname)

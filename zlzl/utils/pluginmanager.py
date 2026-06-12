@@ -2,18 +2,22 @@ import contextlib
 import importlib
 import sys
 from pathlib import Path
+
 from zlzl import CMD_HELP, LOAD_PLUG
+
 from ..Config import Config
 from ..core import LOADED_CMDS, PLG_INFO
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..core.session import zedub
 from ..helpers.tools import media_type
+
 # استيراد reply_id الحقيقي
-from ..helpers.utils import _zedtools, _zedutils, _format, install_pip, reply_id
+from ..helpers.utils import _format, _zedtools, _zedutils, install_pip, reply_id
 from .decorators import admin_cmd, sudo_cmd
 
 LOGS = logging.getLogger("ZThon")
+
 
 def load_module(shortname, plugin_path=None):
     if shortname.startswith("__"):
@@ -33,11 +37,11 @@ def load_module(shortname, plugin_path=None):
         else:
             path = Path((f"{plugin_path}/{shortname}.py"))
             name = f"{plugin_path}/{shortname}".replace("/", ".")
-        
+
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
-        
+
         # =================================================
         # 💉 الحقن الذكي (Smart Injection) 💉
         # =================================================
@@ -58,10 +62,10 @@ def load_module(shortname, plugin_path=None):
         mod.borg = zedub
 
         # هنا السحر: نعطيه الدالة الحقيقية عشان الأوامر تشتغل
-        mod.reply_id = reply_id 
+        mod.reply_id = reply_id
         mod.media_type = media_type
         mod.edit_delete = edit_delete
-        
+
         # =================================================
 
         try:
@@ -71,7 +75,9 @@ def load_module(shortname, plugin_path=None):
         except TypeError as e:
             # إذا الملف حاول يجمع (+=) بنصيده هنا
             if "unsupported operand type(s) for +=" in str(e):
-                LOGS.warning(f"⚠️ الملف {shortname} قديم ويسبب مشاكل (+). تم تخطيه لسلامة البوت.")
+                LOGS.warning(
+                    f"⚠️ الملف {shortname} قديم ويسبب مشاكل (+). تم تخطيه لسلامة البوت."
+                )
             else:
                 LOGS.error(f"❌ Failed to load {shortname}: {e}")
         except Exception as e:
@@ -96,11 +102,11 @@ def lload_module(shortname, plugin_path=None):
         else:
             path = Path((f"{plugin_path}/{shortname}.py"))
             name = f"{plugin_path}/{shortname}".replace("/", ".")
-        
+
         checkplugins(path)
         spec = importlib.util.spec_from_file_location(name, path)
         mod = importlib.util.module_from_spec(spec)
-        
+
         mod.bot = zedub
         mod.LOGS = LOGS
         mod.Config = Config
@@ -116,7 +122,7 @@ def lload_module(shortname, plugin_path=None):
         mod.edit_or_reply = edit_or_reply
         mod.logger = logging.getLogger(shortname)
         mod.borg = zedub
-        
+
         # الحقن الذكي هنا أيضاً
         mod.reply_id = reply_id
         mod.media_type = media_type
@@ -127,7 +133,7 @@ def lload_module(shortname, plugin_path=None):
             sys.modules[f"zlzl.plugins.{shortname}"] = mod
             print("Successfully imported library")
         except Exception as e:
-             print(f"Failed to load {shortname}: {e}")
+            print(f"Failed to load {shortname}: {e}")
 
 
 def remove_plugin(shortname):

@@ -14,14 +14,13 @@ from PIL import Image, ImageColor
 from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl.functions.contacts import UnblockRequest as unblock
 
-from . import zedub
-
 from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers import AioHttp
 from ..helpers.functions import delete_conv
 from ..helpers.utils import _zedutils, reply_id
+from . import zedub
 
 plugin_category = "الادوات"
 
@@ -479,7 +478,5 @@ Title: {}
 Alt: {}
 Day: {}
 Month: {}
-Year: {}""".format(
-        img, input_str, xkcd_link, safe_title, alt, day, month, year
-    )
+Year: {}""".format(img, input_str, xkcd_link, safe_title, alt, day, month, year)
     await zedevent.edit(output_str, link_preview=True)

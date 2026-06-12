@@ -1,23 +1,27 @@
-import random
 import asyncio
+import random
+
 import requests
 from telethon import functions
 from telethon.errors import FloodWaitError, UsernameInvalidError
 
+from ..core.managers import edit_or_reply
+
 # --- تصحيح المسارات والحقن النسبي ---
 from . import zedub
-from ..core.managers import edit_delete, edit_or_reply
 
 # --- دالة User-Agent محلية (بدل المكتبة الخارجية) ---
+
 
 def generate_user_agent():
     versions = [
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36",
-        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1"
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
     ]
     return random.choice(versions)
+
 
 # الحروف والأرقام المسموح بها
 letters = "qwertyuiopassdfghjklzxcvbnm"
@@ -45,8 +49,9 @@ _checked_cache = set()
 
 # مساعدات توليد
 
+
 def _rand_chars(pool, n):
-    return ''.join(random.choice(pool) for _ in range(n))
+    return "".join(random.choice(pool) for _ in range(n))
 
 
 def _mutate_variants(base):
@@ -94,14 +99,22 @@ async def check_user(username, client=None, max_retries=2):
         for attempt in range(max_retries + 1):
             try:
                 # contacts.ResolveUsernameRequest تُرجع نتيجة إن كان اليوزر موجود
-                _ = await client(functions.contacts.ResolveUsernameRequest(username=uname))
+                _ = await client(
+                    functions.contacts.ResolveUsernameRequest(username=uname)
+                )
                 # إن نجح الاستدعاء يعني الاسم محجوز
                 _checked_cache.add(uname)
                 return False
             except Exception as e:
                 text = str(e).lower()
                 # إذا الرسالة تفيد أن الاسم غير مشغول
-                if "not found" in text or "username not" in text or "occupied" in text or "could not" in text or "no" in text:
+                if (
+                    "not found" in text
+                    or "username not" in text
+                    or "occupied" in text
+                    or "could not" in text
+                    or "no" in text
+                ):
                     # هنا نعتبره متاحاً
                     # ملاحظة: بعض الأخطاء قد تكون من الشبكة لذا نعمل retry
                     if attempt < max_retries:
@@ -132,11 +145,19 @@ async def check_user(username, client=None, max_retries=2):
                 return True
             text = resp.text.lower()
             # إذا الصفحة تعرض "If you have Telegram, you can contact" فهذا يعني وجود حساب
-            if "if you have <strong>telegram</strong>" in text or "tgme_username_link" in text or "telegram" in text:
+            if (
+                "if you have <strong>telegram</strong>" in text
+                or "tgme_username_link" in text
+                or "telegram" in text
+            ):
                 _checked_cache.add(uname)
                 return False
             # بعض صفحات t.me تعرض رسالة أن اليوزر غير موجود، حاول اكتشافها
-            if "username is available" in text or "this username is available" in text or "this channel is available" in text:
+            if (
+                "username is available" in text
+                or "this username is available" in text
+                or "this channel is available" in text
+            ):
                 _checked_cache.add(uname)
                 return True
             # افتراض افتراضي: إن كانت الصفحة تحتوي على "join channel" غالباً موجود
@@ -153,6 +174,7 @@ async def check_user(username, client=None, max_retries=2):
 
 
 # قوالب وأنماط متقدمة للتوليد
+
 
 def gen_user(choice):
     choice = choice.strip()
@@ -184,26 +206,36 @@ def gen_user(choice):
 
     if choice == "خماسي حرفين":
         # 2 أحرف + 3 أرقام/أحرف بمواقع عشوائية
-        parts = [random.choice(letters), random.choice(letters), random.choice(alnum), random.choice(alnum), random.choice(alnum)]
+        parts = [
+            random.choice(letters),
+            random.choice(letters),
+            random.choice(alnum),
+            random.choice(alnum),
+            random.choice(alnum),
+        ]
         random.shuffle(parts)
-        return ''.join(parts)
+        return "".join(parts)
 
     if choice == "سداسيات":
         return _rand_chars(alnum, 6)
 
     if choice == "سداسي حرفين":
         # إجبار على احتواء حرفين على الأقل
-        parts = [random.choice(letters) for _ in range(2)] + [random.choice(alnum) for _ in range(4)]
+        parts = [random.choice(letters) for _ in range(2)] + [
+            random.choice(alnum) for _ in range(4)
+        ]
         random.shuffle(parts)
-        return ''.join(parts)
+        return "".join(parts)
 
     if choice == "سباعيات":
         return _rand_chars(alnum, 7)
 
     if choice == "سباعي حرفين":
-        parts = [random.choice(letters) for _ in range(2)] + [random.choice(alnum) for _ in range(5)]
+        parts = [random.choice(letters) for _ in range(2)] + [
+            random.choice(alnum) for _ in range(5)
+        ]
         random.shuffle(parts)
-        return ''.join(parts)
+        return "".join(parts)
 
     if choice == "بوتات":
         base = _rand_chars(letters, 3)
@@ -212,7 +244,7 @@ def gen_user(choice):
     if choice == "تيست":
         parts = [random.choice(alnum) for _ in range(10)]
         random.shuffle(parts)
-        return ''.join(parts)
+        return "".join(parts)
 
     # طلب المستخدم: رباعي بالشكل DF_KK => شكل مثل AB_CD
     if choice == "رباعي" or choice == "رباعي DF_KK":
@@ -261,7 +293,9 @@ async def cmd(zelzallll):
 @zedub.zed_cmd(pattern="صيد (.*)")
 async def hunterusername(event):
     choice = str(event.pattern_match.group(1)).strip()
-    await event.edit(f"**⎉╎تم بـدء الصيـد .. بنجـاح ☑️**\n**⎉╎لمعرفـة حالة تقـدم عمليـة الصيـد ارسـل (**`.حالة الصيد`**)**")
+    await event.edit(
+        f"**⎉╎تم بـدء الصيـد .. بنجـاح ☑️**\n**⎉╎لمعرفـة حالة تقـدم عمليـة الصيـد ارسـل (**`.حالة الصيد`**)**"
+    )
 
     try:
         ch = await zedub(
@@ -342,7 +376,10 @@ async def hunterusername(event):
                     break
                 except Exception as eee:
                     err = str(eee).lower()
-                    if "the username is already" in err or "username_purchase_available" in err:
+                    if (
+                        "the username is already" in err
+                        or "username_purchase_available" in err
+                    ):
                         pass
                     else:
                         await zedub.send_message(
@@ -377,12 +414,14 @@ async def _(event):
 
     isauto.clear()
     isauto.append("on")
-    trys2[0] = 0 # تصفير العداد لعملية تثبيت جديدة
+    trys2[0] = 0  # تصفير العداد لعملية تثبيت جديدة
 
     ch_id = None
 
     if target_type == "حساب":
-        await event.edit(f"**- تم بـدء التثبيت في الحساب .. بنجـاح ☑️**\n**- اليـوزر : @{username}**")
+        await event.edit(
+            f"**- تم بـدء التثبيت في الحساب .. بنجـاح ☑️**\n**- اليـوزر : @{username}**"
+        )
     else:
         # للقناة أو البوت، نؤمن اليوزر في قناة لضمان عدم ضياعه
         try:
@@ -393,7 +432,9 @@ async def _(event):
                 )
             )
             ch_id = ch.updates[1].channel_id
-            await event.edit(f"**- تم بـدء التثبيت ({target_type}) .. بنجـاح ☑️**\n**- اليـوزر : @{username}**")
+            await event.edit(
+                f"**- تم بـدء التثبيت ({target_type}) .. بنجـاح ☑️**\n**- اليـوزر : @{username}**"
+            )
         except Exception as e:
             await zedub.send_message(
                 event.chat_id, f"خطأ في انشاء القناة , الخطأ : {str(e)}"
@@ -449,22 +490,31 @@ async def _(event):
             except Exception as eee:
                 err_str = str(eee).lower()
                 # معالجة ذكية لمشكلة الحد الأقصى للقنوات العامة
-                if "channels_admin_public_too_much" in err_str or "too much" in err_str or "too many" in err_str:
+                if (
+                    "channels_admin_public_too_much" in err_str
+                    or "too much" in err_str
+                    or "too many" in err_str
+                ):
                     try:
                         # جلب قنواتك العامة
-                        public_channels = await zedub(functions.channels.GetAdminedPublicChannelsRequest())
+                        public_channels = await zedub(
+                            functions.channels.GetAdminedPublicChannelsRequest()
+                        )
                         if public_channels.chats:
                             # تفريغ يوزر أول قناة عامة تواجهنا
                             target_revoke = public_channels.chats[0]
-                            await zedub(functions.channels.UpdateUsernameRequest(
-                                channel=target_revoke.id,
-                                username=""
-                            ))
+                            await zedub(
+                                functions.channels.UpdateUsernameRequest(
+                                    channel=target_revoke.id, username=""
+                                )
+                            )
                             # إعادة المحاولة فورا لليوزر الجديد
-                            await zedub(functions.channels.UpdateUsernameRequest(
-                                channel=ch_id, username=username
-                            ))
-                            
+                            await zedub(
+                                functions.channels.UpdateUsernameRequest(
+                                    channel=ch_id, username=username
+                                )
+                            )
+
                             msg_text = (
                                 "ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - تثبيـت زدثــون \U0001f4a1\n**•────────────────────•**\n"
                                 f"- UserName: ❲ @{username} ❳\n- ClickS: ❲ {trys2[0]} ❳\n- Save: ❲ {target_type} ❳\n*(تم تفريغ قناة عامة تلقائياً للحجز)*\n**•────────────────────•**\n- By ❲ @ZedThon ❳ "
@@ -475,13 +525,15 @@ async def _(event):
                             break
                         else:
                             await zedub.send_message(
-                                event.chat_id, f"**- عذراً، وصلت للحد الأقصى للقنوات العامة ولا توجد قناة عامة بصلاحياتك لتفريغها!**"
+                                event.chat_id,
+                                f"**- عذراً، وصلت للحد الأقصى للقنوات العامة ولا توجد قناة عامة بصلاحياتك لتفريغها!**",
                             )
                             swapmod = False
                             break
                     except Exception as revoke_err:
                         await zedub.send_message(
-                            event.chat_id, f"**- حدث خطأ أثناء محاولة تفريغ قناة عامة: {str(revoke_err)}**"
+                            event.chat_id,
+                            f"**- حدث خطأ أثناء محاولة تفريغ قناة عامة: {str(revoke_err)}**",
                         )
                         swapmod = False
                         break
@@ -572,5 +624,6 @@ async def show_types(event):
         "**⪼ لاستخدام:** `.صيد` + النـوع  (مثال: `.صيد خماسي حرفين`)"
     )
     await edit_or_reply(event, types_list)
+
 
 # نهاية الملف

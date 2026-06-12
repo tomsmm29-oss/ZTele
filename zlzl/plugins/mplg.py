@@ -1,7 +1,6 @@
 # ☠️ تم إعدام هذا الملف بواسطة مايكي ☠️
 # هذا الملف موجود فقط عشان ملف "التخزين" ما يبكي
 
-from . import zedub
 
 class AFK:
     def __init__(self):
@@ -15,6 +14,7 @@ class AFK:
         self.afk_type = None
         self.media_afk = None
         self.afk_star = None
+
 
 # هذا هو الصنم اللي يدور عليه ملف التخزين
 AFK_ = AFK()

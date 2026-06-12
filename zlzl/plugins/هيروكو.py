@@ -13,10 +13,9 @@ import heroku3
 import requests
 import urllib3
 
-from . import zedub
-
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
+from . import zedub
 
 plugin_category = "الادوات"
 
@@ -67,13 +66,15 @@ async def variable(var):  # sourcery no-metrics
         try:
             variable = var.pattern_match.group(2).split()[0]
             if variable == "HEROKU_API_KEY":
-                return 
+                return
             if variable in heroku_var:
                 return await zed.edit(
-                    "𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗖𝗼𝗻𝗳𝗶𝗴 𝗩𝗮𝗿𝘀 𓆪\n**•ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ•**" f"\n\n**⌔∮الفــار** `{variable} = {heroku_var[variable]}` .\n"
+                    "𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗖𝗼𝗻𝗳𝗶𝗴 𝗩𝗮𝗿𝘀 𓆪\n**•ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ•**"
+                    f"\n\n**⌔∮الفــار** `{variable} = {heroku_var[variable]}` .\n"
                 )
             await zed.edit(
-                "𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗖𝗼𝗻𝗳𝗶𝗴 𝗩𝗮𝗿𝘀 𓆪\n**•ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ•**" f"\n\n**⌔∮الفــار** `{variable}` غيــر مـوجــود ؟!"
+                "𓆩 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - 𝗖𝗼𝗻𝗳𝗶𝗴 𝗩𝗮𝗿𝘀 𓆪\n**•ⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧⵧ•**"
+                f"\n\n**⌔∮الفــار** `{variable}` غيــر مـوجــود ؟!"
             )
         except IndexError:
             configs = prettyjson(heroku_var.to_dict(), indent=2)
@@ -100,9 +101,17 @@ async def variable(var):  # sourcery no-metrics
             return await zed.edit("`.set var <ConfigVars-name> <value>`")
         await asyncio.sleep(1.5)
         if variable in heroku_var:
-            await zed.edit("**⌔∮ تم تغيـر** `{}` **:**\n **- المتغير :** `{}` \n**- يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**".format(variable, value))
+            await zed.edit(
+                "**⌔∮ تم تغيـر** `{}` **:**\n **- المتغير :** `{}` \n**- يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**".format(
+                    variable, value
+                )
+            )
         else:
-            await zed.edit("**⌔∮ تم اضافه** `{}` **:** \n**- المضاف اليه :** `{}` \n**يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**".format(variable, value))
+            await zed.edit(
+                "**⌔∮ تم اضافه** `{}` **:** \n**- المضاف اليه :** `{}` \n**يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**".format(
+                    variable, value
+                )
+            )
         heroku_var[variable] = value
     elif exe == "del":
         zed = await edit_or_reply(var, "⌔∮ الحصول على معلومات لحذف المتغير. ")
@@ -114,7 +123,9 @@ async def variable(var):  # sourcery no-metrics
         if variable not in heroku_var:
             return await zed.edit(f"⌔∮ `{variable}`**  غير موجود**")
 
-        await zed.edit(f"**⌔∮** `{variable}`  **تم حذفه بنجاح. \n**يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**")
+        await zed.edit(
+            f"**⌔∮** `{variable}`  **تم حذفه بنجاح. \n**يتم الان اعـادة تشغيـل بـوت زد ثـون يستغـرق الامر 2-1 دقيقـه ▬▭ ...**"
+        )
         del heroku_var[variable]
 
 
@@ -150,9 +161,7 @@ async def dyno_usage(dyno):
     path = f"/accounts/{user_id}/actions/get-quota"
     r = requests.get(heroku_api + path, headers=headers)
     if r.status_code != 200:
-        return await dyno.edit(
-            "⌔∮ خطا:** شي سيء قد حدث **\n" f" ⌔∮ `{r.reason}`\n"
-        )
+        return await dyno.edit("⌔∮ خطا:** شي سيء قد حدث **\n" f" ⌔∮ `{r.reason}`\n")
     result = r.json()
     quota = result["account_quota"]
     quota_used = result["quota_used"]

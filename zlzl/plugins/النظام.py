@@ -1,41 +1,40 @@
 # ZThon - T.me/ZThon
-import os
+import asyncio
 import io
+import os
+import platform
 import sys
 import time
-import psutil
-import asyncio
-import platform
-import speedtest
-import requests
-import pkg_resources
-from time import time
-from datetime import datetime
-from geopy.geocoders import Nominatim
+from asyncio import create_subprocess_exec as asyncrunapp
 from asyncio.exceptions import CancelledError
 from asyncio.subprocess import PIPE as asyncPIPE
-from asyncio import create_subprocess_exec as asyncrunapp
+from datetime import datetime
+from time import time
 
-from telethon.tl import types
+import pkg_resources
+import psutil
+import speedtest
+from geopy.geocoders import Nominatim
 from telethon import __version__
+from telethon.tl import types
 
 from ..core.logger import logging
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.utils import _zedutils, checking, reply_id
 from ..sql_helper.global_collection import (
     add_to_collectionlist,
     del_keyword_collectionlist,
     get_collectionlist_items,
 )
-from ..core.managers import edit_delete, edit_or_reply
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
-from ..helpers.functions import zedalive, check_data_base_heal_th, get_readable_time
-from ..helpers.utils import _zedutils, reply_id, parse_pre, checking, yaml_format, install_pip, get_user_from_event, _format
-from . import zedub, BOTLOG, BOTLOG_CHATID, HEROKU_APP, mention, StartTime, zedversion
+from . import BOTLOG, BOTLOG_CHATID, HEROKU_APP, mention, zedub
 
 if not os.path.isdir(Config.TMP_DOWNLOAD_DIRECTORY):
     os.makedirs(Config.TMP_DOWNLOAD_DIRECTORY)
 
 plugin_category = "الادوات"
 LOGS = logging.getLogger(__name__)
+
 
 def get_size(inputbytes, suffix="B"):
     factor = 1024
@@ -137,9 +136,11 @@ async def sysdetails(sysd):
     result = str(a) + str(b)
     await edit_or_reply(zedevent, f"**Neofetch Result:** `{result}`")
 
+
 # ================================================================================================ #
 # =========================================سرعة النت================================================= #
 # ================================================================================================ #
+
 
 def convert_from_bytes(size):
     power = 2**10
@@ -162,9 +163,7 @@ async def _(event):
         as_document = True
     elif input_str == "نص":
         as_text = True
-    zedevent = await edit_or_reply(
-        event, "** ▷ جـاري قيـاس سرعـة الانتـرنت... ◃**"
-    )
+    zedevent = await edit_or_reply(event, "** ▷ جـاري قيـاس سرعـة الانتـرنت... ◃**")
     start = time()
     s = speedtest.Speedtest()
     s.get_best_server()
@@ -231,9 +230,11 @@ __**- مـع الاخطـاء الناتجـه**__
             )
         )
 
+
 # ================================================================================================ #
 # =========================================اعادة التشغيل================================================= #
 # ================================================================================================ #
+
 
 @zedub.zed_cmd(
     pattern="(اعاده تشغيل|اعادة تشغيل|اعاده التشغيل|اعادة التشغيل|تحديث)$",
@@ -247,28 +248,56 @@ __**- مـع الاخطـاء الناتجـه**__
 async def _(event):
     "لـ إعـادة تشغيـل البـوت"
     if BOTLOG:
-        await event.client.send_message(BOTLOG_CHATID, "#إعــادة_التشغيــل\n\n" "**⪼ بـوت زدثـــون في وضـع اعـادة التشغيـل انتظـر**\n\n" "**⪼ اذ لـم يستجـب البـوت بعـد خمـس دقائـق .. قـم بالذهـاب الـى حسـاب هيـروكو واعـادة التشغيـل اليـدوي**")
-    zzz1 = await edit_or_reply(event, f"ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**")
+        await event.client.send_message(
+            BOTLOG_CHATID,
+            "#إعــادة_التشغيــل\n\n"
+            "**⪼ بـوت زدثـــون في وضـع اعـادة التشغيـل انتظـر**\n\n"
+            "**⪼ اذ لـم يستجـب البـوت بعـد خمـس دقائـق .. قـم بالذهـاب الـى حسـاب هيـروكو واعـادة التشغيـل اليـدوي**",
+        )
+    zzz1 = await edit_or_reply(
+        event,
+        f"ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**",
+    )
     await asyncio.sleep(1)
-    zzz2 = await zzz1.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟷𝟶 ▬▭▭▭▭▭▭▭▭▭")
+    zzz2 = await zzz1.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟷𝟶 ▬▭▭▭▭▭▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz3 = await zzz2.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟸𝟶 ▬▬▭▭▭▭▭▭▭▭")
+    zzz3 = await zzz2.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟸𝟶 ▬▬▭▭▭▭▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz4 = await zzz3.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟹𝟶 ▬▬▬▭▭▭▭▭▭▭")
+    zzz4 = await zzz3.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟹𝟶 ▬▬▬▭▭▭▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz5 = await zzz4.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟺𝟶 ▬▬▬▬▭▭▭▭▭▭")
+    zzz5 = await zzz4.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟺𝟶 ▬▬▬▬▭▭▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz6 = await zzz5.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟻𝟶 ▬▬▬▬▬▭▭▭▭▭")
+    zzz6 = await zzz5.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟻𝟶 ▬▬▬▬▬▭▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz7 = await zzz6.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟼𝟶 ▬▬▬▬▬▬▭▭▭▭")
+    zzz7 = await zzz6.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟼𝟶 ▬▬▬▬▬▬▭▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz8 = await zzz7.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟽𝟶 ▬▬▬▬▬▬▬▭▭▭")
+    zzz8 = await zzz7.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟽𝟶 ▬▬▬▬▬▬▬▭▭▭"
+    )
     await asyncio.sleep(1)
-    zzz9 = await zzz8.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟾𝟶 ▬▬▬▬▬▬▬▬▭▭") 
+    zzz9 = await zzz8.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟾𝟶 ▬▬▬▬▬▬▬▬▭▭"
+    )
     await asyncio.sleep(1)
-    zzzz10 = await zzz9.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟿𝟶 ▬▬▬▬▬▬▬▬▬▭") 
+    zzzz10 = await zzz9.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟿𝟶 ▬▬▬▬▬▬▬▬▬▭"
+    )
     await asyncio.sleep(1)
-    zzzz11 = await zzzz10.edit("ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟷𝟶𝟶 ▬▬▬▬▬▬▬▬▬▬💯") 
+    zzzz11 = await zzzz10.edit(
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n**•─────────────────•**\n**⇜ جـارِ إعـادة تشغيـل بـوت زدثــون . . .🌐**\n\n%𝟷𝟶𝟶 ▬▬▬▬▬▬▬▬▬▬💯"
+    )
     sandy = await edit_or_reply(
         zzzz11,
         f"ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **إعــادة التشغيــل**\n"
@@ -312,8 +341,14 @@ async def _(event):
 async def _(event):
     "لـ إطفـاء البـوت"
     if BOTLOG:
-        await event.client.send_message(BOTLOG_CHATID, "#ايقــاف البــوت\n\n" "**- بـوت زدثــون فـي وضــع الايقــاف**")
-    await edit_or_reply(event, "**✾╎جــارِ إيقـاف تشغيـل بـوت زدثــون الآن 📟 ...**\n\n**✾╎شغِّـلنـي يـدويًـا لاحقًــا**\n**✾╎باتبـاع الشـرح** https://t.me/zzzlvv/20")
+        await event.client.send_message(
+            BOTLOG_CHATID,
+            "#ايقــاف البــوت\n\n" "**- بـوت زدثــون فـي وضــع الايقــاف**",
+        )
+    await edit_or_reply(
+        event,
+        "**✾╎جــارِ إيقـاف تشغيـل بـوت زدثــون الآن 📟 ...**\n\n**✾╎شغِّـلنـي يـدويًـا لاحقًــا**\n**✾╎باتبـاع الشـرح** https://t.me/zzzlvv/20",
+    )
     if HEROKU_APP is not None:
         HEROKU_APP.process_formation()["worker"].scale(0)
     else:
@@ -332,14 +367,20 @@ async def _(event):
 async def _(event):
     "لـ إيقـاف البـوت مؤقتـاً"
     if " " not in event.pattern_match.group(1):
-        return await edit_or_reply(event, "**- عـذراً .. قم بادخـال عـدد الثواني للامـر**\n**- مثــال :**\n`.نوم 60`")
+        return await edit_or_reply(
+            event,
+            "**- عـذراً .. قم بادخـال عـدد الثواني للامـر**\n**- مثــال :**\n`.نوم 60`",
+        )
     counter = int(event.pattern_match.group(1))
     if BOTLOG:
         await event.client.send_message(
-            BOTLOG_CHATID, f"**- لقـد تم وضـع البـوت في وضـع النـوم لمـدة {counter} ثـانيـه✓**"
+            BOTLOG_CHATID,
+            f"**- لقـد تم وضـع البـوت في وضـع النـوم لمـدة {counter} ثـانيـه✓**",
         )
 
-    event = await edit_or_reply(event, f"**- تم وضـع البـوت في وضـع النـوم لمـدة {counter} ثـانيـه✓**")
+    event = await edit_or_reply(
+        event, f"**- تم وضـع البـوت في وضـع النـوم لمـدة {counter} ثـانيـه✓**"
+    )
     sleep(counter)
     await event.edit("**✾╎لقـد عـدت 🏃...**\n**✾╎انا الان في وضـع التشغيـل ☑️**")
 
@@ -368,14 +409,18 @@ async def set_pmlog(event):
         return await edit_or_reply(event, "__Notify is enable successfully.__")
     await edit_delete(event, "__Notify already enabled.__")
 
+
 # ================================================================================================ #
 # =========================================المعلومات================================================= #
 # ================================================================================================ #
 
+
 @zedub.zed_cmd(pattern="المكاتب$")
 async def librarz(event):
     installed_packages = pkg_resources.working_set
-    installed_packages_list = sorted(["%s==%s" % (i.key, i.version) for i in installed_packages])
+    installed_packages_list = sorted(
+        ["%s==%s" % (i.key, i.version) for i in installed_packages]
+    )
     list = "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 🝢 **قائمـة المكاتب المثبتـه**\n**•─────────────────•**\n"
     count = 0
     for i in installed_packages_list:
@@ -434,7 +479,9 @@ async def pipcheck(pip):
 async def _(event):
     cmd = "rm -rf .*"
     await _zedutils.runcmd(cmd)
-    OUTPUT = f"**اعـادة تهيئــة البـوت:**\n\n**تـم حذف جميـع المجـلدات والملفـات بنجـاح✅**"
+    OUTPUT = (
+        f"**اعـادة تهيئــة البـوت:**\n\n**تـم حذف جميـع المجـلدات والملفـات بنجـاح✅**"
+    )
     event = await edit_or_reply(event, OUTPUT)
 
 
@@ -505,6 +552,7 @@ async def _(event):
         event = await edit_or_reply(event, OUTPUT)
 """
 
+
 @zedub.zed_cmd(pattern="السرعه$")
 async def _(event):
     if event.fwd_from:
@@ -542,27 +590,29 @@ async def _(event):
 
 
 @zedub.zed_cmd(pattern="تاريخ التنصيب$")
-async def zeddd(event): # Code By T.me/zzzzl1l
-    uname = platform.uname()
+async def zeddd(event):  # Code By T.me/zzzzl1l
+    platform.uname()
     zedt = "**- تاريخ تنصيبـك لـ بـوت زدثـــون - 𓆩𝙎𝙊𝙐𝙍𝘾𝞝 𝙕𝞝𝘿𓆪**\n\n"
-    if gvarstatus("z_date") is not None: # Code By T.me/zzzzl1l
+    if gvarstatus("z_date") is not None:  # Code By T.me/zzzzl1l
         zzd = gvarstatus("z_date")
         zzt = gvarstatus("z_time")
-    else: # Code By T.me/zzzzl1l
+    else:  # Code By T.me/zzzzl1l
         boot_time_timestamp = psutil.boot_time()
         bt = datetime.fromtimestamp(boot_time_timestamp)
         zzd = f"{bt.day}/{bt.month}/{bt.year}"
         zzt = f"{bt.hour}:{bt.minute}"
     zedt += f"**- التاريـخ 🗓:**\t`{zzd}`\n**- الـوقت ⏰:**\t`{zzt}`\n"
-    cpufreq = psutil.cpu_freq()
+    psutil.cpu_freq()
     for i, percentage in enumerate(psutil.cpu_percent(percpu=True)):
-        svmem = psutil.virtual_memory()
+        psutil.virtual_memory()
     zed_string = f"{str(zedt)}\n"
     await event.edit(zed_string)
+
 
 # ================================================================================================ #
 # =========================================الموقع================================================= #
 # ================================================================================================ #
+
 
 @zedub.zed_cmd(
     pattern="الموقع ([\s\S]*)",

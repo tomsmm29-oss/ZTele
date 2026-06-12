@@ -1,23 +1,12 @@
-import asyncio
-import requests
 import logging
-from asyncio import sleep
 
-from telethon.tl import functions, types
 from telethon.errors import UserAdminInvalidError
-from telethon import events
 from telethon.tl.functions.channels import GetParticipantRequest
 
-from . import zedub
-
-from ..Config import Config
 from ..core.logger import logging
-from ..core.managers import edit_delete, edit_or_reply
+from ..core.managers import edit_or_reply
 from ..sql_helper.globals import gvarstatus
-from ..helpers import readable_time
-from ..helpers.utils import reply_id
-from ..utils import is_admin
-from . import BOTLOG, BOTLOG_CHATID
+from . import zedub
 
 LOGS = logging.getLogger(__name__)
 
@@ -49,7 +38,6 @@ async def malath(event):
         await edit_or_reply(event, "**⎉╎بالـࢪد ؏ــلى ࢪسـالة او وسائـط**")
         return
     chat_id = event.chat_id
-    is_admin = False
     try:
         await zedub(GetParticipantRequest(event.chat_id, event.sender_id))
     except UserNotParticipantError:
@@ -95,14 +83,17 @@ async def malath(event):
 @zedub.zed_cmd(pattern="ايقاف للكل", groups_only=True)
 async def unmalath(event):
     if not event.chat_id in spam_chats:
-        return await event.edit("**- لاتوجـد عمليـة اذاعـه للاعضـاء هنـا لـ إيقافـها ؟!**")
+        return await event.edit(
+            "**- لاتوجـد عمليـة اذاعـه للاعضـاء هنـا لـ إيقافـها ؟!**"
+        )
     else:
         try:
             spam_chats.remove(event.chat_id)
         except:
             pass
-        return await event.edit("**⎉╎تم إيقـاف عمليـة الاذاعـه للاعضـاء هنـا .. بنجـاح✓**")
-
+        return await event.edit(
+            "**⎉╎تم إيقـاف عمليـة الاذاعـه للاعضـاء هنـا .. بنجـاح✓**"
+        )
 
 
 #                                       تـاريـخ كتابـة الكـود - 19 ابريل/2023                                  #

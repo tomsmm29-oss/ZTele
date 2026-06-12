@@ -6,8 +6,10 @@ from telethon.events import CallbackQuery
 from telethon.tl.functions.users import GetUsersRequest
 
 from zlzl import zedub
+
 from ..Config import Config
 from ..sql_helper.globals import gvarstatus
+
 
 # Updated by ZThon <https://t.me/ZThon>
 @zedub.tgbot.on(CallbackQuery(data=re.compile(b"secret_(.*)")))
@@ -20,7 +22,7 @@ async def on_plug_in_callback_query_handler(event):
         zzz = await zedub.get_entity(ussr)
     except ValueError:
         zzz = await zedub(GetUsersRequest(ussr))
-    #user_id = event.query.user_id
+    # user_id = event.query.user_id
     user_id = int(uzerid)
     file_name = f"./zlzl/{user_id}.txt"
     if os.path.exists(file_name):
@@ -37,5 +39,7 @@ async def on_plug_in_callback_query_handler(event):
         except KeyError:
             reply_pop_up_alert = "- عـذراً .. الهمسة ليست موجهة لك !!"
     else:
-        reply_pop_up_alert = "- عـذراً .. هذه الرسـالة لم تعد موجـوده في سيـرفرات زدثــون"
+        reply_pop_up_alert = (
+            "- عـذراً .. هذه الرسـالة لم تعد موجـوده في سيـرفرات زدثــون"
+        )
     await event.answer(reply_pop_up_alert, cache_time=0, alert=True)

@@ -1,24 +1,17 @@
-import time
-import asyncio
-import importlib
-import logging
 import glob
+import logging
 import os
 import sys
 import urllib.request
-from datetime import timedelta
-from pathlib import Path
-from random import randint
 from datetime import datetime as dt
-from pytz import timezone
-import requests
-import heroku3
+from pathlib import Path
 
-from telethon import Button, functions, types, utils
-from telethon.tl.functions.channels import JoinChannelRequest, EditAdminRequest
-from telethon.tl.functions.contacts import UnblockRequest
+import heroku3
+from pytz import timezone
+from telethon import functions, types, utils
+from telethon.errors import BadRequestError
+from telethon.tl.functions.channels import EditAdminRequest
 from telethon.tl.types import ChatAdminRights
-from telethon.errors import FloodWaitError, FloodError, BadRequestError
 
 from zlzl import BOTLOG, BOTLOG_CHATID, PM_LOGGER_GROUP_ID
 
@@ -40,7 +33,7 @@ LOGS = logging.getLogger("zlzl")
 cmdhr = Config.COMMAND_HAND_LER
 
 # --- تعديل مايكي: تعريف المتغير غصب عشان ما يكرش ---
-VPS_NOLOAD = [] 
+VPS_NOLOAD = []
 # --------------------------------------------------
 
 Zel_Dev = ()
@@ -67,6 +60,7 @@ elif os.path.exists("config.py"):
 bot = zedub
 DEV = 8241311871
 
+
 async def autovars():
     if "ENV" in heroku_var and "TZ" in heroku_var:
         return
@@ -83,6 +77,7 @@ async def autovars():
         heroku_var["COMMAND_HAND_LER"] = zzcom
         heroku_var["TZ"] = zzztz
 
+
 async def autoname():
     if Config.ALIVE_NAME:
         return
@@ -90,8 +85,8 @@ async def autoname():
     zzname = f"{zlzlal.first_name}"
     tz = Config.TZ
     tzDateTime = dt.now(timezone(tz))
-    zdate = tzDateTime.strftime('%Y/%m/%d')
-    militaryTime = tzDateTime.strftime('%H:%M')
+    zdate = tzDateTime.strftime("%Y/%m/%d")
+    militaryTime = tzDateTime.strftime("%H:%M")
     ztime = dt.strptime(militaryTime, "%H:%M").strftime("%I:%M %p")
     zzd = f"‹ {zdate} ›"
     zzt = f"‹ {ztime} ›"
@@ -143,11 +138,11 @@ async def startupmessage():
     try:
         if BOTLOG:
             zzz = bot.me
-            Zname = f"{zzz.first_name} {zzz.last_name}" if zzz.last_name else zzz.first_name
+            f"{zzz.first_name} {zzz.last_name}" if zzz.last_name else zzz.first_name
             try:
                 await zedub.tgbot.send_message(
                     BOTLOG_CHATID,
-                    f"**⌔ تـم تشغـيل سـورس زدثــون (نسخة مايكي) بنجـاح ✅**"
+                    f"**⌔ تـم تشغـيل سـورس زدثــون (نسخة مايكي) بنجـاح ✅**",
                 )
             except:
                 pass
@@ -199,7 +194,9 @@ async def add_bot_to_logger_group(chat_id):
         )
         rank = "admin"
         try:
-            await zedub(EditAdminRequest(chat_id, bot_details.username, new_rights, rank))
+            await zedub(
+                EditAdminRequest(chat_id, bot_details.username, new_rights, rank)
+            )
         except BadRequestError as e:
             LOGS.error(str(e))
         except Exception as e:
@@ -209,6 +206,7 @@ async def add_bot_to_logger_group(chat_id):
 # دوال فارغة لمنع الاشتراك الإجباري
 async def saves():
     pass
+
 
 async def supscrips():
     pass
@@ -239,7 +237,7 @@ async def load_plugins(folder, extfolder=None):
                     pluginname not in VPS_NOLOAD
                 ):
                     flag = True
-                    retry_count = 0 
+                    retry_count = 0
                     while flag:
                         try:
                             load_module(
@@ -299,15 +297,18 @@ async def verifyLoggerGroup():
             )
         except Exception as e:
             LOGS.error(
-                "حدث خطأ عند محاولة التحقق من فار PRIVATE_GROUP_BOT_API_ID.\n"
-                + str(e)
+                "حدث خطأ عند محاولة التحقق من فار PRIVATE_GROUP_BOT_API_ID.\n" + str(e)
             )
     else:
         try:
             descript = "لا تقم بحذف هذه المجموعة."
             photozed = await zedub.upload_file(file="zlzl/zilzal/logozed.jpg")
             _, groupid = await create_supergroup(
-                "مجمـوعـة السجـل زدثـــون", zedub, Config.TG_BOT_USERNAME, descript, photozed
+                "مجمـوعـة السجـل زدثـــون",
+                zedub,
+                Config.TG_BOT_USERNAME,
+                descript,
+                photozed,
             )
             addgvar("PRIVATE_GROUP_BOT_API_ID", groupid)
             print("تم انشاء مجموعة السجل.")
@@ -328,7 +329,9 @@ async def verifyLoggerGroup():
                         "لا تمتلك صلاحيات اضافه اعضاء في مجموعة فار الـ  PM_LOGGER_GROUP_ID."
                     )
         except ValueError:
-            LOGS.error("PM_LOGGER_GROUP_ID لم يتم العثور على قيمه هذا الفار . تاكد من أنه صحيح .")
+            LOGS.error(
+                "PM_LOGGER_GROUP_ID لم يتم العثور على قيمه هذا الفار . تاكد من أنه صحيح ."
+            )
         except TypeError:
             LOGS.error("PM_LOGGER_GROUP_ID قيمه هذا الفار خطا. تاكد من أنه صحيح.")
         except Exception as e:
@@ -370,7 +373,10 @@ async def install_externalrepo(repo, branch, cfolder):
     await runcmd(gcmd)
     if not os.path.exists(cfolder):
         LOGS.error("- حدث خطأ اثناء استدعاء رابط الملفات الاضافية")
-        return await zedub.tgbot.send_message(BOTLOG_CHATID, "**- حدث خطأ**",)
+        return await zedub.tgbot.send_message(
+            BOTLOG_CHATID,
+            "**- حدث خطأ**",
+        )
     if os.path.exists(rpath):
         await runcmd(f"pip3 install --no-cache-dir -r {rpath}")
     await load_plugins(folder="zlzl", extfolder=cfolder)

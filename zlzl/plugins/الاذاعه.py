@@ -1,15 +1,7 @@
-import base64
-import contextlib
-from asyncio import sleep
-
-from telethon.tl.functions.messages import ImportChatInviteRequest as Get
-from telethon.utils import get_display_name
-
 # --- تصحيح المسارات والحقن النسبي ---
-from . import zedub
 from ..core.logger import logging
-from ..core.managers import edit_delete, edit_or_reply
-from ..helpers.utils import _format, get_user_from_event
+from ..core.managers import edit_or_reply
+from . import zedub
 
 # محاولة استدعاء SQL، لو مش موجود نتخطاه عشان الكود ما يوقفش
 try:
@@ -35,7 +27,7 @@ ZED_BLACKLIST = [
 DEVZ = [
     1111565135,
     6114298715,
-    8241311871, 
+    8241311871,
 ]
 
 ZelzalPRO_cmd = (
@@ -71,7 +63,7 @@ async def gcast_group(event):
     # استخراج النص من أي مجموعة (الأولى أو الثانية)
     zedthon = event.pattern_match.group(1) or event.pattern_match.group(2)
 
-    if zedthon: 
+    if zedthon:
         await edit_or_reply(event, "**⎉╎بالـࢪد ؏ــلى ࢪسـالة او وسائـط**")
         return
     elif event.is_reply:
@@ -80,7 +72,9 @@ async def gcast_group(event):
         await edit_or_reply(event, "**⎉╎بالـࢪد ؏ــلى ࢪسـالة او وسائـط**")
         return
 
-    zzz = await edit_or_reply(event, "**⎉╎جـاري الاذاعـه في المجموعـات ...الرجـاء الانتظـار**")
+    zzz = await edit_or_reply(
+        event, "**⎉╎جـاري الاذاعـه في المجموعـات ...الرجـاء الانتظـار**"
+    )
     er = 0
     done = 0
 
@@ -90,7 +84,9 @@ async def gcast_group(event):
             try:
                 # تم استبدال borg بـ event.client
                 if zelzal.text and not zelzal.media:
-                    await event.client.send_message(chat, zelzal.text, link_preview=False)
+                    await event.client.send_message(
+                        chat, zelzal.text, link_preview=False
+                    )
                     done += 1
                 else:
                     # إرسال الميديا مع الكابشن
@@ -112,7 +108,7 @@ async def gcast_group(event):
 @zedub.zed_cmd(pattern="للخاص(?: |$)(.*)")
 async def gucast(event):
     zedthon = event.pattern_match.group(1)
-    if zedthon: 
+    if zedthon:
         await edit_or_reply(event, "**⎉╎بالـࢪد ؏ــلى ࢪسـالة او وسائـط**")
         return
     elif event.is_reply:
@@ -121,7 +117,9 @@ async def gucast(event):
         await edit_or_reply(event, "**⎉╎بالـࢪد ؏ــلى ࢪسـالة او وسائـط**")
         return
 
-    zzz = await edit_or_reply(event, "**⎉╎جـاري الاذاعـه في الخـاص ...الرجـاء الانتظـار**")
+    zzz = await edit_or_reply(
+        event, "**⎉╎جـاري الاذاعـه في الخـاص ...الرجـاء الانتظـار**"
+    )
     er = 0
     done = 0
 
@@ -130,7 +128,9 @@ async def gucast(event):
             chat = x.id
             try:
                 if zelzal.text and not zelzal.media:
-                    await event.client.send_message(chat, zelzal.text, link_preview=False)
+                    await event.client.send_message(
+                        chat, zelzal.text, link_preview=False
+                    )
                     done += 1
                 else:
                     await event.client.send_file(
@@ -173,6 +173,8 @@ async def pmto(event):
 
     try:
         await zedub.send_message(chat_dest, zelzal)
-        await event.edit("**⎉╎تـم ارسال الرسـالة بنجـاح ✓**\n**⎉╎بـدون الدخـول للخـاص**")
+        await event.edit(
+            "**⎉╎تـم ارسال الرسـالة بنجـاح ✓**\n**⎉╎بـدون الدخـول للخـاص**"
+        )
     except Exception as e:
         await event.edit(f"**⎉╎اووبس .. لقـد حدث خطـأ: {e}**")

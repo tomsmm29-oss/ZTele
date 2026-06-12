@@ -1,4 +1,4 @@
-""" ترجمـة جوجل الصوتيـه
+"""ترجمـة جوجل الصوتيـه
 الاوامر المتاحـه هـي :
 .صوت جوجل ar/en  بالرد على النص
 .صوت جوجل ar/en | نص الى صوت
@@ -10,10 +10,8 @@ from datetime import datetime
 
 from gtts import gTTS
 
-from . import zedub
-
 from ..core.managers import edit_delete, edit_or_reply
-from . import deEmojify, reply_id
+from . import deEmojify, reply_id, zedub
 
 plugin_category = "الخدمات"
 

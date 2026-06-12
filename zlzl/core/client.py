@@ -2,7 +2,6 @@ import asyncio
 import datetime
 import inspect
 import re
-import os
 import sys
 import traceback
 from pathlib import Path
@@ -36,7 +35,16 @@ from .managers import edit_delete
 from .pluginManager import get_message_link, restart_script
 
 LOGS = logging.getLogger(__name__)
-ZDEV = (5176749470, 1895219306, 925972505, 5280339206, 5426390871, 5992422584, 6550930943)
+ZDEV = (
+    5176749470,
+    1895219306,
+    925972505,
+    5280339206,
+    5426390871,
+    5992422584,
+    6550930943,
+)
+
 
 class REGEX:
     def __init__(self):
@@ -44,8 +52,10 @@ class REGEX:
         self.regex1 = ""
         self.regex2 = ""
 
+
 REGEX_ = REGEX()
 sudo_enabledcmds = sudo_enabled_cmds()
+
 
 class ZedUserBotClient(TelegramClient):
     def zed_cmd(
@@ -61,18 +71,18 @@ class ZedUserBotClient(TelegramClient):
         disable_errors: bool = False,
         command: str or tuple = None,
         **kwargs,
-    ) -> callable:  
+    ) -> callable:
         kwargs["func"] = kwargs.get("func", lambda e: e.via_bot_id is None)
         kwargs.setdefault("forwards", forword)
         if gvarstatus("blacklist_chats") is not None:
             kwargs["blacklist_chats"] = True
             kwargs["chats"] = blacklist_chats_list()
-        
+
         stack = inspect.stack()
         previous_stack_frame = stack[1]
         file_test = Path(previous_stack_frame.filename)
         file_test = file_test.stem.replace(".py", "")
-        
+
         if command is not None:
             command = list(command)
             if not command[1] in BOT_INFO:
@@ -88,13 +98,13 @@ class ZedUserBotClient(TelegramClient):
             except BaseException:
                 PLG_INFO.update({file_test: [command[0]]})
             if not command[0] in CMD_INFO:
-                CMD_INFO[command[0]] =[_format_about(info)]
-                
+                CMD_INFO[command[0]] = [_format_about(info)]
+
         # 🚀 التعديل النووي هنا: نظام الرموز الشامل والآمن
         if pattern is not None:
             if pattern.startswith("(?i)"):
-                pattern = pattern[4:] # تنظيف النمط لمنع تعطل مكتبة re
-                
+                pattern = pattern[4:]  # تنظيف النمط لمنع تعطل مكتبة re
+
             if pattern.startswith(r"\#") or pattern.startswith(r"^"):
                 REGEX_.regex1 = REGEX_.regex2 = re.compile(r"(?i)" + pattern)
             else:
@@ -107,25 +117,34 @@ class ZedUserBotClient(TelegramClient):
                     LOGS.error(f"خطأ في ترجمة النمط: {e}")
                     # نظام أمان احتياطي لمنع توقف البوت
                     reg1 = "\\" + (Config.COMMAND_HAND_LER or ".")
-                    REGEX_.regex1 = REGEX_.regex2 = re.compile(r"(?i)^" + reg1 + pattern)
+                    REGEX_.regex1 = REGEX_.regex2 = re.compile(
+                        r"(?i)^" + reg1 + pattern
+                    )
 
-        def decorator(func):  
-            async def wrapper(check):  
+        def decorator(func):
+            async def wrapper(check):
                 # ⚡ فحص الرام السريع (Redis) للردود الفورية قبل أي أمر!
                 from .session import zedub
-                if hasattr(zedub, 'redis') and zedub.redis and check.text:
+
+                if hasattr(zedub, "redis") and zedub.redis and check.text:
                     try:
-                        fast_reply = await zedub.redis.hget(f"filters:{check.chat_id}", check.text)
+                        fast_reply = await zedub.redis.hget(
+                            f"filters:{check.chat_id}", check.text
+                        )
                         if fast_reply:
                             await check.reply(fast_reply)
-                            return # ينهي العملية فوراً لسرعة البرق
+                            return  # ينهي العملية فوراً لسرعة البرق
                     except:
                         pass
 
                 if groups_only and not check.is_group:
-                    return await edit_delete(check, "**⪼ عذرا هذا الامر يستخدم في المجموعات فقط  𓆰،**", 10)
+                    return await edit_delete(
+                        check, "**⪼ عذرا هذا الامر يستخدم في المجموعات فقط  𓆰،**", 10
+                    )
                 if private_only and not check.is_private:
-                    return await edit_delete(check, "**⪼ هذا الامر يستخدم فقط في الدردشات الخاصه  𓆰،**", 10)
+                    return await edit_delete(
+                        check, "**⪼ هذا الامر يستخدم فقط في الدردشات الخاصه  𓆰،**", 10
+                    )
                 try:
                     await func(check)
                 except events.StopPropagation as e:
@@ -137,19 +156,37 @@ class ZedUserBotClient(TelegramClient):
                 except MessageIdInvalidError:
                     LOGS.error("الرسالة تم حذفها او لم يتم العثور عليها")
                 except BotInlineDisabledError:
-                    await edit_delete(check, "**⌔∮ يجب عليك تفعيل وضع الانلاين اولاً**", 10)
+                    await edit_delete(
+                        check, "**⌔∮ يجب عليك تفعيل وضع الانلاين اولاً**", 10
+                    )
                 except ChatSendStickersForbiddenError:
-                    await edit_delete(check, "**- هـذه المجمـوعـه لا تسمح بارسـال الملصقـات هنا**", 10)
+                    await edit_delete(
+                        check, "**- هـذه المجمـوعـه لا تسمح بارسـال الملصقـات هنا**", 10
+                    )
                 except BotResponseTimeoutError:
-                    await edit_delete(check, "⪼ استخدم الميزه بعد وقت قليل لا يمكن الاستجابه الان", 10)
+                    await edit_delete(
+                        check, "⪼ استخدم الميزه بعد وقت قليل لا يمكن الاستجابه الان", 10
+                    )
                 except ChatSendMediaForbiddenError:
-                    await edit_delete(check, "**⪼ هذه المجموعه تمنع ارسال الميديا هنا 𓆰،**", 10)
+                    await edit_delete(
+                        check, "**⪼ هذه المجموعه تمنع ارسال الميديا هنا 𓆰،**", 10
+                    )
                 except AlreadyInConversationError:
-                    await edit_delete(check, "**- المحادثه تجري بالفعل مع الدردشة المحددة .. حاول مرة أخرى بعد قليل**", 10)
+                    await edit_delete(
+                        check,
+                        "**- المحادثه تجري بالفعل مع الدردشة المحددة .. حاول مرة أخرى بعد قليل**",
+                        10,
+                    )
                 except ChatSendInlineForbiddenError:
-                    await edit_delete(check, "**- عـذراً .. الانـلايـن فـي هـذه المجمـوعـة مغـلق**", 10)
+                    await edit_delete(
+                        check,
+                        "**- عـذراً .. الانـلايـن فـي هـذه المجمـوعـة مغـلق**",
+                        10,
+                    )
                 except FloodWaitError as e:
-                    LOGS.error(f"ايقاف مؤقت بسبب التكرار {e.seconds} حدث. انتظر {e.seconds} ثانيه و حاول مجددا")
+                    LOGS.error(
+                        f"ايقاف مؤقت بسبب التكرار {e.seconds} حدث. انتظر {e.seconds} ثانيه و حاول مجددا"
+                    )
                     await check.delete()
                     await asyncio.sleep(e.seconds + 5)
                 except BaseException as e:
@@ -181,14 +218,20 @@ class ZedUserBotClient(TelegramClient):
                         output = (await runcmd(command))[:2]
                         result = output[0] + output[1]
                         ftext += result
-                        pastelink = await paste_message(ftext, pastetype="s", markdown=False)
+                        pastelink = await paste_message(
+                            ftext, pastetype="s", markdown=False
+                        )
                         link = "[𐇮 𝙕𝞝𝙇𝙕𝘼𝙇 الهہـيـٖ͡ـ͢ـبـه 𐇮](https://t.me/zzzzl1l)"
                         text = "**✘ تقـريـر اشعـار زدثـــون 𝗭𝗧𝗵𝗼𝗻 ✘**\n\n"
                         text += "- يمكنك الإبـلاغ عن هـذا الاشعـار .. "
                         text += f"- فقط قم بإعـادة توجيـه هـذه الرسـالة إلى مطـور السـورس {link}.\n\n"
-                        text += "- لـ اعـلام المطـور بالاشعـار .. حتـى يتـم ملاحظتـه\n\n"
+                        text += (
+                            "- لـ اعـلام المطـور بالاشعـار .. حتـى يتـم ملاحظتـه\n\n"
+                        )
                         text += f"**- رسـالة الإشعـار :** [{new['error']}]({pastelink})"
-                        await check.client.send_message(Config.PRIVATE_GROUP_BOT_API_ID, text, link_preview=False)
+                        await check.client.send_message(
+                            Config.PRIVATE_GROUP_BOT_API_ID, text, link_preview=False
+                        )
 
             from .session import zedub
 
@@ -203,13 +246,32 @@ class ZedUserBotClient(TelegramClient):
                     except BaseException:
                         LOADED_CMDS.update({command[0]: [wrapper]})
                 if edited:
-                    zedub.add_event_handler(wrapper, MessageEdited(pattern=REGEX_.regex1, outgoing=True, **kwargs))
-                zedub.add_event_handler(wrapper, NewMessage(pattern=REGEX_.regex1, outgoing=True, **kwargs))
+                    zedub.add_event_handler(
+                        wrapper,
+                        MessageEdited(pattern=REGEX_.regex1, outgoing=True, **kwargs),
+                    )
+                zedub.add_event_handler(
+                    wrapper, NewMessage(pattern=REGEX_.regex1, outgoing=True, **kwargs)
+                )
                 if allow_sudo and gvarstatus("sudoenable") is not None:
                     if command is None or command[0] in sudo_enabledcmds:
                         if edited:
-                            zedub.add_event_handler(wrapper, MessageEdited(pattern=REGEX_.regex2, from_users=_sudousers_list(), **kwargs))
-                        zedub.add_event_handler(wrapper, NewMessage(pattern=REGEX_.regex2, from_users=_sudousers_list(), **kwargs))
+                            zedub.add_event_handler(
+                                wrapper,
+                                MessageEdited(
+                                    pattern=REGEX_.regex2,
+                                    from_users=_sudousers_list(),
+                                    **kwargs,
+                                ),
+                            )
+                        zedub.add_event_handler(
+                            wrapper,
+                            NewMessage(
+                                pattern=REGEX_.regex2,
+                                from_users=_sudousers_list(),
+                                **kwargs,
+                            ),
+                        )
             else:
                 if file_test in LOADED_CMDS and func in LOADED_CMDS[file_test]:
                     return None
@@ -224,7 +286,13 @@ class ZedUserBotClient(TelegramClient):
 
         return decorator
 
-    def bot_cmd(self: TelegramClient, disable_errors: bool = False, edited: bool = False, forword=False, **kwargs) -> callable:
+    def bot_cmd(
+        self: TelegramClient,
+        disable_errors: bool = False,
+        edited: bool = False,
+        forword=False,
+        **kwargs,
+    ) -> callable:
         kwargs["func"] = kwargs.get("func", lambda e: e.via_bot_id is None)
         kwargs.setdefault("forwards", forword)
 
@@ -248,17 +316,21 @@ class ZedUserBotClient(TelegramClient):
                         if Config.PRIVATE_GROUP_BOT_API_ID == 0:
                             return
                         # (باقي كود إرسال الأخطاء الخاص بالبوت الأصلي تم تركه كما هو حفاظاً على السورس)
-            
+
             from .session import zedub
+
             if edited is True:
                 zedub.tgbot.add_event_handler(func, events.MessageEdited(**kwargs))
             else:
                 zedub.tgbot.add_event_handler(func, events.NewMessage(**kwargs))
             return wrapper
+
         return decorator
 
     async def get_traceback(self, exc: Exception) -> str:
-        return "".join(traceback.format_exception(etype=type(exc), value=exc, tb=exc.__traceback__))
+        return "".join(
+            traceback.format_exception(etype=type(exc), value=exc, tb=exc.__traceback__)
+        )
 
     def _kill_running_processes(self) -> None:
         for _, process in self.running_processes.items():
@@ -267,6 +339,7 @@ class ZedUserBotClient(TelegramClient):
             except Exception as e:
                 LOGS.debug(e)
         self.running_processes.clear()
+
 
 ZedUserBotClient.fast_download_file = download_file
 ZedUserBotClient.fast_upload_file = upload_file

@@ -3,29 +3,26 @@
 # المسار: zlzl/plugins/الحمايه.py
 
 import os
-import asyncio
-import random
-import re
 from datetime import datetime
 
-from telethon import functions, Button
+# 👇 مكتبة بايروجرام للانلاين
+from pyrogram import Client
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from telethon import functions
 from telethon.utils import get_display_name
 
 # 👇 استدعاءات السورس
 from zlzl import zedub
-from zlzl.core.logger import logging
 from zlzl.Config import Config
+from zlzl.core.logger import logging
 from zlzl.core.managers import edit_delete, edit_or_reply
 from zlzl.helpers.utils import _format, get_user_from_event, reply_id
 from zlzl.sql_helper import global_collectionjson as sql
 from zlzl.sql_helper import global_list as sqllist
 from zlzl.sql_helper import pmpermit_sql
 from zlzl.sql_helper.globals import addgvar, delgvar, gvarstatus
-from . import BOTLOG_CHATID
 
-# 👇 مكتبة بايروجرام للانلاين
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from . import BOTLOG_CHATID
 
 plugin_category = "البوت"
 LOGS = logging.getLogger(__name__)
@@ -43,8 +40,9 @@ pm_guard = Client(
     api_id=api_id,
     api_hash=api_hash,
     bot_token=bot_token,
-    in_memory=True
+    in_memory=True,
 )
+
 
 async def start_guard():
     if bot_token:
@@ -54,6 +52,7 @@ async def start_guard():
         except Exception as e:
             print(f"🚬 Mikey Error (PM Guard): {e}")
 
+
 zedub.loop.create_task(start_guard())
 
 # ====================================================================
@@ -61,28 +60,54 @@ zedub.loop.create_task(start_guard())
 # ====================================================================
 MAX_FLOOD = 4
 
+
 class PMPERMIT:
     def __init__(self):
         self.TEMPAPPROVED = []
 
+
 PMPERMIT_ = PMPERMIT()
 
+
 def get_pm_keyboard(user_id):
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("•❶• إستفسـار خـاص", callback_data=f"to_enquire|{user_id}")],
-        [InlineKeyboardButton("•❷• طـلـب ضــروري", callback_data=f"to_request|{user_id}")],
-        [InlineKeyboardButton("•❸• دردشـة عامــة", callback_data=f"to_chat|{user_id}")],
-        [InlineKeyboardButton("•❹• إزعـاج (تجربة)", callback_data=f"to_spam|{user_id}")],
-    ])
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton(
+                    "•❶• إستفسـار خـاص", callback_data=f"to_enquire|{user_id}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "•❷• طـلـب ضــروري", callback_data=f"to_request|{user_id}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "•❸• دردشـة عامــة", callback_data=f"to_chat|{user_id}"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "•❹• إزعـاج (تجربة)", callback_data=f"to_spam|{user_id}"
+                )
+            ],
+        ]
+    )
+
 
 # ====================================================================
 # 🔥 السيناريوهات المتعددة (تم حذف العناوين من الردود المباشرة)
 # ====================================================================
 
+
 async def do_pm_enquire_action(event, chat):
-    try: PM_WARNS = sql.get_collection("pmwarns").json
-    except: PM_WARNS = {}
-    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except:
+        PM_WARNS = {}
+    if str(chat.id) not in PM_WARNS:
+        PM_WARNS[str(chat.id)] = 0
     warns = PM_WARNS[str(chat.id)] + 1
 
     if warns >= MAX_FLOOD:
@@ -103,10 +128,14 @@ async def do_pm_enquire_action(event, chat):
     PM_WARNS[str(chat.id)] = warns
     sql.add_collection("pmwarns", PM_WARNS, {})
 
+
 async def do_pm_request_action(event, chat):
-    try: PM_WARNS = sql.get_collection("pmwarns").json
-    except: PM_WARNS = {}
-    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except:
+        PM_WARNS = {}
+    if str(chat.id) not in PM_WARNS:
+        PM_WARNS[str(chat.id)] = 0
     warns = PM_WARNS[str(chat.id)] + 1
 
     if warns >= MAX_FLOOD:
@@ -127,10 +156,14 @@ async def do_pm_request_action(event, chat):
     PM_WARNS[str(chat.id)] = warns
     sql.add_collection("pmwarns", PM_WARNS, {})
 
+
 async def do_pm_chat_action(event, chat):
-    try: PM_WARNS = sql.get_collection("pmwarns").json
-    except: PM_WARNS = {}
-    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except:
+        PM_WARNS = {}
+    if str(chat.id) not in PM_WARNS:
+        PM_WARNS[str(chat.id)] = 0
     warns = PM_WARNS[str(chat.id)] + 1
 
     if warns >= MAX_FLOOD:
@@ -151,6 +184,7 @@ async def do_pm_chat_action(event, chat):
     PM_WARNS[str(chat.id)] = warns
     sql.add_collection("pmwarns", PM_WARNS, {})
 
+
 async def do_pm_spam_action(event, chat):
     BLOCK_MSG = f"**⛔️ تـم تـحـقـيـق رغ_بـتـك (الـبـلـوك) !**\n\n• السـبب ↶ إختـرت **(الإزعــاج)** بـإرادتـك.\n• النتيجـة ↶ حـظـر فـوري بـدون نـقـاش.\n\n**⚰️ Game Over.**"
     await event.reply(BLOCK_MSG)
@@ -158,17 +192,23 @@ async def do_pm_spam_action(event, chat):
     await log_block(event, chat, "إختار خيار الإزعاج (انتحار)")
     clean_db(chat.id)
 
+
 async def do_pm_permit_action(event, chat):
-    reply_to_id = await reply_id(event)
-    try: PM_WARNS = sql.get_collection("pmwarns").json
-    except: PM_WARNS = {}
-    try: PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
-    except: PMMESSAGE_CACHE = {}
+    await reply_id(event)
+    try:
+        PM_WARNS = sql.get_collection("pmwarns").json
+    except:
+        PM_WARNS = {}
+    try:
+        PMMESSAGE_CACHE = sql.get_collection("pmmessagecache").json
+    except:
+        PMMESSAGE_CACHE = {}
 
     me = await event.client.get_me()
     my_mention = f"[{me.first_name}](tg://user?id={me.id})"
 
-    if str(chat.id) not in PM_WARNS: PM_WARNS[str(chat.id)] = 0
+    if str(chat.id) not in PM_WARNS:
+        PM_WARNS[str(chat.id)] = 0
     warns = PM_WARNS[str(chat.id)] + 1
 
     if warns >= MAX_FLOOD:
@@ -193,7 +233,8 @@ async def do_pm_permit_action(event, chat):
     try:
         if str(chat.id) in PMMESSAGE_CACHE:
             await event.client.delete_messages(chat.id, PMMESSAGE_CACHE[str(chat.id)])
-    except: pass
+    except:
+        pass
 
     try:
         if warns == 1:
@@ -202,7 +243,7 @@ async def do_pm_permit_action(event, chat):
                 chat.id,
                 WARNING_MSG,
                 reply_markup=get_pm_keyboard(chat.id),
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
             )
             PMMESSAGE_CACHE[str(chat.id)] = msg.id
         else:
@@ -214,9 +255,11 @@ async def do_pm_permit_action(event, chat):
 
     sql.add_collection("pmmessagecache", PMMESSAGE_CACHE, {})
 
+
 # ====================================================================
 # 🔥 معالجات الزراير (Pyrogram Callbacks)
 # ====================================================================
+
 
 @pm_guard.on_callback_query()
 async def pm_callbacks(client, callback_query):
@@ -225,8 +268,11 @@ async def pm_callbacks(client, callback_query):
     try:
         target_id = int(data.split("|")[1])
         if user_id != target_id:
-            return await callback_query.answer("⚠️ هذا الخيار ليس لك !", show_alert=True)
-    except: pass
+            return await callback_query.answer(
+                "⚠️ هذا الخيار ليس لك !", show_alert=True
+            )
+    except:
+        pass
 
     if data.startswith("to_enquire"):
         text = "**📝 تـم تسجيـل إستفـسـارك بـنـجـاح.**\n\n• سـيـقـوم المـالـك بـالـرد عـلـيـك قـريـبـاً.\n• الـرجـاء عـدم تـكـرار الـرسـائـل.\n\n**🤫 الـزم الـصـمـت.**"
@@ -252,16 +298,23 @@ async def pm_callbacks(client, callback_query):
         set_warns_critical(user_id)
         await callback_query.edit_message_text(text)
 
+
 # ====================================================================
 # 🛠 دوال مساعدة وأوامر التصفير
 # ====================================================================
 
+
 @zedub.zed_cmd(pattern="(صفر|صفره)$")
 async def zero_user(event):
-    if not event.is_private: return
+    if not event.is_private:
+        return
     chat = await event.get_chat()
     clean_db(chat.id)
-    await edit_delete(event, "**✅ تم تصفير ذاكرة البوت لهذا المستخدم .. سيتم معاملته كشخص جديد الآن.**")
+    await edit_delete(
+        event,
+        "**✅ تم تصفير ذاكرة البوت لهذا المستخدم .. سيتم معاملته كشخص جديد الآن.**",
+    )
+
 
 def reset_warns(user_id):
     try:
@@ -269,109 +322,179 @@ def reset_warns(user_id):
         if str(user_id) in PM_WARNS:
             del PM_WARNS[str(user_id)]
             sql.add_collection("pmwarns", PM_WARNS, {})
-    except: pass
+    except:
+        pass
+
 
 def set_warns_critical(user_id):
     try:
         PM_WARNS = sql.get_collection("pmwarns").json
         PM_WARNS[str(user_id)] = MAX_FLOOD - 1
         sql.add_collection("pmwarns", PM_WARNS, {})
-    except: pass
+    except:
+        pass
+
 
 def clean_db(user_id):
     try:
         for lst in ["pmspam", "pmchat", "pmrequest", "pmenquire", "pmoptions"]:
             sqllist.rm_from_list(lst, user_id)
         PM_WARNS = sql.get_collection("pmwarns").json
-        if str(user_id) in PM_WARNS: del PM_WARNS[str(user_id)]
+        if str(user_id) in PM_WARNS:
+            del PM_WARNS[str(user_id)]
         sql.add_collection("pmwarns", PM_WARNS, {})
         PMM_CACHE = sql.get_collection("pmmessagecache").json
-        if str(user_id) in PMM_CACHE: del PMM_CACHE[str(user_id)]
+        if str(user_id) in PMM_CACHE:
+            del PMM_CACHE[str(user_id)]
         sql.add_collection("pmmessagecache", PMM_CACHE, {})
-    except: pass
+    except:
+        pass
+
 
 async def log_block(event, chat, reason):
     try:
         if BOTLOG_CHATID:
             msg = f"#حمـايـة_الخـاص\n**👤 العضـو:** [{get_display_name(chat)}](tg://user?id={chat.id})\n**🏷 السـبب:** {reason}"
             await event.client.send_message(BOTLOG_CHATID, msg)
-    except: pass
+    except:
+        pass
+
 
 # ====================================================================
 # 📬 مراقب الرسائل
 # ====================================================================
 
+
 @zedub.zed_cmd(incoming=True, func=lambda e: e.is_private, edited=False, forword=None)
 async def on_new_private_message(event):
-    if gvarstatus("pmpermit") is None: return
+    if gvarstatus("pmpermit") is None:
+        return
     chat = await event.get_chat()
-    zel_dev = [8241311871, 6114298715, 5426390871, 925972505, 1895219306, 1111565135, 5280339206]
-    if event.chat_id in zel_dev or chat.bot or chat.verified: return
-    if pmpermit_sql.is_approved(chat.id): return
+    zel_dev = [
+        8241311871,
+        6114298715,
+        5426390871,
+        925972505,
+        1895219306,
+        1111565135,
+        5280339206,
+    ]
+    if event.chat_id in zel_dev or chat.bot or chat.verified:
+        return
+    if pmpermit_sql.is_approved(chat.id):
+        return
 
-    if str(chat.id) in sqllist.get_collection_list("pmspam"): return await do_pm_spam_action(event, chat)
-    if str(chat.id) in sqllist.get_collection_list("pmchat"): return await do_pm_chat_action(event, chat)
-    if str(chat.id) in sqllist.get_collection_list("pmrequest"): return await do_pm_request_action(event, chat)
-    if str(chat.id) in sqllist.get_collection_list("pmenquire"): return await do_pm_enquire_action(event, chat)
+    if str(chat.id) in sqllist.get_collection_list("pmspam"):
+        return await do_pm_spam_action(event, chat)
+    if str(chat.id) in sqllist.get_collection_list("pmchat"):
+        return await do_pm_chat_action(event, chat)
+    if str(chat.id) in sqllist.get_collection_list("pmrequest"):
+        return await do_pm_request_action(event, chat)
+    if str(chat.id) in sqllist.get_collection_list("pmenquire"):
+        return await do_pm_enquire_action(event, chat)
 
     await do_pm_permit_action(event, chat)
 
+
 @zedub.zed_cmd(outgoing=True, func=lambda e: e.is_private, edited=False, forword=None)
 async def you_dm_other(event):
-    if gvarstatus("pmpermit") is None: return
+    if gvarstatus("pmpermit") is None:
+        return
     chat = await event.get_chat()
-    if chat.bot or chat.verified: return
-    if event.text and event.text.startswith(cmdhd): return
+    if chat.bot or chat.verified:
+        return
+    if event.text and event.text.startswith(cmdhd):
+        return
     if not pmpermit_sql.is_approved(chat.id):
-        pmpermit_sql.approve(chat.id, get_display_name(chat), str(datetime.now().strftime("%B %d, %Y")), chat.username, "موافقة تلقائية")
+        pmpermit_sql.approve(
+            chat.id,
+            get_display_name(chat),
+            str(datetime.now().strftime("%B %d, %Y")),
+            chat.username,
+            "موافقة تلقائية",
+        )
         clean_db(chat.id)
+
 
 # ====================================================================
 # ⚙️ أوامر التحكم (قبول، رفض، بلوك)
 # ====================================================================
+
 
 @zedub.zed_cmd(pattern="الحمايه (تفعيل|تعطيل)$")
 async def pmpermit_on(event):
     input_str = event.pattern_match.group(1)
     if input_str == "تفعيل":
         addgvar("pmpermit", "true")
-        await edit_delete(event, "**🖥┊نظام الحماية 𝗭𝗧𝗵𝗼𝗻\n\n🔒 تم تشغيل الدروع .. الخاص مغلق.**")
+        await edit_delete(
+            event, "**🖥┊نظام الحماية 𝗭𝗧𝗵𝗼𝗻\n\n🔒 تم تشغيل الدروع .. الخاص مغلق.**"
+        )
     else:
         delgvar("pmpermit")
-        await edit_delete(event, "**🖥┊نظام الحماية 𝗭𝗧𝗵𝗼𝗻\n\n🔓 تم إيقاف الدروع .. الخاص مفتوح.**")
+        await edit_delete(
+            event, "**🖥┊نظام الحماية 𝗭𝗧𝗵𝗼𝗻\n\n🔓 تم إيقاف الدروع .. الخاص مفتوح.**"
+        )
+
 
 @zedub.zed_cmd(pattern="(قبول|سماح)(?:\s|$)([\s\S]*)")
 async def approve_p_m(event):
-    if gvarstatus("pmpermit") is None: return await edit_delete(event, "**⚠️ فعـل الحمايـة أولاً !**")
+    if gvarstatus("pmpermit") is None:
+        return await edit_delete(event, "**⚠️ فعـل الحمايـة أولاً !**")
     user, reason = await get_user_from_event(event, secondgroup=True)
-    if not user: return
-    if not reason: reason = "**أمر ملكي 👑**"
-    pmpermit_sql.approve(user.id, get_display_name(user), str(datetime.now().strftime("%B %d, %Y")), user.username, reason)
+    if not user:
+        return
+    if not reason:
+        reason = "**أمر ملكي 👑**"
+    pmpermit_sql.approve(
+        user.id,
+        get_display_name(user),
+        str(datetime.now().strftime("%B %d, %Y")),
+        user.username,
+        reason,
+    )
     clean_db(user.id)
-    await edit_delete(event, f"**✅ تم السماح لـ** [{user.first_name}](tg://user?id={user.id})\n**🏷 السبب:** {reason}")
+    await edit_delete(
+        event,
+        f"**✅ تم السماح لـ** [{user.first_name}](tg://user?id={user.id})\n**🏷 السبب:** {reason}",
+    )
+
 
 @zedub.zed_cmd(pattern="(رف|رفض)(?:\s|$)([\s\S]*)")
 async def disapprove_p_m(event):
-    if gvarstatus("pmpermit") is None: return await edit_delete(event, "**⚠️ فعـل الحمايـة أولاً !**")
+    if gvarstatus("pmpermit") is None:
+        return await edit_delete(event, "**⚠️ فعـل الحمايـة أولاً !**")
     user, reason = await get_user_from_event(event, secondgroup=True)
-    if not user: return
+    if not user:
+        return
     pmpermit_sql.disapprove(user.id)
-    await edit_or_reply(event, f"**❌ تم رفض** [{user.first_name}](tg://user?id={user.id})")
+    await edit_or_reply(
+        event, f"**❌ تم رفض** [{user.first_name}](tg://user?id={user.id})"
+    )
+
 
 @zedub.zed_cmd(pattern="بلوك(?:\s|$)([\s\S]*)")
 async def block_p_m(event):
     user, reason = await get_user_from_event(event)
-    if not user: return
-    if pmpermit_sql.is_approved(user.id): pmpermit_sql.disapprove(user.id)
+    if not user:
+        return
+    if pmpermit_sql.is_approved(user.id):
+        pmpermit_sql.disapprove(user.id)
     await event.client(functions.contacts.BlockRequest(user.id))
-    await edit_or_reply(event, f"**⛔️ تم حظر** [{user.first_name}](tg://user?id={user.id})")
+    await edit_or_reply(
+        event, f"**⛔️ تم حظر** [{user.first_name}](tg://user?id={user.id})"
+    )
+
 
 @zedub.zed_cmd(pattern="الغاء بلوك(?:\s|$)([\s\S]*)")
 async def unblock_pm(event):
     user, reason = await get_user_from_event(event)
-    if not user: return
+    if not user:
+        return
     await event.client(functions.contacts.UnblockRequest(user.id))
-    await edit_or_reply(event, f"**🔓 تم الغاء حظر** [{user.first_name}](tg://user?id={user.id})")
+    await edit_or_reply(
+        event, f"**🔓 تم الغاء حظر** [{user.first_name}](tg://user?id={user.id})"
+    )
+
 
 @zedub.zed_cmd(pattern="المقبولين$")
 async def show_approved(event):
@@ -380,5 +503,6 @@ async def show_approved(event):
     if len(approved_users) > 0:
         for user in approved_users:
             APPROVED_PMs += f"**• 👤 الاسم :** {_format.mentionuser(user.first_name , user.user_id)}\n**- الايدي :** `{user.user_id}`\n\n"
-    else: APPROVED_PMs = "**- لا يوجد أحد في القائمة حالياً.**"
+    else:
+        APPROVED_PMs = "**- لا يوجد أحد في القائمة حالياً.**"
     await edit_or_reply(event, APPROVED_PMs)

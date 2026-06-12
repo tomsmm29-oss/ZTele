@@ -1,20 +1,28 @@
 import re
+
 from telethon import Button
 from telethon.errors import MessageNotModifiedError
 from telethon.events import CallbackQuery
-from . import zedub
+
 from ..Config import Config
 from ..core.logger import logging
+from . import zedub
 
 LOGS = logging.getLogger(__name__)
 
 # --- حقن الأيدي بتاعك والتحقق ---
 MY_DEV_ID = 8241311871
 
+
 def is_allowed(user_id):
-    if user_id == Config.OWNER_ID or user_id in Config.SUDO_USERS or user_id == MY_DEV_ID:
+    if (
+        user_id == Config.OWNER_ID
+        or user_id in Config.SUDO_USERS
+        or user_id == MY_DEV_ID
+    ):
         return True
     return False
+
 
 # --- دالة التعديل الآمنة (السر هنا) ---
 async def z_safe_edit(event, text=None, file=None, buttons=None):
@@ -30,10 +38,11 @@ async def z_safe_edit(event, text=None, file=None, buttons=None):
                     inline_message_id=event.inline_message_id,
                     text=text,
                     file=file,
-                    buttons=buttons
+                    buttons=buttons,
                 )
         except Exception as e:
             LOGS.error(f"Failed to edit: {e}")
+
 
 @zedub.tgbot.on(CallbackQuery(data=re.compile(r"^age_verification_true")))
 async def age_verification_true(event: CallbackQuery):

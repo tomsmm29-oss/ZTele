@@ -4,7 +4,7 @@ from .utils import *
 
 flag = True
 # تعديل مايكي: غيرنا الاسم من check إلى retry_count عشان ما يصير تضارب
-retry_count = 0 
+retry_count = 0
 
 while flag:
     try:
@@ -14,7 +14,7 @@ while flag:
         from .progress import *
         from .qhelper import process
         from .tools import *
-        from .utils import _zedtools, _zedutils, _format
+        from .utils import _format, _zedtools, _zedutils
 
         break
     except ModuleNotFoundError as e:

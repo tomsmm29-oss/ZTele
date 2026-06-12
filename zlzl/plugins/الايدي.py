@@ -3,11 +3,12 @@
 
 from telethon.utils import pack_bot_file_id
 
+from ..core.logger import logging
+from ..core.managers import edit_delete, edit_or_reply
+from ..helpers.utils import get_user_from_event
+
 # --- تصحيح المسارات ---
 from . import zedub
-from ..core.logger import logging
-from ..helpers.utils import get_user_from_event
-from ..core.managers import edit_delete, edit_or_reply
 
 plugin_category = "الادوات"
 LOGS = logging.getLogger(__name__)
@@ -30,13 +31,13 @@ async def get_id_cmd(event):
         except Exception as e:
             return await edit_delete(event, f"`{e}`", 5)
         try:
-            if hasattr(p, 'first_name') and p.first_name:
+            if hasattr(p, "first_name") and p.first_name:
                 return await edit_or_reply(
                     event, f"**⎉╎ايـدي المستخـدم**  `{input_str}` **هـو** `{p.id}`"
                 )
         except Exception:
             try:
-                if hasattr(p, 'title') and p.title:
+                if hasattr(p, "title") and p.title:
                     return await edit_or_reply(
                         event, f"**⎉╎ايـدي المستخـدم**  `{p.title}` **هـو** `{p.id}`"
                     )
@@ -50,7 +51,7 @@ async def get_id_cmd(event):
                 bot_api_file_id = pack_bot_file_id(r_msg.media)
             except:
                 bot_api_file_id = "غير متاح"
-            
+
             await edit_or_reply(
                 event,
                 f"**⎉╎ايـدي الدردشـه : **`{event.chat_id}`\n\n**⎉╎ايـدي المستخـدم : **`{r_msg.sender_id}`\n\n**⎉╎ايـدي الميديـا : **`{bot_api_file_id}`",

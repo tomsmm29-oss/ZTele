@@ -9,20 +9,18 @@
 # So تخمـط الملف ابلـع سـورسك بانـد
 
 import asyncio
-import aiohttp
-import os
-import time
-from bs4 import BeautifulSoup
 from datetime import datetime
-from telethon.tl.types import InputMediaPhoto
+
+import aiohttp
+from bs4 import BeautifulSoup
 
 from . import zedub
-from ..Config import Config
 
 ZELZAL_APP_ID = "6e65179ed1d879f3d905e28ef8803625"
 
 
 # ===================== أدوات البحث ===================== #
+
 
 async def fetch_image(session, url):
     try:
@@ -37,9 +35,7 @@ async def fetch_image(session, url):
 async def pinterest_search(session, query):
     try:
         url = f"https://www.pinterest.com/search/pins/?q={query}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-        }
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
         async with session.get(url, headers=headers) as r:
             if r.status != 200:
                 return None
@@ -75,7 +71,9 @@ async def duckduckgo_search(session, query):
             if r.status != 200:
                 return None
             data = await r.json()
-            results = [i.get("image") for i in data.get("results", []) if i.get("image")]
+            results = [
+                i.get("image") for i in data.get("results", []) if i.get("image")
+            ]
             return results[0] if results else None
     except:
         return None
@@ -95,6 +93,7 @@ async def bing_search(session, query):
 
 
 # ===================== أمر الصور ===================== #
+
 
 @zedub.zed_cmd(pattern="صور (.*)")
 async def _(event):
@@ -128,14 +127,14 @@ async def _(event):
                 continue
 
     if not image_data:
-        await event.edit(f"- اووبـس .. لم استطـع ايجـاد صـورة عـن {query} ؟!\n"
-                         f"**- حـاول مجـدداً واكتـب الكلمـه بشكـل صحيح**")
+        await event.edit(
+            f"- اووبـس .. لم استطـع ايجـاد صـورة عـن {query} ؟!\n"
+            f"**- حـاول مجـدداً واكتـب الكلمـه بشكـل صحيح**"
+        )
         return
 
     await event.client.send_file(
-        event.chat_id,
-        file=image_data,
-        caption=f"صورة عن: {query}"
+        event.chat_id, file=image_data, caption=f"صورة عن: {query}"
     )
 
     end = datetime.now()

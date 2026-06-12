@@ -1,9 +1,8 @@
+import asyncio
 import inspect
 import re
 import sys
 import traceback
-import asyncio
-import datetime
 from pathlib import Path
 
 from .. import CMD_LIST, LOAD_PLUG, SUDO_LIST
@@ -12,11 +11,10 @@ from ..core.data import _sudousers_list, blacklist_chats_list
 from ..core.events import MessageEdited, NewMessage
 from ..core.logger import logging
 from ..core.session import zedub
-from ..helpers.utils.format import paste_message
-from ..helpers.utils.utils import runcmd
 from ..sql_helper.globals import gvarstatus
 
 LOGS = logging.getLogger("ZThon_Decorators")
+
 
 def compile_pattern(pattern, handler):
     # إذا كان الأمر يبدأ أصلاً برموز نظام خاصة نتركه كما هو
@@ -35,6 +33,7 @@ def compile_pattern(pattern, handler):
         LOGS.error(f"⚠️ خطأ في نمط الرموز: {e}")
         return re.compile(r"^\." + pattern), "." + pattern
 
+
 def admin_cmd(pattern=None, command=None, **args):
     args["func"] = lambda e: e.via_bot_id is None
     stack = inspect.stack()
@@ -48,7 +47,11 @@ def admin_cmd(pattern=None, command=None, **args):
             compiled_reg, cmd_text = compile_pattern(pattern, hand_ler)
             args["pattern"] = compiled_reg
 
-            cmd = (hand_ler + command) if command else cmd_text.replace("$", "").replace("\\", "").replace("^", "")
+            cmd = (
+                (hand_ler + command)
+                if command
+                else cmd_text.replace("$", "").replace("\\", "").replace("^", "")
+            )
 
             if file_test not in CMD_LIST:
                 CMD_LIST[file_test] = []
@@ -72,6 +75,7 @@ def admin_cmd(pattern=None, command=None, **args):
     args.pop("allow_edited_updates", None)
     return NewMessage(**args)
 
+
 def sudo_cmd(pattern=None, command=None, **args):
     args["func"] = lambda e: e.via_bot_id is None
     stack = inspect.stack()
@@ -85,7 +89,11 @@ def sudo_cmd(pattern=None, command=None, **args):
             compiled_reg, cmd_text = compile_pattern(pattern, hand_ler)
             args["pattern"] = compiled_reg
 
-            cmd = (hand_ler + command) if command else cmd_text.replace("$", "").replace("\\", "").replace("^", "")
+            cmd = (
+                (hand_ler + command)
+                if command
+                else cmd_text.replace("$", "").replace("\\", "").replace("^", "")
+            )
 
             if file_test not in SUDO_LIST:
                 SUDO_LIST[file_test] = []
@@ -110,15 +118,18 @@ def sudo_cmd(pattern=None, command=None, **args):
     if gvarstatus("sudoenable"):
         return NewMessage(**args)
 
+
 def errors_handler(func):
     async def wrapper(check):
         # ⚡ فحص الرام السريع (الرد الفوري من Redis)
-        if hasattr(zedub, 'redis') and zedub.redis:
+        if hasattr(zedub, "redis") and zedub.redis:
             try:
-                fast_reply = await zedub.redis.hget(f"filters:{check.chat_id}", check.text)
+                fast_reply = await zedub.redis.hget(
+                    f"filters:{check.chat_id}", check.text
+                )
                 if fast_reply:
                     await check.reply(fast_reply)
-                    return 
+                    return
             except:
                 pass
 
@@ -132,13 +143,16 @@ def errors_handler(func):
                 if Config.PRIVATE_GROUP_BOT_API_ID:
                     try:
                         ftext = f"\n**⚠️ تقرير خطأ:**\n**الأمر:** `{str(check.text)}`\n**الخطأ:** `{str(sys.exc_info()[1])}`"
-                        await check.client.send_message(Config.PRIVATE_GROUP_BOT_API_ID, ftext, link_preview=False)
+                        await check.client.send_message(
+                            Config.PRIVATE_GROUP_BOT_API_ID, ftext, link_preview=False
+                        )
                     except:
                         pass
-        
+
         asyncio.create_task(run_command())
 
     return wrapper
+
 
 def register(**args):
     args["func"] = lambda e: e.via_bot_id is None
@@ -175,6 +189,7 @@ def register(**args):
         return func
 
     return decorator
+
 
 def command(**args):
     return register(**args)

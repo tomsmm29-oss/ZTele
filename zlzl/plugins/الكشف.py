@@ -1,25 +1,28 @@
 import asyncio
-import time
 import re
+import time
+
 from telethon import events
 from telethon.tl.functions.account import UpdateProfileRequest
 from telethon.tl.types import (
-    UpdateUserStatus,
-    UpdateReadHistoryOutbox,
-    UpdateReadChannelOutbox,
     UpdateDraftMessage,
-    UserStatusOnline
+    UpdateReadChannelOutbox,
+    UpdateReadHistoryOutbox,
+    UpdateUserStatus,
+    UserStatusOnline,
 )
 
-from . import zedub
 from ..core.managers import edit_or_reply
+from . import zedub
 
 # --- استدعاء قاعدة البيانات لكليشات زدثون ---
 try:
     from ..sql_helper.globals import gvarstatus
 except ImportError:
+
     def gvarstatus(val):
         return None
+
 
 # --- نصوص الكليشة الفخمة ---
 ZEDM = gvarstatus("CUSTOM_ALIVE_EMOJI") or "✦ "
@@ -35,15 +38,17 @@ ORIGINAL_FIRST_NAME = ""
 ORIGINAL_LAST_NAME = ""
 MY_ID = 0
 
+
 # =======================================================
 # دالة لتنظيف الاسم الأخير من الحالات السابقة
 # =======================================================
 def clean_last_name(name):
     if not name:
         return ""
-    name = re.sub(r'\(متصل\)', '', name)
-    name = re.sub(r'\(غير متصل\)', '', name)
+    name = re.sub(r"\(متصل\)", "", name)
+    name = re.sub(r"\(غير متصل\)", "", name)
     return name.strip()
+
 
 # =======================================================
 # 1. نظام تغيير الأسماء (Anti-Flood Gate)
@@ -63,13 +68,15 @@ async def update_profile_name(client, state):
         else:
             new_last_name = ORIGINAL_LAST_NAME
 
-        await client(UpdateProfileRequest(
-            first_name=ORIGINAL_FIRST_NAME,
-            last_name=new_last_name
-        ))
+        await client(
+            UpdateProfileRequest(
+                first_name=ORIGINAL_FIRST_NAME, last_name=new_last_name
+            )
+        )
         CURRENT_NAME_STATE = state
     except Exception:
         pass
+
 
 # =======================================================
 # 2. حلقة الموت الصامت (مؤقت الـ 20 ثانية في الخلفية)
@@ -87,6 +94,7 @@ async def radar_background_worker(client):
         elif time_passed >= 20:
             await update_profile_name(client, "offline")
 
+
 # =======================================================
 # 3. صائد الأحداث الخام (مستشعر نبضات التزامن البشري)
 # =======================================================
@@ -98,14 +106,17 @@ async def session_sync_radar(event):
 
     # التقاط الأونلاين الفعلي
     if isinstance(event, UpdateUserStatus):
-        if getattr(event, 'user_id', 0) == MY_ID:
+        if getattr(event, "user_id", 0) == MY_ID:
             if isinstance(event.status, UserStatusOnline):
                 LAST_HUMAN_ACTION = time.time()
         return
 
     # التقاط القراءة والكتابة
-    if isinstance(event, (UpdateReadHistoryOutbox, UpdateReadChannelOutbox, UpdateDraftMessage)):
+    if isinstance(
+        event, (UpdateReadHistoryOutbox, UpdateReadChannelOutbox, UpdateDraftMessage)
+    ):
         LAST_HUMAN_ACTION = time.time()
+
 
 # =======================================================
 # 4. أوامر التشغيل، الإيقاف، والاختبار
@@ -113,16 +124,20 @@ async def session_sync_radar(event):
 @zedub.zed_cmd(
     pattern="تفعيل الكشف$",
     command=("تفعيل الكشف", "الادمن"),
-    info={"header": "تفعيل نظام تغيير الاسم التلقائي بناءً على نشاطك الحقيقي."}
+    info={"header": "تفعيل نظام تغيير الاسم التلقائي بناءً على نشاطك الحقيقي."},
 )
 async def enable_radar(event):
     global RADAR_ENABLED, RADAR_TASK, LAST_HUMAN_ACTION
     global ORIGINAL_FIRST_NAME, ORIGINAL_LAST_NAME, MY_ID
 
-    zed = await edit_or_reply(event, "<b>⎉╎جـاري الـتـفـعـيـل...</b>", parse_mode="html")
+    zed = await edit_or_reply(
+        event, "<b>⎉╎جـاري الـتـفـعـيـل...</b>", parse_mode="html"
+    )
 
     if RADAR_ENABLED:
-        return await zed.edit("<b>- نـظـام الـكـشـف مـفـعـل مـسـبـقـاً ✅</b>", parse_mode="html")
+        return await zed.edit(
+            "<b>- نـظـام الـكـشـف مـفـعـل مـسـبـقـاً ✅</b>", parse_mode="html"
+        )
 
     me = await event.client.get_me()
     MY_ID = me.id
@@ -133,7 +148,9 @@ async def enable_radar(event):
     LAST_HUMAN_ACTION = time.time()
 
     if RADAR_TASK is None or RADAR_TASK.done():
-        RADAR_TASK = event.client.loop.create_task(radar_background_worker(event.client))
+        RADAR_TASK = event.client.loop.create_task(
+            radar_background_worker(event.client)
+        )
 
     caption = f"<b>🛂┊نـظـام الـكـشـف - 𝙕𝞝𝘿𝙏𝙃𝙊𝙉</b>\n\n"
     caption += f"⎉╎الـحـالـة ⩥ مـفـعـل ✅\n"
@@ -148,15 +165,19 @@ async def enable_radar(event):
 @zedub.zed_cmd(
     pattern="ايقاف الكشف$",
     command=("ايقاف الكشف", "الادمن"),
-    info={"header": "إيقاف نظام الكشف وإرجاع اسمك الطبيعي."}
+    info={"header": "إيقاف نظام الكشف وإرجاع اسمك الطبيعي."},
 )
 async def disable_radar(event):
     global RADAR_ENABLED, RADAR_TASK, CURRENT_NAME_STATE
 
-    zed = await edit_or_reply(event, "<b>⎉╎جـاري الـتـعـطـيـل...</b>", parse_mode="html")
+    zed = await edit_or_reply(
+        event, "<b>⎉╎جـاري الـتـعـطـيـل...</b>", parse_mode="html"
+    )
 
     if not RADAR_ENABLED:
-        return await zed.edit("<b>- نـظـام الـكـشـف مـعـطـل مـسـبـقـاً ❌</b>", parse_mode="html")
+        return await zed.edit(
+            "<b>- نـظـام الـكـشـف مـعـطـل مـسـبـقـاً ❌</b>", parse_mode="html"
+        )
 
     RADAR_ENABLED = False
     CURRENT_NAME_STATE = "none"
@@ -165,10 +186,11 @@ async def disable_radar(event):
         RADAR_TASK.cancel()
 
     try:
-        await event.client(UpdateProfileRequest(
-            first_name=ORIGINAL_FIRST_NAME, 
-            last_name=ORIGINAL_LAST_NAME
-        ))
+        await event.client(
+            UpdateProfileRequest(
+                first_name=ORIGINAL_FIRST_NAME, last_name=ORIGINAL_LAST_NAME
+            )
+        )
     except:
         pass
 
@@ -179,6 +201,7 @@ async def disable_radar(event):
     caption += f"<b>{ZEDM}تـم إرجـاع إسـمـك لـوضـعـه الـطـبـيـعـي بـنـجـاح.</b>"
 
     await zed.edit(caption, parse_mode="html")
+
 
 # =======================================================
 # 5. أمر الاختبار الفخم

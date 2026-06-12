@@ -1,14 +1,15 @@
 import asyncio
 from datetime import datetime
+
 from telethon.tl import functions, types
 
-# استيراد من السورس الحالي
-from . import zedub
 from ..Config import Config
 from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.tools import media_type
-from ..helpers.utils import _format
+
+# استيراد من السورس الحالي
+from . import zedub
 
 # تجاوز مشكلة السجل إذا لم يكن معرفاً
 try:
@@ -19,6 +20,7 @@ BOTLOG = True
 
 plugin_category = "البوت"
 LOGS = logging.getLogger(__name__)
+
 
 class AFK:
     def __init__(self):
@@ -34,16 +36,18 @@ class AFK:
         self.media_afk = None
         self.afk_on = False
 
+
 AFK_ = AFK()
+
 
 @zedub.zed_cmd(outgoing=True, edited=False)
 async def set_not_afk(event):
     if AFK_.afk_on is False:
         return
-    
+
     back_alive = datetime.now()
     AFK_.afk_end = back_alive.replace(microsecond=0)
-    
+
     # حساب الوقت بطريقة آمنة 100%
     endtime = "لحظات"
     if AFK_.afk_star:
@@ -89,16 +93,17 @@ async def set_not_afk(event):
             except:
                 pass
 
+
 @zedub.zed_cmd(
     incoming=True, func=lambda e: bool(e.mentioned or e.is_private), edited=False
 )
 async def on_afk(event):
     if AFK_.afk_on is False:
         return
-    
+
     back_alivee = datetime.now()
     AFK_.afk_end = back_alivee.replace(microsecond=0)
-    
+
     endtime = "وقت غير معروف"
     if AFK_.afk_star:
         total_afk_time = AFK_.afk_end - AFK_.afk_star
@@ -125,7 +130,9 @@ async def on_afk(event):
         return
     if AFK_.USERAFK_ON and not (await event.get_sender()).bot:
         # تجهيز الرسالة
-        message_to_reply = f"**⚠️ | عـذراً انـا فـي وضـع عـدم التواجـد**\n**⏰ | منـذ :** `{endtime}`"
+        message_to_reply = (
+            f"**⚠️ | عـذراً انـا فـي وضـع عـدم التواجـد**\n**⏰ | منـذ :** `{endtime}`"
+        )
         if AFK_.reason:
             message_to_reply += f"\n**📝 | السبـب :** `{AFK_.reason}`"
 
@@ -145,6 +152,7 @@ async def on_afk(event):
                 pass
         AFK_.last_afk_message[event.chat_id] = msg
 
+
 @zedub.zed_cmd(pattern="سليب(?:\s|$)([\s\S]*)")
 async def _(event):
     AFK_.USERAFK_ON = {}
@@ -154,7 +162,7 @@ async def _(event):
     AFK_.afk_type = "text"
     AFK_.afk_on = True
     AFK_.afk_star = datetime.now().replace(microsecond=0)
-    
+
     input_str = event.pattern_match.group(1)
     if ";" in input_str:
         msg, mlink = input_str.split(";", 1)
@@ -163,7 +171,7 @@ async def _(event):
     else:
         AFK_.reason = input_str if input_str else None
         AFK_.msg_link = False
-    
+
     try:
         last_seen_status = await event.client(
             functions.account.GetPrivacyRequest(types.InputPrivacyKeyStatusTimestamp())
@@ -175,26 +183,35 @@ async def _(event):
 
     AFK_.USERAFK_ON = f"on: {AFK_.reason}"
     if AFK_.reason:
-        await edit_delete(event, f"**⚠️ | تم تفعيـل وضـع عـدم التواجـد**\n**السبب:** `{AFK_.reason}`", 5)
+        await edit_delete(
+            event,
+            f"**⚠️ | تم تفعيـل وضـع عـدم التواجـد**\n**السبب:** `{AFK_.reason}`",
+            5,
+        )
     else:
         await edit_delete(event, "**⚠️ | تم تفعيـل وضـع عـدم التواجـد**", 5)
-    
+
     if BOTLOG and BOTLOG_CHATID:
         try:
             if AFK_.reason:
-                await event.client.send_message(BOTLOG_CHATID, f"⪼ تم تفعيل السليب: {AFK_.reason}")
+                await event.client.send_message(
+                    BOTLOG_CHATID, f"⪼ تم تفعيل السليب: {AFK_.reason}"
+                )
             else:
                 await event.client.send_message(BOTLOG_CHATID, "⪼ تم تفعيل السليب")
         except:
             pass
+
 
 @zedub.zed_cmd(pattern="سليب_ميديا(?:\s|$)([\s\S]*)")
 async def _(event):
     reply = await event.get_reply_message()
     media_t = media_type(reply)
     if media_t == "Sticker" or not media_t:
-        return await edit_or_reply(event, "⪼ امر السليب : المرجو قم بالرد على الصورة بالامر ")
-    
+        return await edit_or_reply(
+            event, "⪼ امر السليب : المرجو قم بالرد على الصورة بالامر "
+        )
+
     AFK_.USERAFK_ON = {}
     AFK_.afk_time = None
     AFK_.last_afk_message = {}
@@ -203,10 +220,10 @@ async def _(event):
     AFK_.afk_type = "media"
     AFK_.afk_on = True
     AFK_.afk_star = datetime.now().replace(microsecond=0)
-    
+
     input_str = event.pattern_match.group(1)
     AFK_.reason = input_str if input_str else None
-    
+
     try:
         last_seen_status = await event.client(
             functions.account.GetPrivacyRequest(types.InputPrivacyKeyStatusTimestamp())
@@ -223,10 +240,14 @@ async def _(event):
         AFK_.media_afk = None
 
     if AFK_.reason:
-        await edit_delete(event, f"**⚠️ | تم تفعيـل وضـع عـدم التواجـد (ميديا)**\n**السبب:** `{AFK_.reason}`", 5)
+        await edit_delete(
+            event,
+            f"**⚠️ | تم تفعيـل وضـع عـدم التواجـد (ميديا)**\n**السبب:** `{AFK_.reason}`",
+            5,
+        )
     else:
         await edit_delete(event, "**⚠️ | تم تفعيـل وضـع عـدم التواجـد (ميديا)**", 5)
-        
+
     if BOTLOG and BOTLOG_CHATID:
         try:
             await event.client.send_message(BOTLOG_CHATID, "⪼ تم تفعيل السليب (ميديا)")

@@ -1,11 +1,9 @@
 import random
-import re
 import time
-import psutil
 from datetime import datetime
 from platform import python_version
 
-import requests
+import psutil
 from telethon import version
 from telethon.errors.rpcerrorlist import (
     MediaEmptyError,
@@ -13,13 +11,13 @@ from telethon.errors.rpcerrorlist import (
     WebpageMediaEmptyError,
 )
 
-from . import StartTime, zedub, zedversion
-
 from ..Config import Config
 from ..core.managers import edit_or_reply
-from ..helpers.functions import zedalive, check_data_base_heal_th, get_readable_time
+from ..helpers.functions import check_data_base_heal_th, get_readable_time
+
 # # from ..helpers.utils import reply_id
 from ..sql_helper.globals import gvarstatus
+from . import StartTime, zedub, zedversion
 
 plugin_category = "العروض"
 STATS = gvarstatus("Z_STATS") or "فحص"
@@ -38,7 +36,7 @@ async def zed_alive(event):
     end = datetime.now()
     ms = (end - start).microseconds / 1000
     _, check_sgnirts = check_data_base_heal_th()
-    
+
     # إصلاح المنطق هنا
     if gvarstatus("z_date") is not None:
         zzd = gvarstatus("z_date")
@@ -47,25 +45,29 @@ async def zed_alive(event):
     else:
         # هنا كان الخطأ، zzt ما كان له قيمة
         zedda = f"{bt.year}/{bt.month}/{bt.day}"
-        zzt = f"{bt.hour}:{bt.minute}" # قيمة افتراضية للوقت
-    
+        zzt = f"{bt.hour}:{bt.minute}"  # قيمة افتراضية للوقت
+
     Z_EMOJI = gvarstatus("ALIVE_EMOJI") or "✥┊"
-    ALIVE_TEXT = gvarstatus("ALIVE_TEXT") or "** بـوت  زدثــون 𝗭𝗧𝗵𝗼𝗻  يعمـل .. بنجـاح ☑️ 𓆩 **"
+    ALIVE_TEXT = (
+        gvarstatus("ALIVE_TEXT") or "** بـوت  زدثــون 𝗭𝗧𝗵𝗼𝗻  يعمـل .. بنجـاح ☑️ 𓆩 **"
+    )
     ZED_IMG = gvarstatus("ALIVE_PIC")
     USERID = zedub.uid if Config.OWNER_ID == 0 else Config.OWNER_ID
-    ALIVE_NAME = gvarstatus("ALIVE_NAME") if gvarstatus("ALIVE_NAME") else Config.ALIVE_NAME
+    ALIVE_NAME = (
+        gvarstatus("ALIVE_NAME") if gvarstatus("ALIVE_NAME") else Config.ALIVE_NAME
+    )
     mention = f"[{ALIVE_NAME}](tg://user?id={USERID})"
-    
+
     # القالب
     zed_caption = gvarstatus("ALIVE_TEMPLATE") or zed_temp
-    
+
     # التنسيق النهائي
     caption = zed_caption.format(
         ALIVE_TEXT=ALIVE_TEXT,
         Z_EMOJI=Z_EMOJI,
         mention=mention,
         uptime=uptime,
-        zedda=zedda, # عدلتها لتستخدم المتغير الصحيح
+        zedda=zedda,  # عدلتها لتستخدم المتغير الصحيح
         zzd=zzd,
         zzt=zzt,
         telever=version.__version__,
@@ -74,7 +76,7 @@ async def zed_alive(event):
         dbhealth=check_sgnirts,
         ping=ms,
     )
-    
+
     if ZED_IMG:
         ZED = [x for x in ZED_IMG.split()]
         PIC = random.choice(ZED)

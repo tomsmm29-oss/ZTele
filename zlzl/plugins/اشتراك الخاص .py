@@ -1,38 +1,39 @@
-import asyncio
 import logging
-import requests
 
-from telethon import events, Button
+from telethon import Button
 from telethon.errors.rpcerrorlist import UserNotParticipantError
-
-from telethon.tl.functions.channels import (
-    EditBannedRequest,
-    GetParticipantRequest,
-)
-
-from telethon.tl.functions.messages import ExportChatInviteRequest
+from telethon.tl.functions.channels import EditBannedRequest, GetParticipantRequest
 from telethon.tl.types import ChatBannedRights
 
+from ..core.managers import edit_delete, edit_or_reply
 
 # --- تصحيح المسارات والحقن النسبي ---
 from . import zedub
-from ..core.managers import edit_delete, edit_or_reply
 
 # محاولة استدعاء Config
 try:
     from ..Config import Config
 except ImportError:
+
     class Config:
         TG_BOT_TOKEN = None
         COMMAND_HAND_LER = "."
+
 
 # محاولة استدعاء SQL
 try:
     from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 except ImportError:
-    def addgvar(x, y): pass
-    def delgvar(x): pass
-    def gvarstatus(x): return None
+
+    def addgvar(x, y):
+        pass
+
+    def delgvar(x):
+        pass
+
+    def gvarstatus(x):
+        return None
+
 
 # محاولة استدعاء BOTLOG
 try:
@@ -57,6 +58,7 @@ UNMUTE_RIGHTS = ChatBannedRights(
 
 # ================== دالة تحقق قوية ==================
 
+
 async def check_user_subscription(client, user_id, channel_id):
     try:
         await client(GetParticipantRequest(int(channel_id), user_id))
@@ -66,7 +68,9 @@ async def check_user_subscription(client, user_id, channel_id):
     except Exception:
         return False
 
+
 # ================== وضع اشتراك الخاص ==================
+
 
 @zedub.zed_cmd(pattern="(ضع الاشتراك خاص|وضع الاشتراك خاص)(?:\s|$)([\s\S]*)")
 async def set_pm_sub(event):
@@ -87,7 +91,7 @@ async def set_pm_sub(event):
             f"⎉╎تم إضافة قناة الاشتراك الاجباري للخاص .. بنجـاح ☑️\n\n"
             f"**⎉╎اسم القناة : ↶** {name}\n"
             f"**⎉╎ايدي القناة : ↶** {p.id}\n\n"
-            f"**⎉╎ارسـل الان** .اشتراك خاص"
+            f"**⎉╎ارسـل الان** .اشتراك خاص",
         )
 
     delgvar("Custom_Pm_Channel")
@@ -96,10 +100,12 @@ async def set_pm_sub(event):
         event,
         f"**⎉╎تم إضافة قناة الاشتراك الاجباري للخاص .. بنجـاح ☑️**\n\n"
         f"**⎉╎ايدي القناة : ↶** `{event.chat_id}`\n\n"
-        f"**⎉╎ارسـل الان** `.اشتراك خاص`"
+        f"**⎉╎ارسـل الان** `.اشتراك خاص`",
     )
 
+
 # ================== وضع اشتراك الكروب ==================
+
 
 @zedub.zed_cmd(pattern="(ضع الاشتراك كروب|وضع الاشتراك كروب)(?:\s|$)([\s\S]*)")
 async def set_grp_sub(event):
@@ -120,7 +126,7 @@ async def set_grp_sub(event):
             f"⎉╎تم إضافة قناة الاشتراك الاجباري للكروب .. بنجـاح ☑️\n\n"
             f"**⎉╎اسم القناة : ↶** {name}\n"
             f"**⎉╎ايدي القناة : ↶** {p.id}\n\n"
-            f"**⎉╎ارسـل الان** .اشتراك كروب"
+            f"**⎉╎ارسـل الان** .اشتراك كروب",
         )
 
     delgvar("Custom_G_Channel")
@@ -129,10 +135,12 @@ async def set_grp_sub(event):
         event,
         f"**⎉╎تم إضافة قناة الاشتراك الاجباري للكروب .. بنجـاح ☑️**\n\n"
         f"**⎉╎ايدي القناة : ↶** `{event.chat_id}`\n\n"
-        f"**⎉╎ارسـل الان** `.اشتراك كروب`"
+        f"**⎉╎ارسـل الان** `.اشتراك كروب`",
     )
 
+
 # ================== تفعيل الاشتراك ==================
+
 
 @zedub.zed_cmd(pattern="اشتراك")
 async def enable_sub(event):
@@ -142,17 +150,27 @@ async def enable_sub(event):
         if gvarstatus("sub_group"):
             return await edit_delete(event, "⎉╎الاشتـراك الاجبـاري مفعـل مسبقـاً")
         addgvar("sub_group", str(event.chat_id))
-        return await edit_or_reply(event, "⎉╎تم تفعيل الاشتراك الاجباري لـ هذه المجموعة .. بنجـاح✓")
+        return await edit_or_reply(
+            event, "⎉╎تم تفعيل الاشتراك الاجباري لـ هذه المجموعة .. بنجـاح✓"
+        )
 
     if ty == "خاص":
         if gvarstatus("sub_private"):
-            return await edit_delete(event, "⎉╎الاشتـراك الاجبـاري لـ الخـاص مفعـل مسبقـاً")
+            return await edit_delete(
+                event, "⎉╎الاشتـراك الاجبـاري لـ الخـاص مفعـل مسبقـاً"
+            )
         addgvar("sub_private", True)
-        return await edit_or_reply(event, "⎉╎تم تفعيل الاشتراك الاجباري لـ الخـاص .. بنجـاح✓")
+        return await edit_or_reply(
+            event, "⎉╎تم تفعيل الاشتراك الاجباري لـ الخـاص .. بنجـاح✓"
+        )
 
-    await edit_delete(event, "⎉╎اختـر نوع الاشتـراك الاجبـاري اولاً :\n\n.اشتراك كروب\n\n.اشتراك خاص")
+    await edit_delete(
+        event, "⎉╎اختـر نوع الاشتـراك الاجبـاري اولاً :\n\n.اشتراك كروب\n\n.اشتراك خاص"
+    )
+
 
 # ================== تعطيل الاشتراك ==================
+
 
 @zedub.zed_cmd(pattern="تعطيل")
 async def disable_sub(event):
@@ -160,7 +178,9 @@ async def disable_sub(event):
 
     if ty in ["كروب", "جروب", "قروب", "مجموعة", "مجموعه"]:
         delgvar("sub_group")
-        return await edit_delete(event, "⎉╎تم الغاء الاشتراك الاجباري للكروب .. بنجـاح ✓")
+        return await edit_delete(
+            event, "⎉╎تم الغاء الاشتراك الاجباري للكروب .. بنجـاح ✓"
+        )
 
     if ty == "خاص":
         delgvar("sub_private")
@@ -168,7 +188,9 @@ async def disable_sub(event):
 
     await edit_delete(event, "⎉╎اختـر نوع الاشتـراك الاجبـاري اولاً لـ الالغـاء")
 
+
 # ================== فحص الخاص ==================
+
 
 @zedub.zed_cmd(incoming=True, func=lambda e: e.is_private)
 async def pm_checker(event):
@@ -191,11 +213,13 @@ async def pm_checker(event):
 
     await event.reply(
         f"**⎉╎يجب عليك الإشـتࢪاڪ بالقناة أولاً\n⎉╎قناة الاشتراك : {c.title}**",
-        buttons=[[Button.url("اضغط لـ الإشـتࢪاڪ 🗳", link)]]
+        buttons=[[Button.url("اضغط لـ الإشـتࢪاڪ 🗳", link)]],
     )
     await event.delete()
 
+
 # ================== فحص الكروب ==================
+
 
 @zedub.zed_cmd(incoming=True, func=lambda e: e.is_group)
 async def group_checker(event):
@@ -227,5 +251,5 @@ async def group_checker(event):
 
     await event.reply(
         f"**⎉╎يجب عليك الإشـتࢪاڪ بالقناة أولاً\n⎉╎قناة الاشتراك : {c.title}**",
-        buttons=[[Button.url("اضغط لـ الإشـتࢪاڪ 🗳", link)]]
+        buttons=[[Button.url("اضغط لـ الإشـتࢪاڪ 🗳", link)]],
     )

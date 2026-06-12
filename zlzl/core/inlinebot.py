@@ -1,17 +1,14 @@
 import json
-import math
 import os
 import random
 import re
 import time
-from pathlib import Path
 from uuid import uuid4
 
 from telethon import Button, types
 from telethon.errors import QueryIdInvalidError
 from telethon.events import CallbackQuery, InlineQuery
 from youtubesearchpython import VideosSearch
-
 from zthon import zedub
 
 from ..Config import Config
@@ -46,7 +43,6 @@ def ibuild_keyboard(buttons):
         else:
             keyb.append([Button.url(btn[0], btn[1])])
     return keyb
-
 
 
 @zedub.tgbot.on(InlineQuery)
@@ -106,20 +102,24 @@ async def inline_handler(event):  # sourcery no-metrics
                 jsondata = False
             timestamp = int(time.time() * 2)
             new_msg = {
-                str(timestamp): {"text": query}
-                if match3
-                else {"userid": user_list, "text": query}
+                str(timestamp): (
+                    {"text": query} if match3 else {"userid": user_list, "text": query}
+                )
             }
             buttons = [Button.inline(info_type[2], data=f"{info_type[0]}_{timestamp}")]
             result = builder.article(
                 title=f"{info_type[0].title()} message  to {sandy}.",
-                description="Send hidden text in chat."
-                if match3
-                else f"Only he/she/they {info_type[1]} open it.",
+                description=(
+                    "Send hidden text in chat."
+                    if match3
+                    else f"Only he/she/they {info_type[1]} open it."
+                ),
                 thumb=get_thumb(f"{info_type[0]}.png"),
-                text="✖✖✖"
-                if match3
-                else f"🔒 A whisper message to {sandy}, Only he/she can open it.",
+                text=(
+                    "✖✖✖"
+                    if match3
+                    else f"🔒 A whisper message to {sandy}, Only he/she can open it."
+                ),
                 buttons=buttons,
             )
             await event.answer([result] if result else None)
@@ -343,10 +343,10 @@ async def inline_handler(event):  # sourcery no-metrics
         await event.answer([result] if result else None)
 
 
-
 # ==============================================================================
 #             نهاية ملف inlinebot.py - ضفنا المخ اللي بيحس بالزراير
 # ==============================================================================
+
 
 @zedub.tgbot.on(CallbackQuery)
 async def callback_handler(event):
@@ -354,7 +354,7 @@ async def callback_handler(event):
     try:
         data = event.data.decode("utf-8")
     except:
-        return # لو البيانات مش نصية فكك منها
+        return  # لو البيانات مش نصية فكك منها
 
     # 1. معالجة خيارات الحماية (PmPermit)
     if data == "show_pmpermit_options":
@@ -386,29 +386,29 @@ async def callback_handler(event):
     elif data.startswith("help_me_"):
         # ده بيوصلك بملف المساعدة الـ 4000 سطر
         # لازم نتأكد إن ملف المساعدة بيسمع هنا
-        pass 
-    
+        pass
+
     # لو الزرار مش تبع دول، بنشوف هل هو تبع أي Plugin تاني؟
     else:
         # هنا التكاية: في التليثون، لو الزرار معمول من داخل Plugin
         # الـ Plugin نفسه المفروض يكون فيه @zedub.zed_cmd(pattern=...) أو Callback خاص بيه
         # لكن لو السورس معتمد على المركزية، يبقى لازم نجمع كل الـ Callbacks هنا
-       pass
+        pass
 
 
 @zedub.tgbot.on(CallbackQuery)
 async def spy_handler(event):
     # الكود ده جاسوس، مهمته بس يقولنا الزرار بيبعت إيه
     try:
-        data = event.data.decode('utf-8')
+        data = event.data.decode("utf-8")
         sender = await event.get_sender()
-        user_name = sender.first_name
-        
+        sender.first_name
+
         # اطبع في اللوج عشان نشوفه
         LOGS.info(f"🕵️‍♂️ [SPY] الزرار اللي اتداس باعت الكلمة دي: {data}")
-        
+
         # وممكن يبعتلك رسالة خاصة كمان (اختياري)
         # await event.client.send_message(Config.OWNER_ID, f"الزرار ده داتا بتاعته: `{data}`")
-        
+
     except Exception as e:
         LOGS.info(f"🕵️‍♂️ [SPY ERROR] {e}")

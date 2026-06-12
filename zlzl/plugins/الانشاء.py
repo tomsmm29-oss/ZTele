@@ -3,10 +3,11 @@
 
 from telethon.tl import functions
 
-# --- تصحيح المسارات ---
-from . import zedub
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
+
+# --- تصحيح المسارات ---
+from . import zedub
 
 # محاولة استدعاء دالة الكروب الخارق، لو مش موجودة نحقنها هنا
 try:
@@ -16,17 +17,20 @@ except ImportError:
     async def create_supergroup(group_name, client, bot_username, description):
         try:
             # إنشاء قناة وتحديثها لتصبح ميجا جروب (هذه هي طريقة السوبر جروب)
-            result = await client(functions.channels.CreateChannelRequest(
-                title=group_name,
-                about=description,
-                megagroup=True
-            ))
+            result = await client(
+                functions.channels.CreateChannelRequest(
+                    title=group_name, about=description, megagroup=True
+                )
+            )
             created_chat_id = result.chats[0].id
             # محاولة إنشاء رابط دعوة
-            invite = await client(functions.messages.ExportChatInviteRequest(peer=created_chat_id))
+            invite = await client(
+                functions.messages.ExportChatInviteRequest(peer=created_chat_id)
+            )
             return [invite, "Done"]
         except Exception as e:
             return ["error", str(e)]
+
 
 plugin_category = "الادوات"
 
@@ -49,20 +53,20 @@ async def create_chat_cmd(event):
     "لـ إنشـاء (كروب خارق/كروب/قناه) باستخـدام البـوت"
     type_of_group = event.pattern_match.group(1)
     group_name = event.pattern_match.group(2)
-    
+
     if type_of_group == "قناه":
         descript = "**⎉╎هـذه القنـاة تم إنشائهـا بواسطـة .. زدثــون™**"
     else:
         descript = "**⎉╎هـذا المجمـوعـه تم إنشائهـا بواسطـة .. زدثــون™**"
-        
+
     # الحصول على يوزر البوت بشكل آمن
-    bot_user = Config.TG_BOT_USERNAME or "myself" 
-    
+    bot_user = Config.TG_BOT_USERNAME or "myself"
+
     if type_of_group == "كروب":
         try:
             # تلجرام يتطلب وجود مستخدم آخر لإنشاء مجموعة عادية
             users_to_add = [bot_user] if bot_user != "myself" else []
-            
+
             result = await event.client(
                 functions.messages.CreateChatRequest(
                     users=users_to_add,
@@ -76,11 +80,12 @@ async def create_chat_cmd(event):
                 )
             )
             await edit_or_reply(
-                event, f"**⎉╎الكـروب `{group_name}` تم إنشـائه.. بنجـاح✓** \n**⎉╎الرابـط** {result.link}"
+                event,
+                f"**⎉╎الكـروب `{group_name}` تم إنشـائه.. بنجـاح✓** \n**⎉╎الرابـط** {result.link}",
             )
         except Exception as e:
             await edit_delete(event, f"**- خطـأ :**\n{str(e)}")
-            
+
     elif type_of_group == "قناه":
         try:
             r = await event.client(
@@ -102,11 +107,9 @@ async def create_chat_cmd(event):
             )
         except Exception as e:
             await edit_delete(event, f"**- خطـأ :**\n{e}")
-            
+
     elif type_of_group == "خارق":
-        answer = await create_supergroup(
-            group_name, event.client, bot_user, descript
-        )
+        answer = await create_supergroup(group_name, event.client, bot_user, descript)
         if answer[0] != "error":
             await edit_or_reply(
                 event,

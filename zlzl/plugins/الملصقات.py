@@ -2,7 +2,6 @@
 # ZThon UsetBot T.me/ZedThon
 # Devolper ZelZal T.me/zzzzl1l
 import asyncio
-import contextlib
 import io
 import math
 import os
@@ -10,7 +9,6 @@ import random
 import re
 import string
 import urllib.request
-from datetime import timedelta
 
 import cloudscraper
 import emoji as zedemoji
@@ -21,7 +19,6 @@ from telethon.errors.rpcerrorlist import YouBlockedUserError
 from telethon.tl import functions, types
 from telethon.tl.functions.contacts import UnblockRequest as unblock
 from telethon.tl.functions.messages import GetStickerSetRequest
-from telethon.tl.functions.messages import ImportChatInviteRequest as Get
 from telethon.tl.types import (
     DocumentAttributeFilename,
     DocumentAttributeSticker,
@@ -29,13 +26,11 @@ from telethon.tl.types import (
     MessageMediaPhoto,
 )
 
-from . import Convert, zedub
-
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.functions import animator, crop_and_divide
-from ..helpers.tools import media_type, meme_type
-from ..helpers.utils import _zedtools
+from ..helpers.tools import media_type
 from ..sql_helper.globals import gvarstatus
+from . import Convert, zedub
 
 plugin_category = "الادوات"
 
@@ -232,7 +227,9 @@ async def add_to_pack(
             pack = 1
         packname = pack_name(userid, pack, is_anim, is_video)
         packnick = pack_nick(username, pack, is_anim, is_video)
-        await zedevent.edit(f"**⌔∮التبديـل الى الحزمـه** {pack} **بسبب امتـلاء الحزمـه الحاليـه ..** ")
+        await zedevent.edit(
+            f"**⌔∮التبديـل الى الحزمـه** {pack} **بسبب امتـلاء الحزمـه الحاليـه ..** "
+        )
         await conv.send_message(packname)
         x = await conv.get_response()
         if x.message == "Invalid set selected.":
@@ -375,14 +372,18 @@ async def kang(args):  # sourcery no-metrics
         if len(splat) == 2:
             if char_is_emoji(splat[0][0]):
                 if char_is_emoji(splat[1][0]):
-                    return await zedevent.edit("**- ارسـل الامـر**  `.معلومات الملصق`  **بالـرد ع الملصـق للتحـقق ...**")
+                    return await zedevent.edit(
+                        "**- ارسـل الامـر**  `.معلومات الملصق`  **بالـرد ع الملصـق للتحـقق ...**"
+                    )
                 pack = splat[1]  # User sent both
                 emoji = splat[0]
             elif char_is_emoji(splat[1][0]):
                 pack = splat[0]  # User sent both
                 emoji = splat[1]
             else:
-                return await zedevent.edit("**- ارسـل الامـر**  `.معلومات الملصق`  **بالـرد ع الملصـق للتحـقق ...**")
+                return await zedevent.edit(
+                    "**- ارسـل الامـر**  `.معلومات الملصق`  **بالـرد ع الملصـق للتحـقق ...**"
+                )
         elif len(splat) == 1:
             if char_is_emoji(splat[0][0]):
                 emoji = splat[0]
@@ -501,12 +502,14 @@ async def pack_kang(event):
         or await media_type(reply) != "Sticker"
     ):
         return await edit_delete(
-            event, "** ⪼ بالـرد على أي ملصق لنسـخ جميـع الملصقـات في تلك الحزمـه .. لحـزمـه بحقـوقـك**"
+            event,
+            "** ⪼ بالـرد على أي ملصق لنسـخ جميـع الملصقـات في تلك الحزمـه .. لحـزمـه بحقـوقـك**",
         )
     try:
         stickerset_attr = reply.document.attributes[1]
         zedevent = await edit_or_reply(
-            event, "**⪼ جـارِ .. جـلب تفاصيـل حزمـة الملصقـات ، الرجـاء الانتظار . . .**"
+            event,
+            "**⪼ جـارِ .. جـلب تفاصيـل حزمـة الملصقـات ، الرجـاء الانتظار . . .**",
         )
     except BaseException:
         return await edit_delete(
@@ -656,9 +659,7 @@ async def pack_kang(event):
         await asyncio.sleep(2)
     result = "**╮ تم نسـخ الحزمـه بحقوقك ɵ̷᷄ˬɵ̷᷅ ﮼ بنجـاح✅ ╰**\n\n"
     for i in enumerate(blablapacks):
-        result += (
-            f"  •  [الحـزمـة {blablapacknames[i[0]]}](t.me/addstickers/{blablapacks[i[0]]})"
-        )
+        result += f"  •  [الحـزمـة {blablapacknames[i[0]]}](t.me/addstickers/{blablapacks[i[0]]})"
     await zedevent.edit(result)
 
 
@@ -681,7 +682,9 @@ async def pussycat(args):
             sticker = await animator(message, args, zedevent)
             await edit_or_reply(zedevent, f"`{random.choice(KANGING_STR)}`")
         else:
-            await edit_delete(args, "**- بالـرد ع فيديـو او متحركـة لـ صنـع ملصـق متحـرك**")
+            await edit_delete(
+                args, "**- بالـرد ع فيديـو او متحركـة لـ صنـع ملصـق متحـرك**"
+            )
             return
     else:
         await edit_delete(args, "**- عـذراً .. لايمكننـي تحويـل هـذا الملـف ؟!**")
@@ -757,7 +760,9 @@ async def pic2packcmd(event):
         or await media_type(reply) is None
         or await media_type(reply) not in ["Photo", "Sticker"]
     ):
-        return await edit_delete(event, "**- قـم بالـرد ع صـورة او ملصـق لصنـع حزمـة🎈**")
+        return await edit_delete(
+            event, "**- قـم بالـرد ع صـورة او ملصـق لصنـع حزمـة🎈**"
+        )
     if mediatype == "Sticker" and reply.document.mime_type == "application/x-tgsticker":
         return await edit_delete(
             event,
@@ -822,7 +827,9 @@ async def pic2packcmd(event):
             await event.client.send_read_acknowledge(conv.chat_id)
             await asyncio.sleep(1)
             i += 1
-            await zedevent.edit(f"**- جـارِ صنـع حزمـة ملصقـات . . .**\n**- العمليـة :** {i}/{len(images)}")
+            await zedevent.edit(
+                f"**- جـارِ صنـع حزمـة ملصقـات . . .**\n**- العمليـة :** {i}/{len(images)}"
+            )
         await event.client.send_message(chat, "/publish")
         await conv.wait_event(events.NewMessage(incoming=True, from_users=chat))
         await event.client.send_file(chat, new_img, force_document=True)
@@ -866,9 +873,7 @@ async def get_pack_info(event):
             event, "**جارٍ إحضار تفاصيل حزمة الملصقات ، يُرجى الانتظار ..**"
         )
     except BaseException:
-        return await edit_delete(
-            event, "**هذا ليس ملصقًا. الرد على ملصق.**", 5
-        )
+        return await edit_delete(event, "**هذا ليس ملصقًا. الرد على ملصق.**", 5)
     if not isinstance(stickerset_attr, DocumentAttributeSticker):
         return await zedevent.edit("**هذا ليس ملصقًا. الرد على ملصق.**")
     get_stickerset = await event.client(
@@ -899,18 +904,35 @@ async def get_pack_info(event):
 
 @zedub.zed_cmd(pattern="ملصقات ?([\s\S]*)")
 async def cb_sticker(event):
-    split = event.pattern_match.group(1) #Code by T.me/zzzzl1l
-    if "sex" in split or "pussy" in split or "rape" in split or "fuk" in split or "عير" in split or "كس " in split or "penis" in split or "كحب" in split or "قحب" in split or "كحاب" in split:
+    split = event.pattern_match.group(1)  # Code by T.me/zzzzl1l
+    if (
+        "sex" in split
+        or "pussy" in split
+        or "rape" in split
+        or "fuk" in split
+        or "عير" in split
+        or "كس " in split
+        or "penis" in split
+        or "كحب" in split
+        or "قحب" in split
+        or "كحاب" in split
+    ):
         return await event.client.send_message("@zizio", f"- Cmd : مصلقات {split} 🔞")
     if not split:
-        return await edit_delete(event, "**- قم بادخـال اسـم للبحث عن حـزم ملصقـات . . .**", 5)
+        return await edit_delete(
+            event, "**- قم بادخـال اسـم للبحث عن حـزم ملصقـات . . .**", 5
+        )
     zedevent = await edit_or_reply(event, "**- جـارِ البحث عـن حـزم ملصقـات . . .**")
     scraper = cloudscraper.create_scraper()
     text = scraper.get(combot_stickers_url + split).text
     soup = bs(text, "lxml")
     results = soup.find_all("div", {"class": "sticker-pack__header"})
     if not results:
-        return await edit_delete(zedevent, "**- لايوجـد نتائـج بحث عن {split} :(**\n**- جـرب البحـث عن اسـم آخـر**", 5)
+        return await edit_delete(
+            zedevent,
+            "**- لايوجـد نتائـج بحث عن {split} :(**\n**- جـرب البحـث عن اسـم آخـر**",
+            5,
+        )
     reply = f"ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - بحث الملصقـات 🎟\n⋆┄─┄─┄─┄┄─┄─┄─┄─┄┄⋆\n**- نتائـج البحث عـن حـزم ملصقـات بـ اسـم {split} :**"
     for pack in results:
         if pack.button:
@@ -921,7 +943,7 @@ async def cb_sticker(event):
     await zedevent.edit(reply)
 
 
-#Code by T.me/zzzzl1l
+# Code by T.me/zzzzl1l
 @zedub.zed_cmd(pattern="حذف_ملصق$")
 async def zelzal_gif(event):
     reply = await event.get_reply()
@@ -931,15 +953,15 @@ async def zelzal_gif(event):
         or await media_type(reply) != "Sticker"
     ):
         return await edit_or_reply(event, "**- قـم بالـرد ع ملصـق فقـط 🧸🎈**")
-    chat = "@Stickers" #Code by T.me/zzzzl1l
+    chat = "@Stickers"  # Code by T.me/zzzzl1l
     zed = await edit_or_reply(event, "**⎉╎جـارِ حـذف الملصـق مـن حزمتـك ...**")
-    async with borg.conversation(chat) as conv: #Code by T.me/zzzzl1l
+    async with borg.conversation(chat) as conv:  # Code by T.me/zzzzl1l
         try:
             await conv.send_message("/start")
             await conv.get_response()
             await conv.send_message("/delsticker")
             await conv.get_response()
-            await conv.send_file(reply) #Code by T.me/zzzzl1l
+            await conv.send_file(reply)  # Code by T.me/zzzzl1l
             await conv.get_response()
             await asyncio.sleep(5)
             zedthon = await conv.get_response()
@@ -957,5 +979,3 @@ async def zelzal_gif(event):
             zedthon = await conv.get_response()
             await zed.delete()
             await borg.send_message(event.chat_id, zedthon)
-
-

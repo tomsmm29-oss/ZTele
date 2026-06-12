@@ -9,11 +9,11 @@ from telethon import Button, types
 from telethon.events import CallbackQuery
 from telethon.utils import get_attributes
 
-from . import zedub
 from ..Config import Config
 from ..core.decorators import check_owner
 from ..helpers import humanbytes, progress
 from ..helpers.utils import _zedutils
+from . import zedub
 
 CC = []
 PATH = []  # using list method for some reason
@@ -258,9 +258,11 @@ async def send(event):
         mime_type=mime_type,
         attributes=attributes,
         force_file=False,
-        thumb=await event.client.upload_file(thumb_image_path)
-        if thumb_image_path
-        else None,
+        thumb=(
+            await event.client.upload_file(thumb_image_path)
+            if thumb_image_path
+            else None
+        ),
     )
     await event.edit("hi", file=media)
 

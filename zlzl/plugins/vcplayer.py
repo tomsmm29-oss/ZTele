@@ -4,17 +4,17 @@
 import asyncio
 import logging
 
-from youtube_search import YoutubeSearch
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl.types import User
-from . import zedub
+from youtube_search import YoutubeSearch
+
 from ..Config import Config
 from ..core.managers import edit_delete, edit_or_reply
-
 from ..vc_zelzal.stream_helper import Stream
 from ..vc_zelzal.tg_downloader import tg_dl
 from ..vc_zelzal.vcp_helper import ZedVC
+from . import zedub
 
 plugin_category = "المكالمات"
 
@@ -92,10 +92,16 @@ async def joinVoicechat(event):
         return await edit_delete(event, f'⚈ **خطـأ** : \n{e or "UNKNOWN CHAT"}')
 
     if isinstance(vc_chat, User):
-        return await edit_delete(event, "⚈ **عـذراً عـزيـزي ✗**\n⚈ **المكالمـة الصـوتيـه مغلقـه هنـا ؟!**\n⚈ **قم بفتح المكالمـه اولاً 🗣**")
+        return await edit_delete(
+            event,
+            "⚈ **عـذراً عـزيـزي ✗**\n⚈ **المكالمـة الصـوتيـه مغلقـه هنـا ؟!**\n⚈ **قم بفتح المكالمـه اولاً 🗣**",
+        )
 
     if joinas and not vc_chat.username:
-        await edit_or_reply(event, "⚈ **عـذراً عـزيـزي**\n⚈**لم استطـع الانضمـام الى المكالمـة ✗**\n⚈ **قم بالانضمـام يدويـاً**")
+        await edit_or_reply(
+            event,
+            "⚈ **عـذراً عـزيـزي**\n⚈**لم استطـع الانضمـام الى المكالمـة ✗**\n⚈ **قم بالانضمـام يدويـاً**",
+        )
         joinas = False
 
     out = await vc_player.join_vc(vc_chat, joinas)
@@ -146,7 +152,9 @@ async def get_playlist(event):
                 zed += f"{num}-  `{item['title']}`\n"
             else:
                 zed += f"{num}- `{item['title']}`\n"
-        await edit_delete(event, f"⚈ **قائمـة التشغيـل :**\n\n{zed}\n**Enjoy the show**")
+        await edit_delete(
+            event, f"⚈ **قائمـة التشغيـل :**\n\n{zed}\n**Enjoy the show**"
+        )
 
 
 @zedub.zed_cmd(
@@ -171,7 +179,7 @@ async def get_playlist(event):
 )
 async def play_video(event):
     "لـ تشغيـل مقـاطع الفيـديـو في المكـالمـات"
-    #con = event.pattern_match.group(1).lower()
+    # con = event.pattern_match.group(1).lower()
     flag = event.pattern_match.group(1)
     input_str = event.pattern_match.group(2)
     if flag == "يو":
@@ -183,19 +191,23 @@ async def play_video(event):
             input_str = f"https://youtube.com{results[0]['url_suffix']}"
             title = results[0]["title"][:40]
             thumbnail = results[0]["thumbnails"][0]
-            #thumb_name = f"{title}.jpg"
-            #thumb = requests.get(thumbnail, allow_redirects=True)
-            #try:
-                #open(thumb_name, "wb").write(thumb.content)
-            #except Exception:
-                #thumb_name = None
-                #pass
-            duration = results[0]["duration"]
+            # thumb_name = f"{title}.jpg"
+            # thumb = requests.get(thumbnail, allow_redirects=True)
+            # try:
+            # open(thumb_name, "wb").write(thumb.content)
+            # except Exception:
+            # thumb_name = None
+            # pass
+            results[0]["duration"]
             photo = thumbnail
         except Exception as e:
-            await edit_or_reply(event, f"⚈ **فشـل التحميـل** \n⚈ **الخطأ :** `{str(e)}`")
+            await edit_or_reply(
+                event, f"⚈ **فشـل التحميـل** \n⚈ **الخطأ :** `{str(e)}`"
+            )
             return
-        zzz = await edit_or_reply(event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**")
+        zzz = await edit_or_reply(
+            event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**"
+        )
         if flag:
             resp = await vc_player.play_song(input_str, Stream.video, force=True)
         else:
@@ -221,10 +233,17 @@ async def play_video(event):
             event, "⚈ **قـم بـ إدخـال رابـط مقطع الفيديـو للتشغيـل...**", time=20
         )
     if not vc_player.CHAT_ID:
-        return await edit_or_reply(event, "⚈ **قـم بالانضمـام اولاً الى المكالمـه عبـر الامـر .انضمام**")
+        return await edit_or_reply(
+            event, "⚈ **قـم بالانضمـام اولاً الى المكالمـه عبـر الامـر .انضمام**"
+        )
     if not input_str:
-        return await edit_or_reply(event, "⚈ **استخـدم الامـر هكـذا**\n• (`.شغل فيديو` + **اسم مقطع الفيديو**)\n**• او**\n• (`.شغل فيديو` + **رابـط مقطع الفيديو**")
-    await edit_or_reply(event, "**╮ جـارِ تشغيـل مقطـٓـع الفيـٓـديو في المكـالمـه... 🎧♥️╰**")
+        return await edit_or_reply(
+            event,
+            "⚈ **استخـدم الامـر هكـذا**\n• (`.شغل فيديو` + **اسم مقطع الفيديو**)\n**• او**\n• (`.شغل فيديو` + **رابـط مقطع الفيديو**",
+        )
+    await edit_or_reply(
+        event, "**╮ جـارِ تشغيـل مقطـٓـع الفيـٓـديو في المكـالمـه... 🎧♥️╰**"
+    )
     if flag:
         resp = await vc_player.play_song(input_str, Stream.video, force=True)
     else:
@@ -266,19 +285,23 @@ async def play_audio(event):
             input_str = f"https://youtube.com{results[0]['url_suffix']}"
             title = results[0]["title"][:40]
             thumbnail = results[0]["thumbnails"][0]
-            #thumb_name = f"{title}.jpg"
-            #thumb = requests.get(thumbnail, allow_redirects=True)
-            #try:
-                #open(thumb_name, "wb").write(thumb.content)
-            #except Exception:
-                #thumb_name = None
-                #pass
-            duration = results[0]["duration"]
+            # thumb_name = f"{title}.jpg"
+            # thumb = requests.get(thumbnail, allow_redirects=True)
+            # try:
+            # open(thumb_name, "wb").write(thumb.content)
+            # except Exception:
+            # thumb_name = None
+            # pass
+            results[0]["duration"]
             photo = thumbnail
         except Exception as e:
-            await edit_or_reply(event, f"⚈ **فشـل التحميـل** \n⚈ **الخطأ :** `{str(e)}`")
+            await edit_or_reply(
+                event, f"⚈ **فشـل التحميـل** \n⚈ **الخطأ :** `{str(e)}`"
+            )
             return
-        zzz = await edit_or_reply(event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**")
+        zzz = await edit_or_reply(
+            event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**"
+        )
         if flag:
             resp = await vc_player.play_song(input_str, Stream.audio, force=True)
         else:
@@ -304,10 +327,18 @@ async def play_audio(event):
             event, "⚈ **قـم بـ إدخـال رابـط المقطـع الصوتـي للتشغيـل...**", time=20
         )
     if not vc_player.CHAT_ID:
-        return await edit_or_reply(event, "⚈ **قـم بالانضمـام الى المكالمـه اولاً**\n⚈ **عبـر الامـر ⤌ ⎞** `.انضمام` **⎝**")
+        return await edit_or_reply(
+            event,
+            "⚈ **قـم بالانضمـام الى المكالمـه اولاً**\n⚈ **عبـر الامـر ⤌ ⎞** `.انضمام` **⎝**",
+        )
     if not input_str:
-        return await edit_or_reply(event, "⚈ **استخـدم الامـر هكـذا**\n• (`.شغل` + **اسم المقطع الصوتي**)\n**• او**\n• (`.شغل` + **رابـط المقطع الصوتي**")
-    await edit_or_reply(event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**")
+        return await edit_or_reply(
+            event,
+            "⚈ **استخـدم الامـر هكـذا**\n• (`.شغل` + **اسم المقطع الصوتي**)\n**• او**\n• (`.شغل` + **رابـط المقطع الصوتي**",
+        )
+    await edit_or_reply(
+        event, "**╮ جـارِ تشغيـل المقطـٓـع الصـٓـوتي في المكـالمـه... 🎧♥️╰**"
+    )
     if flag:
         resp = await vc_player.play_song(input_str, Stream.audio, force=True)
     else:
@@ -368,30 +399,32 @@ async def skip_stream(event):
 
 
 ZelzalMusic_cmd = (
-"[ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر الميـوزك 🎸](t.me/ZThon) ."
-"**⋆─┄─┄─┄─┄──┄─┄─┄─┄─⋆**\n"
-"⚉ `.شغل`\n"
-"**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع صوتـي**\n"
-"⚉ `.شغل فيديو`\n"
-"**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع فيديـو**\n\n"
-"**Ⓜ️ اوامـر تشغيـل اجباريـه مـع تخطـي قائمـة التشغيـل :**\n"
-"⚉ `.شغل 1`\n"
-"**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع صوتـي**\n"
-"⚉ `.شغل فيديو 1`\n"
-"**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع فيديـو**\n\n"
-"⚉ `.قائمة التشغيل`\n"
-"⚉ `.توقف`\n"
-"⚉ `.كمل`\n"
-"⚉ `.تخطي`\n\n"
-"⚉ `.انضمام`\n"
-"⚉ `.خروج`\n\n"
-"⚉ `.اضف فار مساعد الميوزك`\n"
-"**⪼ الامـر بالـرد ع كـود تيليثون حساب مساعد الميوزك الجديـد**\n\n"
+    "[ᯓ 𝗭𝗧𝗵𝗼𝗻 𝗨𝘀𝗲𝗿𝗯𝗼𝘁 - اوامــر الميـوزك 🎸](t.me/ZThon) ."
+    "**⋆─┄─┄─┄─┄──┄─┄─┄─┄─⋆**\n"
+    "⚉ `.شغل`\n"
+    "**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع صوتـي**\n"
+    "⚉ `.شغل فيديو`\n"
+    "**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع فيديـو**\n\n"
+    "**Ⓜ️ اوامـر تشغيـل اجباريـه مـع تخطـي قائمـة التشغيـل :**\n"
+    "⚉ `.شغل 1`\n"
+    "**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع صوتـي**\n"
+    "⚉ `.شغل فيديو 1`\n"
+    "**⪼ الامـر + (كلمـة او رابـط) او بالـرد ع مقطـع فيديـو**\n\n"
+    "⚉ `.قائمة التشغيل`\n"
+    "⚉ `.توقف`\n"
+    "⚉ `.كمل`\n"
+    "⚉ `.تخطي`\n\n"
+    "⚉ `.انضمام`\n"
+    "⚉ `.خروج`\n\n"
+    "⚉ `.اضف فار مساعد الميوزك`\n"
+    "**⪼ الامـر بالـرد ع كـود تيليثون حساب مساعد الميوزك الجديـد**\n\n"
 )
+
 
 @zedub.zed_cmd(pattern="الميوزك")
 async def cmd(zelzallll):
     await edit_or_reply(zelzallll, ZelzalMusic_cmd)
+
 
 @zedub.zed_cmd(pattern="ميوزك")
 async def cmd(zelzallll):

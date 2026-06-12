@@ -1,10 +1,10 @@
 import asyncio
-from pathlib import Path
-import os
 import glob
+import os
 import random
-import requests
+from pathlib import Path
 
+import requests
 from pytgcalls import PyTgCalls, StreamType
 from pytgcalls.exceptions import (
     AlreadyJoinedError,
@@ -20,14 +20,15 @@ from telethon.errors import ChatAdminRequiredError
 from telethon.errors.rpcerrorlist import ChannelInvalidError
 from yt_dlp import YoutubeDL
 
-from .stream_helper import Stream, check_url, video_dl, yt_regex
 from ..Config import Config
+from .stream_helper import Stream, check_url, video_dl, yt_regex
 
 vc_session = Config.VC_SESSION
 
+
 def get_cookies_file():
     folder_path = f"{os.getcwd()}/zion"
-    txt_files = glob.glob(os.path.join(folder_path, '*.txt'))
+    txt_files = glob.glob(os.path.join(folder_path, "*.txt"))
     if not txt_files:
         raise FileNotFoundError("No .txt files found in the specified folder.")
     cookie_txt_file = random.choice(txt_files)
@@ -66,7 +67,7 @@ class ZedVC:
             self.CHAT_ID = None
             self.PLAYING = False
             self.PLAYLIST = []
-            #return f"⚈ **مـوجـود بالفعـل بالمحـادثـه الصـوتيـه عـلى** {self.CHAT_NAME}"
+            # return f"⚈ **مـوجـود بالفعـل بالمحـادثـه الصـوتيـه عـلى** {self.CHAT_NAME}"
         if join_as:
             try:
                 join_as_chat = await self.client.get_entity(int(join_as))
@@ -133,7 +134,9 @@ class ZedVC:
 
     async def play_song(self, input, stream=Stream.audio, force=False):
         if yt_regex.match(input):
-            with YoutubeDL({"no-playlist": True, "cookiefile": get_cookies_file()}) as ytdl:
+            with YoutubeDL(
+                {"no-playlist": True, "cookiefile": get_cookies_file()}
+            ) as ytdl:
                 ytdl_data = ytdl.extract_info(input, download=False)
                 title = ytdl_data.get("title", None)
             if title:

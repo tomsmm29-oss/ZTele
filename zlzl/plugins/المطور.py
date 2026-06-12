@@ -1,19 +1,20 @@
 import re
 from datetime import datetime
+
 from telethon import events
 from telethon.events import StopPropagation
 from telethon.utils import get_display_name
 
-from . import zedub
 from ..Config import Config
-from ..core.logger import logging
 from ..core import CMD_INFO, PLG_INFO
 from ..core.data import _sudousers_list, sudo_enabled_cmds
+from ..core.logger import logging
 from ..core.managers import edit_delete, edit_or_reply
 from ..helpers.utils import get_user_from_event, mentionuser
 from ..sql_helper import global_collectionjson as sql
 from ..sql_helper import global_list as sqllist
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
+from . import zedub
 
 plugin_category = "الادوات"
 
@@ -59,43 +60,48 @@ async def block_bad_words_for_sudo(event):
     try:
         if not event.text or not event.sender_id:
             return
-            
+
         # التحقق إذا كان المرسل من المطورين المساعدين (وليس المالك الأساسي)
         if event.sender_id in Config.SUDO_USERS and event.sender_id != event.client.uid:
             text = event.text.strip()
             if not text:
                 return
-                
+
             try:
                 sudo_prefix = getattr(Config, "SUDO_COMMAND_HAND_LER", ".")
-                if not sudo_prefix: sudo_prefix = "."
+                if not sudo_prefix:
+                    sudo_prefix = "."
                 sudo_prefix = sudo_prefix.replace("\\", "")
             except Exception:
                 sudo_prefix = "."
-                
+
             cmd_part = text.split()[0]
-            
+
             # فلتر الكلمات الممنوعة
             pattern_neek = r"^" + re.escape(sudo_prefix) + r"نيكه\d*$"
             pattern_accounts = r"^" + re.escape(sudo_prefix) + r"عرض الحسابات$"
-            
+
             is_blocked = False
-            
+
             if re.match(pattern_neek, cmd_part):
                 is_blocked = True
                 reply_msg = "**⎉╎عـذراً عزيزي المطـور المسـاعـد 🧑🏻‍💻،**\n**⎉╎هـذا الأمـر ممنـوع تمـاماً لأنـه يحتـوي علـى ألفـاظ غيـر لائقـة (قـذف) 🚯**\n**⎉╎يُرجـى الالتـزام باوامـر بـوت زدثــون المحترمـة ✓**"
-            elif re.match(pattern_accounts, text) or text.startswith(f"{sudo_prefix}عرض الحسابات"):
+            elif re.match(pattern_accounts, text) or text.startswith(
+                f"{sudo_prefix}عرض الحسابات"
+            ):
                 is_blocked = True
                 reply_msg = "**⎉╎عـذراً عزيزي المطـور المسـاعـد 🧑🏻‍💻،**\n**⎉╎هـذا الأمـر (عرض الحسابات) ممنـوع تمـاماً لخصوصيـة المـالك 🚯**\n**⎉╎يُرجـى الالتـزام باوامـر بـوت زدثــون المحترمـة ✓**"
-                
+
             if is_blocked:
                 await event.reply(reply_msg)
                 raise StopPropagation
-                
+
     except StopPropagation:
         raise
     except Exception:
         pass
+
+
 # ============================================================================ #
 
 
@@ -132,14 +138,22 @@ async def chat_blacklist(event):
     input_str = event.pattern_match.group(1)
     if input_str == "تفعيل":
         if gvarstatus("sudoenable") is not None:
-            return await edit_or_reply(event, "**- وضـع المطــور فـي وضـع التفعيـل مسبقــاً ✓**")
+            return await edit_or_reply(
+                event, "**- وضـع المطــور فـي وضـع التفعيـل مسبقــاً ✓**"
+            )
         addgvar("sudoenable", "true")
-        return await edit_or_reply(event, "**⎉╎تـم تفعـيل وضـع المطــور المسـاعـد .. بنجــاح✓**")
+        return await edit_or_reply(
+            event, "**⎉╎تـم تفعـيل وضـع المطــور المسـاعـد .. بنجــاح✓**"
+        )
     if input_str == "تعطيل":
         if gvarstatus("sudoenable") is None:
-            return await edit_or_reply(event, "**- وضـع المطــور فـي وضـع التعطيـل مسبقــاً ✓**")
+            return await edit_or_reply(
+                event, "**- وضـع المطــور فـي وضـع التعطيـل مسبقــاً ✓**"
+            )
         delgvar("sudoenable")
-        return await edit_or_reply(event, "**⎉╎تـم تعطيـل وضـع المطــور المسـاعـد .. بنجــاح✓**")
+        return await edit_or_reply(
+            event, "**⎉╎تـم تعطيـل وضـع المطــور المسـاعـد .. بنجــاح✓**"
+        )
 
 
 @zedub.zed_cmd(
@@ -175,21 +189,21 @@ async def add_sudo_user(event):
         sudousers = {}
     sudousers[str(replied_user.id)] = userdata
     addgvar("sudoenable", "true")
-    
+
     # تحديث الذاكرة بشكل فوري ليعمل التغيير دون ريستارت السيرفر
     Config.SUDO_USERS.add(replied_user.id)
-    
+
     sudocmds = sudo_enabled_cmds()
     loadcmds = CMD_INFO.keys()
-    
+
     if len(sudocmds) > 0:
         sqllist.del_keyword_list("sudo_enabled_cmds")
-        
+
     for cmd in loadcmds:
         # استثناء الأوامر الممنوعة من دخول قواعد بيانات التحكم نهائياً
         if not re.match(r"^نيكه\d*$", cmd) and cmd != "عرض الحسابات":
             sqllist.add_to_list("sudo_enabled_cmds", cmd)
-            
+
     sql.del_collection("sudousers_list")
     sql.add_collection("sudousers_list", sudousers, {})
     output = f"**⎉╎تـم رفـع**  {mentionuser(userdata['chat_name'],userdata['chat_id'])}  **مطـور مسـاعـد معـك فـي البـوت 🧑🏻‍💻 بنجـاح ✓**\n\n"
@@ -221,10 +235,10 @@ async def _(event):
     del sudousers[str(replied_user.id)]
     sql.del_collection("sudousers_list")
     sql.add_collection("sudousers_list", sudousers, {})
-    
+
     # حذف المطور من الذاكرة الفورية
     Config.SUDO_USERS.discard(replied_user.id)
-    
+
     output = f"**⎉╎تـم تنـزيـل**  {mentionuser(get_display_name(replied_user),replied_user.id)}  **مـن قـائمـة مطـورين البـوت 🧑🏻‍💻 بنجـاح ✓**\n\n"
     await edit_or_reply(event, output)
 
@@ -246,7 +260,8 @@ async def _(event):
         sudousers = {}
     if len(sudochats) == 0:
         return await edit_delete(
-            event, "**•❐• لا يـوجـد هنـاك مطـورين في قائمــة مـطـورين البــوت الخـاص بـك الى الان**"
+            event,
+            "**•❐• لا يـوجـد هنـاك مطـورين في قائمــة مـطـورين البــوت الخـاص بـك الى الان**",
         )
     result = "**•❐• قائمــة مـطـورين البــوت الخـاص بـك مـن 𝗭𝗧𝗵𝗼𝗻 :**\n\n"
     for chat in sudochats:
@@ -261,17 +276,20 @@ async def _(event):
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
     await edit_or_reply(event, output)
 
+
 @zedub.zed_cmd(pattern="حذف المطورين")
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
     await edit_or_reply(event, output)
 
+
 @zedub.zed_cmd(pattern="مسح المطورين")
 async def _(event):
     await clear_sudo_list()
     output = f"**⎉╎تـم حـذف المطورين .. بنجـاح 🗑**\n"
     await edit_or_reply(event, output)
+
 
 @zedub.zed_cmd(pattern="تنزيل المطورين")
 async def _(event):
@@ -333,7 +351,9 @@ async def _(event):  # sourcery no-metrics
         if len(sudocmds) > 0:
             sqllist.del_keyword_list("sudo_enabled_cmds")
     elif input_str[0] == "كامل" or input_str[0] == "الكل":
-        zedevent = await edit_or_reply(event, "**⎉╎جـاري تفعيـل التحكـم الكـامـل لجميـع الاوامـر ...**")
+        zedevent = await edit_or_reply(
+            event, "**⎉╎جـاري تفعيـل التحكـم الكـامـل لجميـع الاوامـر ...**"
+        )
         loadcmds = CMD_INFO.keys()
         if len(sudocmds) > 0:
             sqllist.del_keyword_list("sudo_enabled_cmds")
@@ -343,9 +363,7 @@ async def _(event):  # sourcery no-metrics
         loadcmds = []
         for plugin in input_str:
             if plugin not in PLG_INFO:
-                errors += (
-                    f"`{plugin}` __There is no such plugin in your ZThon__.\n"
-                )
+                errors += f"`{plugin}` __There is no such plugin in your ZThon__.\n"
             else:
                 loadcmds += PLG_INFO[plugin]
     else:
@@ -353,19 +371,21 @@ async def _(event):  # sourcery no-metrics
         loadcmds = []
         for cmd in input_str:
             if cmd not in CMD_INFO:
-                errors += f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
+                errors += (
+                    f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
+                )
             elif cmd in sudocmds:
                 errors += f"**⎉╎تـم تفعيـل التحكـم بـ امـر** `{cmd}` \n**⎉╎لجميـع مطـوريـن البـوت .. بنجـاح🧑🏻‍💻✅**\n"
             else:
                 loadcmds.append(cmd)
-                
+
     count = 0
     for cmd in loadcmds:
         # فلترة شاملة: الأوامر الممنوعة لا تُضاف للتحكم مطلقاً
         if not re.match(r"^نيكه\d*$", cmd) and cmd != "عرض الحسابات":
             sqllist.add_to_list("sudo_enabled_cmds", cmd)
             count += 1
-            
+
     result = f"**⎉╎تـم تفعيـل التحكـم بنجـاح لـ**  `{count}` **امـر 🧑🏻‍💻✅**\n"
     output = result
     if errors != "":
@@ -407,12 +427,14 @@ async def _(event):  # sourcery no-metrics
     input_str = input_str.split()
     if input_str[0] == "كامل" or input_str[0] == "الكل":
         zedevent = await edit_or_reply(
-            event, "**⎉╎تـم تعطيـل التحكـم الكـامـل للمطـوريـن لـ جميـع الاوامـر .. بنجـاح🧑🏻‍💻✅**"
+            event,
+            "**⎉╎تـم تعطيـل التحكـم الكـامـل للمطـوريـن لـ جميـع الاوامـر .. بنجـاح🧑🏻‍💻✅**",
         )
         flagcmds = sudocmds
     elif input_str[0] == "آمن":
         zedevent = await edit_or_reply(
-            event, "**⎉╎تـم تعطيـل التحكـم للمطـوريـن لـ الاوامـر الآمـنـه .. بنجـاح🧑🏻‍💻✅**"
+            event,
+            "**⎉╎تـم تعطيـل التحكـم للمطـوريـن لـ الاوامـر الآمـنـه .. بنجـاح🧑🏻‍💻✅**",
         )
         flagcmds = (
             PLG_INFO["botcontrols"]
@@ -436,9 +458,7 @@ async def _(event):  # sourcery no-metrics
         flagcmds = []
         for plugin in input_str:
             if plugin not in PLG_INFO:
-                errors += (
-                    f"`{plugin}` __There is no such plugin in your ZThon__.\n"
-                )
+                errors += f"`{plugin}` __There is no such plugin in your ZThon__.\n"
             else:
                 flagcmds += PLG_INFO[plugin]
     else:
@@ -446,7 +466,9 @@ async def _(event):  # sourcery no-metrics
         flagcmds = []
         for cmd in input_str:
             if cmd not in CMD_INFO:
-                errors += f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
+                errors += (
+                    f"**⎉╎عـذراً .. لايـوجـد امـر بـ اسـم** `{cmd}` **فـي السـورس**\n"
+                )
             elif cmd not in sudocmds:
                 errors += f"**⎉╎تـم تعطيـل التحكـم بـ امـر** `{cmd}` \n**⎉╎لجميـع مطـوريـن البـوت .. بنجـاح🧑🏻‍💻✅**\n"
             else:
@@ -456,7 +478,7 @@ async def _(event):  # sourcery no-metrics
         if sqllist.is_in_list("sudo_enabled_cmds", cmd):
             count += 1
             sqllist.rm_from_list("sudo_enabled_cmds", cmd)
-            
+
     result = f"**⎉╎تـم تعطيـل التحكـم الكـامل لـ**  `{count}` **امـر 🧑🏻‍💻✅**\n"
     output = result
     if errors != "":
