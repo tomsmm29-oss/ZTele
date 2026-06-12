@@ -1,8 +1,9 @@
+import os
 import asyncio
 import json
-import os
-
-import yt_dlp
+import re
+import urllib.parse
+import aiohttp
 from telethon import events
 from telethon.tl.types import DocumentAttributeAudio
 
@@ -13,138 +14,120 @@ from ..helpers import reply_id
 plugin_category = "البحث"
 
 # =========================================================
-# نظام حفظ حالة "تفعيل/تعطيل اليوتيوب" لتعمل دائماً
+# نظام حفظ التفعيل/التعطيل
 # =========================================================
 CONFIG_FILE = "yt_public_config.json"
 
-
 def is_yt_public():
-    """التحقق مما إذا كان اليوتيوب مفعلاً للأعضاء"""
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             return json.load(f).get("is_public", False)
     return False
 
-
 def set_yt_public(state: bool):
-    """حفظ حالة التفعيل في ملف"""
     with open(CONFIG_FILE, "w") as f:
         json.dump({"is_public": state}, f)
 
-
 # =========================================================
-# الحل الجذري: فصل مهام yt-dlp لتخطي الحظر 100%
+# البحث وسحب الصوتية عبر API (الحل الجذري لتخطي الحظر)
 # =========================================================
-def download_yt_audio(query):
-    # الخطوة 1: البحث (بشكل طبيعي حتى لا تتعطل قائمة النتائج)
+async def get_yt_audio_fast(query):
+    # 1. البحث السريع جداً وجلب الرابط (بدون مكتبات)
     if not query.startswith("http"):
-        search_opts = {
-            "extract_flat": True,
-            "quiet": True,
-            "no_warnings": True,
-        }
-        with yt_dlp.YoutubeDL(search_opts) as ydl:
-            info = ydl.extract_info(f"ytsearch1:{query}", download=False)
-            if not info or "entries" not in info or len(info["entries"]) == 0:
-                raise Exception("عذراً، لم أتمكن من العثور على نتائج.")
+        search_query = urllib.parse.quote(query)
+        search_url = f"https://www.youtube.com/results?search_query={search_query}"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(search_url) as resp:
+                html = await resp.text()
+                # سحب أول آيدي فيديو من النتائج
+                video_ids = re.findall(r"watch\?v=(\S{11})", html)
+                if not video_ids:
+                    raise Exception("لم يتم العثور على المقطع.")
+                video_url = f"https://www.youtube.com/watch?v={video_ids[0]}"
+    else:
+        video_url = query
 
-            # استخراج معرف الفيديو للنتيجة الأولى
-            video_id = info["entries"][0].get("id")
-            query = f"https://www.youtube.com/watch?v={video_id}"
-
-    # الخطوة 2: التحميل (نستخدم التخطي القوي لتجاوز حظر البوتات نهائياً)
-    ydl_opts = {
-        "format": "bestaudio[ext=m4a]/bestaudio/best",
-        "outtmpl": "%(id)s.%(ext)s",
-        "noplaylist": True,
-        "quiet": True,
-        "no_warnings": True,
-        # الخدعة الجوهرية: استخدام عميل أندرويد وتخطي صفحة الويب المحمية
-        "extractor_args": {"youtube": ["player_client=android", "player_skip=webpage"]},
+    # 2. سحب الصوتية المباشرة باستخدام أقوى API مجاني (Cobalt)
+    api_url = "https://api.cobalt.tools/api/json"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "url": video_url,
+        "aFormat": "mp3",
+        "isAudioOnly": True
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(query, download=True)
-        file_path = ydl.prepare_filename(info_dict)
-        return file_path, info_dict
-
+    async with aiohttp.ClientSession() as session:
+        async with session.post(api_url, json=payload, headers=headers) as resp:
+            if resp.status != 200:
+                raise Exception("سيرفر التحميل الخارجي عليه ضغط، جرب مرة أخرى.")
+            
+            data = await resp.json()
+            if "url" not in data:
+                raise Exception("فشل في سحب الصوتية.")
+            
+            # إرجاع الرابط المباشر للملف الصوتي
+            return data["url"], video_url
 
 # =========================================================
-# دالة الرفع والإرسال (بأسلوب زدثون الأنيق)
+# دالة الإرسال الأنيقة
 # =========================================================
-async def process_and_send_audio(
-    client, chat_id, query, reply_msg_id, sender_name, progress_msg=None
-):
+async def process_and_send_audio(client, chat_id, query, reply_msg_id, sender_name, progress_msg=None):
     try:
-        loop = asyncio.get_event_loop()
-        file_path, info = await loop.run_in_executor(None, download_yt_audio, query)
-    except Exception as e:
+        # جلب الرابط المباشر
+        audio_url, yt_url = await get_yt_audio_fast(query)
+        
         if progress_msg:
-            await progress_msg.edit(
-                f"**⎉╎عـذراً، حـدث خـطأ أثنـاء جلـب المقطـع:**\n`{str(e)}`"
-            )
-        return
-
-    try:
-        if progress_msg:
-            # التحديث للنمط الثاني أثناء الرفع
             await progress_msg.edit("**•❐• جـاري رفـع الصـوتـيـة ..**")
 
-        title = info.get("title", "صوتية")
-        uploader = info.get("uploader", "YouTube")
-        duration = int(info.get("duration", 0) or 0)
-
-        caption_text = f"**⎉╎الاسـم :** `{title}`\n" f"**⎉╎بطلب مـن :** {sender_name}"
-
-        audio_attributes = [
-            DocumentAttributeAudio(duration=duration, title=title, performer=uploader)
-        ]
-
-        await client.send_file(
-            chat_id,
-            file_path,
-            caption=caption_text,
-            attributes=audio_attributes,
-            reply_to=reply_msg_id,
+        caption_text = (
+            f"**⎉╎الاسـم :** [المقطـع الصـوتـي]({yt_url})\n"
+            f"**⎉╎بطلب مـن :** {sender_name}"
         )
 
-        # حذف كليشة الرفع تماماً لتبقى الصوتية فقط
+        audio_attributes = [
+            DocumentAttributeAudio(
+                duration=0,
+                title=query if not query.startswith("http") else "صوتية",
+                performer="YouTube"
+            )
+        ]
+
+        # تيليجرام يحمل من الرابط المباشر بسرعة البرق دون المرور بسيرفرك
+        await client.send_file(
+            chat_id,
+            audio_url,
+            caption=caption_text,
+            attributes=audio_attributes,
+            reply_to=reply_msg_id
+        )
+        
         if progress_msg:
             await progress_msg.delete()
 
     except Exception as e:
         if progress_msg:
-            await progress_msg.edit(f"**خطأ أثناء الإرسال:** `{e}`")
-    finally:
-        if "file_path" in locals() and os.path.exists(file_path):
-            os.remove(file_path)
+            await progress_msg.edit(f"**⎉╎عـذراً، حـدث خـطأ:**\n`{str(e)}`")
 
 
 # =========================================================
-# 1. أوامر التحكم الخاصة بالمالك (تفعيل / تعطيل)
+# 1. أوامر التحكم للمالك (تفعيل / تعطيل)
 # =========================================================
 @zedub.zed_cmd(pattern="تفعيل اليوتيوب")
 async def enable_yt_public(event):
     set_yt_public(True)
-    await edit_delete(
-        event,
-        "**⎉╎تـم تفعيـل اليوتيـوب للأعضـاء بنجـاح ✅\nالآن يمكن لأي شخص كتابة (يوت + اسم المقطع).**",
-        7,
-    )
-
+    await edit_delete(event, "**⎉╎تـم تفعيـل اليوتيـوب للأعضـاء بنجـاح ✅\nالآن يمكن لأي شخص كتابة (يوت + اسم المقطع).**", 7)
 
 @zedub.zed_cmd(pattern="تعطيل اليوتيوب")
 async def disable_yt_public(event):
     set_yt_public(False)
-    await edit_delete(
-        event,
-        "**⎉╎تـم تعطيـل اليوتيـوب للأعضـاء بنجـاح ❌\nالآن أنت فقط (المالك) من يمكنه استخدامه.**",
-        7,
-    )
-
+    await edit_delete(event, "**⎉╎تـم تعطيـل اليوتيـوب للأعضـاء بنجـاح ❌\nالآن أنت فقط (المالك) من يمكنه استخدامه.**", 7)
 
 # =========================================================
-# 2. أمر اليوتيوب للمالك (يعمل في أي وقت وبدون تفعيل)
+# 2. أمر المالك (يعمل في أي وقت)
 # =========================================================
 @zedub.zed_cmd(pattern=r"يوت(?:\s+([\s\S]*))?")
 async def zed_yt_owner(event):
@@ -157,48 +140,30 @@ async def zed_yt_owner(event):
     query = (query or "").strip()
 
     if not query:
-        return await edit_delete(
-            event, "**╮ أرسـل أسـم المقطـع أو الرابـط مـع الأمـر أو بالـرد ... 𓅫╰**", 5
-        )
+        return await edit_delete(event, "**╮ أرسـل أسـم المقطـع أو الرابـط مـع الأمـر أو بالـرد ... 𓅫╰**", 5)
 
-    zedevent = await edit_or_reply(
-        event, "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**"
-    )
+    zedevent = await edit_or_reply(event, "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**")
     sender_name = event.client.me.first_name
-    await process_and_send_audio(
-        event.client, event.chat_id, query, await reply_id(event), sender_name, zedevent
-    )
-
+    await process_and_send_audio(event.client, event.chat_id, query, await reply_id(event), sender_name, zedevent)
 
 # =========================================================
-# 3. مستمع الجروبات الذكي (يستجيب للأعضاء إذا كان مفعلاً)
+# 3. مستمع الجروبات للأعضاء
 # =========================================================
 @zedub.on(events.NewMessage(incoming=True))
 async def public_yt_handler(event):
-    # تجاهل إذا كان معطلاً أو لم تكن الرسالة في جروب
     if not is_yt_public() or not event.is_group or not event.message.message:
         return
 
     text = event.message.message.strip()
-
-    # الاستجابة لأمر (يوت كذا) و (.يوت كذا) للأعضاء
+    
     if text.startswith("يوت ") or text.startswith(".يوت "):
         query = text.replace(".يوت", "", 1).replace("يوت", "", 1).strip()
-
+        
         if not query:
             return
 
-        progress_msg = await event.reply(
-            "**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**"
-        )
+        progress_msg = await event.reply("**•❐• جـاري الـبـحـث وتـحـمـيـل الصـوتـيـة ..**")
         sender = await event.get_sender()
         sender_name = getattr(sender, "first_name", "عضو")
-
-        await process_and_send_audio(
-            event.client,
-            event.chat_id,
-            query,
-            event.message.id,
-            sender_name,
-            progress_msg,
-        )
+        
+        await process_and_send_audio(event.client, event.chat_id, query, event.message.id, sender_name, progress_msg)
