@@ -88,3 +88,4 @@ PyJWT
 faker
 google-genai
 redis
+pytubefix
