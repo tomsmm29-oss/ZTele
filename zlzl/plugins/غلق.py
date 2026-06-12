@@ -1,4 +1,5 @@
 from telethon import events
+
 from ..core.managers import edit_or_reply
 from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from . import zedub
@@ -12,6 +13,7 @@ LOCK_TYPES = {
     "الوسائط": "m_lock",
     "الملصقات": "s_lock",
 }
+
 
 # استخدمنا r"..." و \s+ لمسافة إجبارية و $ للنهاية لمنع التداخل مع الأوامر الأخرى
 @zedub.zed_cmd(pattern=r"^[.,]غلق\s+(الفويس|الملفات|الوسائط|الملصقات)$")
@@ -60,7 +62,7 @@ async def watcher(event):
         if gvarstatus(f"{chat_id}_s_lock"):
             try:
                 await event.delete()
-                return # إيقاف الفحص بعد الحذف
+                return  # إيقاف الفحص بعد الحذف
             except:
                 pass
 
