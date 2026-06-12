@@ -1,45 +1,36 @@
 import asyncio
 import json
 import re
-
 from telethon import events
-
 from ..core.managers import edit_or_reply
-from ..sql_helper.globals import addgvar, gvarstatus
+from ..sql_helper.globals import addgvar, delgvar, gvarstatus
 from . import zedub
 
 plugin_category = "الادمن"
 
 # ==========================================
-# 🛠️ دوال قاعدة البيانات المصغرة بأسلوب JSON
+# 🛠️ دوال قاعدة البيانات
 # ==========================================
-
 
 def get_db(key):
     data = gvarstatus(key)
-    return json.loads(data) if data else {}
-
+    try:
+        return json.loads(data) if data else {}
+    except:
+        return {}
 
 def save_db(key, data_dict):
     addgvar(key, json.dumps(data_dict))
 
-
-# ==========================================
-# 📝 دالة استبدال المتغيرات (الاسم، اليوزر، الايدي)
-# ==========================================
-
-
 def format_reply_text(text, sender):
     if not text:
         return text
-
+    if not sender:
+        return text
+        
     first_name = sender.first_name or "عزيزي"
     user_id = sender.id
-    username = (
-        f"@{sender.username}"
-        if sender.username
-        else f"[{first_name}](tg://user?id={user_id})"
-    )
+    username = f"@{sender.username}" if sender.username else f"[{first_name}](tg://user?id={user_id})"
     mention = f"[{first_name}](tg://user?id={user_id})"
 
     text = text.replace("#الاسم", first_name)
@@ -48,51 +39,38 @@ def format_reply_text(text, sender):
     text = text.replace("#الايدي", str(user_id))
     return text
 
-
 # ==========================================
-# ⚙️ أوامر التفعيل والتعطيل للعامة (مطور فقط)
+# ⚙️ أوامر التفعيل والتعطيل للعامة
 # ==========================================
-
 
 @zedub.zed_cmd(pattern=r"^[.,*]تفعيل اضافه رد$")
 async def enable_public_reply(event):
     chat_id = str(event.chat_id)
     save_db(f"ZED_PUB_REP_{chat_id}", {"status": True})
-    await edit_or_reply(
-        event,
-        "**•❐• تـم تـفـعـيـل إضـافـة الـردود للأعـضـاء فـي هـذه الـدردشـة بـنـجـاح ✓**",
-    )
-
+    await edit_or_reply(event, "**•❐• تـم تـفـعـيـل إضـافـة الـردود للأعـضـاء فـي هـذه الـدردشـة بـنـجـاح ✓**")
 
 @zedub.zed_cmd(pattern=r"^[.,*]تعطيل اضافه رد$")
 async def disable_public_reply(event):
     chat_id = str(event.chat_id)
     save_db(f"ZED_PUB_REP_{chat_id}", {"status": False})
-    await edit_or_reply(
-        event,
-        "**•❐• تـم تـعـطـيـل إضـافـة الـردود للأعـضـاء فـي هـذه الـدردشـة بـنـجـاح ✓**",
-    )
-
+    await edit_or_reply(event, "**•❐• تـم تـعـطـيـل إضـافـة الـردود للأعـضـاء فـي هـذه الـدردشـة بـنـجـاح ✓**")
 
 # ==========================================
-# ➕ أمر إضافة الرد (متاح للكل إذا مفعل، والمطور بصلاحيات اعلى)
+# ➕ أمر إضافة الرد (سؤال ↤ جواب ↤ تنفيذ)
 # ==========================================
 
-
-@zedub.on(events.NewMessage(pattern=r"^[.,*]اضف رد(?:\s+(عام|خاص))?$"))
+@zedub.zed_cmd(pattern=r"^[.,*]اضف رد(?:\s+(عام|خاص))?$")
 async def add_reply_cmd(event):
-    await event.get_sender()
     is_owner = event.sender_id == zedub.uid
     scope_match = event.pattern_match.group(1)
     chat_id = str(event.chat_id)
 
-    # تحديد النطاق (مطور فقط للعام والخاص)
     if scope_match and not is_owner:
-        return  # يتجاهل بصمت إذا لم يكن المطور وحاول إضافة عام أو خاص
+        return
 
     scope = "local"
     db_key = f"ZED_REP_CHAT_{chat_id}"
-
+    
     if is_owner:
         if scope_match == "عام":
             scope = "global"
@@ -101,26 +79,29 @@ async def add_reply_cmd(event):
             scope = "private"
             db_key = "ZED_REP_PVT"
     else:
-        # فحص إذا كانت الإضافة متاحة للأعضاء
         pub_status = get_db(f"ZED_PUB_REP_{chat_id}").get("status", False)
         if not pub_status:
             return
 
     async with event.client.conversation(event.chat_id) as conv:
         try:
-            # طلب الكلمة المفتاحية
-            msg1 = await conv.send_message(
-                "**↢ أرسـل الكـلـمـة المـفـتـاحـيـة (الـتـي سـيـرد عـلـيـهـا الـبـوت) الان :\n\n•❐• لـ الالغـاء ارسـل `الغاء`**"
-            )
-            trigger_msg = await conv.get_response(
-                filter=events.NewMessage(from_users=event.sender_id), timeout=60
-            )
-            trigger_word = trigger_msg.text.strip()
-
+            # 1. يطلب الكلمة
+            await conv.send_message("**↢ أرسـل الكـلـمـة المـفـتـاحـيـة (الـتـي سـيـرد عـلـيـهـا الـبـوت) الان :\n\n•❐• لـ الالغـاء ارسـل `الغاء`**")
+            
+            trigger_msg = None
+            while True:
+                trigger_msg = await conv.get_response(timeout=60)
+                if trigger_msg.sender_id == event.sender_id:
+                    break
+                    
+            trigger_word = trigger_msg.text.strip() if trigger_msg.text else ""
+            
             if trigger_word == "الغاء":
                 return await conv.send_message("**•❐• تـم الغـاء الأمـر بـنـجـاح ✓**")
+            if not trigger_word:
+                return await conv.send_message("**•❐• عـذراً يـجـب أن تـكـون الـكـلـمـة نـصـاً .. تـم الالغـاء ✕**")
 
-            # تعليمات الرد
+            # 2. يطلب الرد
             info_text = (
                 "**↢ حـسـنـاً، أرسـل الان الـرد الـذي تـريـده (نـص, صـوره, فـيـديـو, مـتـحـركـه, بـصـمـه, الخ..).**\n\n"
                 "**• مـلاحـظـة هـامـة :**\n"
@@ -131,15 +112,18 @@ async def add_reply_cmd(event):
                 "▹ `#الايدي` -  ايـدي المـسـتـخـدم"
             )
             await conv.send_message(info_text)
-            reply_msg = await conv.get_response(
-                filter=events.NewMessage(from_users=event.sender_id), timeout=60
-            )
+            
+            reply_msg = None
+            while True:
+                reply_msg = await conv.get_response(timeout=60)
+                if reply_msg.sender_id == event.sender_id:
+                    break
 
-            reply_data = {"text": reply_msg.text, "has_media": False, "msg_id": None}
+            # 3. يحفظ وينفذ
+            reply_data = {"text": reply_msg.text or "", "has_media": False, "msg_id": None}
 
-            # حفظ الوسائط بإرسالها للرسائل المحفوظة لحفظها للأبد
             if reply_msg.media:
-                saved_msg = await event.client.forward_messages("me", reply_msg)
+                saved_msg = await event.client.forward_messages('me', reply_msg)
                 reply_data["has_media"] = True
                 reply_data["msg_id"] = saved_msg.id
 
@@ -147,25 +131,16 @@ async def add_reply_cmd(event):
             db[trigger_word] = reply_data
             save_db(db_key, db)
 
-            scope_text = (
-                "فـي هـذه الـدردشـة"
-                if scope == "local"
-                else ("فـي كـل الـكـروبـات" if scope == "global" else "فـي كـل الـخـاص")
-            )
-            await conv.send_message(
-                f"**•❐• تـم حـفـظ الـرد `{trigger_word}` بـنـجـاح {scope_text} ✓**"
-            )
+            scope_text = "فـي هـذه الـدردشـة" if scope == "local" else ("فـي كـل الـكـروبـات" if scope == "global" else "فـي كـل الـخـاص")
+            await conv.send_message(f"**•❐• تـم حـفـظ الـرد `{trigger_word}` بـنـجـاح {scope_text} ✓**")
 
         except asyncio.TimeoutError:
-            await conv.send_message(
-                "**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**"
-            )
+            await conv.send_message("**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**")
 
 
 # ==========================================
-# ➕ أمر إضافة ترحيب (للمطور فقط)
+# ➕ أمر إضافة ترحيب
 # ==========================================
-
 
 @zedub.zed_cmd(pattern=r"^[.,*]اضف ترحيب(?:\s+(عام|خاص))?(?:\s+(.*))?$")
 async def add_greeting_cmd(event):
@@ -175,7 +150,7 @@ async def add_greeting_cmd(event):
 
     scope = "local"
     db_key = f"ZED_GRT_CHAT_{chat_id}"
-
+    
     if scope_match == "عام":
         scope = "global"
         db_key = "ZED_GRT_GLOBAL"
@@ -185,43 +160,36 @@ async def add_greeting_cmd(event):
 
     async with event.client.conversation(event.chat_id) as conv:
         try:
-            msg1 = await conv.send_message(
-                "**↢ أرسـل الكـلـمـة او الاسـم (الـذي سـيـفـعـل الـتـرحـيـب) الان :\n\n•❐• لـ الالغـاء ارسـل `الغاء`**"
-            )
-            trigger_msg = await conv.get_response(
-                filter=events.NewMessage(from_users=event.sender_id), timeout=60
-            )
-            trigger_word = trigger_msg.text.strip()
-
+            await conv.send_message("**↢ أرسـل الكـلـمـة او الاسـم (الـذي سـيـفـعـل الـتـرحـيـب) الان :\n\n•❐• لـ الالغـاء ارسـل `الغاء`**")
+            
+            trigger_msg = None
+            while True:
+                trigger_msg = await conv.get_response(timeout=60)
+                if trigger_msg.sender_id == event.sender_id:
+                    break
+                    
+            trigger_word = trigger_msg.text.strip() if trigger_msg.text else ""
+            
             if trigger_word == "الغاء":
                 return await conv.send_message("**•❐• تـم الغـاء الأمـر بـنـجـاح ✓**")
+            if not trigger_word:
+                return await conv.send_message("**•❐• عـذراً يـجـب أن تـكـون الـكـلـمـة نـصـاً .. تـم الالغـاء ✕**")
 
-            # إذا لم يكتب ترحيب مخصص في الأمر الأساسي
             reply_text = custom_text if custom_text else "anim_zed"
 
             db = get_db(db_key)
             db[trigger_word] = {"text": reply_text}
             save_db(db_key, db)
 
-            scope_text = (
-                "فـي هـذه الـدردشـة"
-                if scope == "local"
-                else ("فـي كـل الـكـروبـات" if scope == "global" else "فـي كـل الـخـاص")
-            )
-            await conv.send_message(
-                f"**•❐• تـم حـفـظ تـرحـيـب `{trigger_word}` بـنـجـاح {scope_text} ✓**"
-            )
+            scope_text = "فـي هـذه الـدردشـة" if scope == "local" else ("فـي كـل الـكـروبـات" if scope == "global" else "فـي كـل الـخـاص")
+            await conv.send_message(f"**•❐• تـم حـفـظ تـرحـيـب `{trigger_word}` بـنـجـاح {scope_text} ✓**")
 
         except asyncio.TimeoutError:
-            await conv.send_message(
-                "**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**"
-            )
-
+            await conv.send_message("**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**")
 
 # ==========================================
-# 🗑️ أوامر الحذف (مطور فقط)
+# 🗑️ أوامر الحذف
 # ==========================================
-
 
 @zedub.zed_cmd(pattern=r"^[.,*]حذف (رد|ترحيب)(?:\s+(عام|خاص))?(?:\s+(.*))?$")
 async def delete_trigger_cmd(event):
@@ -230,55 +198,41 @@ async def delete_trigger_cmd(event):
     trigger_word = event.pattern_match.group(3)
     chat_id = str(event.chat_id)
 
-    # تحديد نوع قاعدة البيانات ومكانها
     if cmd_type == "رد":
-        if scope_match == "عام":
-            db_key = "ZED_REP_GLOBAL"
-        elif scope_match == "خاص":
-            db_key = "ZED_REP_PVT"
-        else:
-            db_key = f"ZED_REP_CHAT_{chat_id}"
+        if scope_match == "عام": db_key = "ZED_REP_GLOBAL"
+        elif scope_match == "خاص": db_key = "ZED_REP_PVT"
+        else: db_key = f"ZED_REP_CHAT_{chat_id}"
     else:
-        if scope_match == "عام":
-            db_key = "ZED_GRT_GLOBAL"
-        elif scope_match == "خاص":
-            db_key = "ZED_GRT_PVT"
-        else:
-            db_key = f"ZED_GRT_CHAT_{chat_id}"
+        if scope_match == "عام": db_key = "ZED_GRT_GLOBAL"
+        elif scope_match == "خاص": db_key = "ZED_GRT_PVT"
+        else: db_key = f"ZED_GRT_CHAT_{chat_id}"
 
-    # إذا لم يحدد الكلمة بالامر، نطلبها منه
     if not trigger_word:
         async with event.client.conversation(event.chat_id) as conv:
             try:
-                await conv.send_message(
-                    f"**↢ أرسـل {cmd_type} الـذي تـريـد حـذفـه الان :**"
-                )
-                res = await conv.get_response(
-                    filter=events.NewMessage(from_users=event.sender_id), timeout=60
-                )
-                trigger_word = res.text.strip()
+                await conv.send_message(f"**↢ أرسـل {cmd_type} الـذي تـريـد حـذفـه الان :**")
+                
+                res = None
+                while True:
+                    res = await conv.get_response(timeout=60)
+                    if res.sender_id == event.sender_id:
+                        break
+                        
+                trigger_word = res.text.strip() if res.text else ""
             except asyncio.TimeoutError:
-                return await conv.send_message(
-                    "**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**"
-                )
+                return await conv.send_message("**•❐• عـذراً .. تـم الغـاء الأمـر بـسـبـب نـفـاذ الـوقـت ✕**")
 
     db = get_db(db_key)
     if trigger_word in db:
         del db[trigger_word]
         save_db(db_key, db)
-        await edit_or_reply(
-            event, f"**•❐• تـم حـذف الـ{cmd_type} `{trigger_word}` بـنـجـاح ✓**"
-        )
+        await edit_or_reply(event, f"**•❐• تـم حـذف الـ{cmd_type} `{trigger_word}` بـنـجـاح ✓**")
     else:
-        await edit_or_reply(
-            event, f"**•❐• عـذراً الـ{cmd_type} `{trigger_word}` غـيـر مـوجـود !**"
-        )
-
+        await edit_or_reply(event, f"**•❐• عـذراً الـ{cmd_type} `{trigger_word}` غـيـر مـوجـود !**")
 
 # ==========================================
-# 📋 أوامر العرض (مطور فقط)
+# 📋 أوامر العرض
 # ==========================================
-
 
 @zedub.zed_cmd(pattern=r"^[.,*]عرض (الردود|الترحيب)(?:\s+(عام|خاص))?$")
 async def list_triggers_cmd(event):
@@ -287,33 +241,25 @@ async def list_triggers_cmd(event):
     chat_id = str(event.chat_id)
 
     if cmd_type == "الردود":
-        if scope_match == "عام":
-            db_key, title = "ZED_REP_GLOBAL", "الـردود الـعـامـة"
-        elif scope_match == "خاص":
-            db_key, title = "ZED_REP_PVT", "ردود الـخـاص"
-        else:
-            db_key, title = f"ZED_REP_CHAT_{chat_id}", "ردود هـذه الـدردشـة"
+        if scope_match == "عام": db_key, title = "ZED_REP_GLOBAL", "الـردود الـعـامـة"
+        elif scope_match == "خاص": db_key, title = "ZED_REP_PVT", "ردود الـخـاص"
+        else: db_key, title = f"ZED_REP_CHAT_{chat_id}", "ردود هـذه الـدردشـة"
         cmd_del = "رد"
     else:
-        if scope_match == "عام":
-            db_key, title = "ZED_GRT_GLOBAL", "تـرحـيـبـات الـعـام"
-        elif scope_match == "خاص":
-            db_key, title = "ZED_GRT_PVT", "تـرحـيـبـات الـخـاص"
-        else:
-            db_key, title = f"ZED_GRT_CHAT_{chat_id}", "تـرحـيـبـات هـذه الـدردشـة"
+        if scope_match == "عام": db_key, title = "ZED_GRT_GLOBAL", "تـرحـيـبـات الـعـام"
+        elif scope_match == "خاص": db_key, title = "ZED_GRT_PVT", "تـرحـيـبـات الـخـاص"
+        else: db_key, title = f"ZED_GRT_CHAT_{chat_id}", "تـرحـيـبـات هـذه الـدردشـة"
         cmd_del = "ترحيب"
 
     db = get_db(db_key)
     if not db:
-        return await edit_or_reply(
-            event, f"**•❐• لا تـوجـد {title} مـحـفـوظـة حـالـيـاً !**"
-        )
+        return await edit_or_reply(event, f"**•❐• لا تـوجـد {title} مـحـفـوظـة حـالـيـاً !**")
 
     scope_prefix = f" {scope_match}" if scope_match else ""
     msg = f"**•❐• قـائـمـة {title} :**\n\n"
     for key in db.keys():
         msg += f"▹ {key}  ↢  انسخ للحذف: `.حذف {cmd_del}{scope_prefix} {key}`\n"
-
+    
     await edit_or_reply(event, msg)
 
 
@@ -321,9 +267,13 @@ async def list_triggers_cmd(event):
 # 🧠 المحرك الذكي للردود والترحيب (المستمع)
 # ==========================================
 
+BOT_SENT_MSG_IDS = set()
 
-@zedub.on(events.NewMessage(incoming=True))
+@zedub.on(events.NewMessage())
 async def auto_reply_engine(event):
+    if hasattr(event, "id") and event.id in BOT_SENT_MSG_IDS:
+        return
+
     if not event.text:
         return
 
@@ -334,66 +284,61 @@ async def auto_reply_engine(event):
     if not sender:
         return
 
-    # استدعاء جميع قواعد البيانات المحتملة لهذه الرسالة
     dbs_to_check = [
-        get_db(f"ZED_GRT_CHAT_{chat_id}"),  # 1. ترحيب محلي
-        get_db("ZED_GRT_GLOBAL") if event.is_group else {},  # 2. ترحيب عام
-        get_db("ZED_GRT_PVT") if event.is_private else {},  # 3. ترحيب خاص
-        get_db(f"ZED_REP_CHAT_{chat_id}"),  # 4. رد محلي
-        get_db("ZED_REP_GLOBAL") if event.is_group else {},  # 5. رد عام
-        get_db("ZED_REP_PVT") if event.is_private else {},  # 6. رد خاص
+        get_db(f"ZED_GRT_CHAT_{chat_id}"),
+        get_db("ZED_GRT_GLOBAL") if event.is_group else {},
+        get_db("ZED_GRT_PVT") if event.is_private else {},
+        get_db(f"ZED_REP_CHAT_{chat_id}"),
+        get_db("ZED_REP_GLOBAL") if event.is_group else {},
+        get_db("ZED_REP_PVT") if event.is_private else {}
     ]
+
+    if len(BOT_SENT_MSG_IDS) > 1000:
+        BOT_SENT_MSG_IDS.clear()
 
     for index, db in enumerate(dbs_to_check):
         if not db:
             continue
 
         for trigger_word, data in db.items():
-            # البحث الدقيق عن الكلمة ضمن الجملة لتجنب الرد العشوائي
-            if re.search(r"(?:\s|^)" + re.escape(trigger_word) + r"(?:\s|$)", text):
-
-                # إذا كان المشغل ترحيب (قواعد البيانات 0، 1، 2)
+            trigger_regex = r'(?:\s|^)' + re.escape(trigger_word) + r'(?:\s|$)'
+            
+            if re.search(trigger_regex, text, re.IGNORECASE):
+                # إذا كان ترحيب (نظام الأنيميشن الزخرفي الصامت بدون كلام)
                 if index <= 2:
                     if data["text"] == "anim_zed":
-                        # انميشن زدثون الفخم لـ 10 ثواني تقريباً
-                        sent_msg = await event.reply(
-                            "**•❐• جـاري مـعـالـجـة الـبـيـانـات ..**"
-                        )
-                        await asyncio.sleep(1.5)
-                        await sent_msg.edit("**•❐• جـاري جـمـع رسـائـلك وحـذفـهـا ..**")
-                        await asyncio.sleep(2)
-                        await sent_msg.edit(
-                            "**•❐• يـمـزح مـعـك .. جـاري تـجـهـيـز الـتـرحـيـب ..**"
-                        )
-                        await asyncio.sleep(2)
-                        await sent_msg.edit(
-                            "**•❐• تـم الـتـأكـد مـن الـهـويـة بـنـجـاح ✓**"
-                        )
-                        await asyncio.sleep(1.5)
-                        final_text = f"**↢ أهـلاً بـك يـا #يوزره 🤍**\n**▹ نـورت الـمـكـان يـا فـخـم ..**"
+                        sent_msg = await event.reply("**⎔ • ┈┈┈┈┈┈┈┈┈┈┈┈ • ⎔**")
+                        BOT_SENT_MSG_IDS.add(sent_msg.id)
+                        await asyncio.sleep(1)
+                        await sent_msg.edit("**⎔ ✦ ┈┈┈┈┈┈┈┈┈┈┈┈ ✦ ⎔**")
+                        await asyncio.sleep(1)
+                        await sent_msg.edit("**⎔ ━─ ✦ ┈┈┈┈┈┈ ✦ ─━ ⎔**")
+                        await asyncio.sleep(1)
+                        await sent_msg.edit("**⎔ ━─━─ ✦ ┈┈ ✦ ─━─━ ⎔**")
+                        await asyncio.sleep(1)
+                        await sent_msg.edit("**⎔ ━─━─━─ ✦ ─━─━─━ ⎔**")
+                        await asyncio.sleep(1)
+                        # الشكل النهائي הפخم يتضمن اليوزر في المنتصف
+                        final_text = "**⋄━─━─━─━─ ✦ ─━─━─━─━⋄**\n\n             #يوزره\n\n**⋄━─━─━─━─ ✦ ─━─━─━─━⋄**"
                         await sent_msg.edit(format_reply_text(final_text, sender))
                     else:
-                        # ترحيب بنص مخصص
-                        await event.reply(format_reply_text(data["text"], sender))
-                    return  # نتوقف لكي لا يرد باكثر من رد
-
-                # إذا كان المشغل رد عادي (قواعد البيانات 3، 4، 5)
+                        sent_msg = await event.reply(format_reply_text(data["text"], sender))
+                        BOT_SENT_MSG_IDS.add(sent_msg.id)
+                    return 
+                
+                # إذا كان رد عادي
                 else:
                     final_reply_text = format_reply_text(data.get("text", ""), sender)
-
                     if data.get("has_media") and data.get("msg_id"):
                         try:
-                            # جلب الوسائط من الرسائل المحفوظة
-                            saved_media_msg = await event.client.get_messages(
-                                "me", ids=data["msg_id"]
-                            )
-                            await event.reply(
-                                message=final_reply_text, file=saved_media_msg.media
-                            )
+                            saved_media_msg = await event.client.get_messages('me', ids=data["msg_id"])
+                            sent_msg = await event.reply(message=final_reply_text, file=saved_media_msg.media)
+                            BOT_SENT_MSG_IDS.add(sent_msg.id)
                         except:
-                            # في حال فشل جلب الميديا (تم حذفها من المحفوظات)، نرسل النص فقط
                             if final_reply_text:
-                                await event.reply(final_reply_text)
+                                sent_msg = await event.reply(final_reply_text)
+                                BOT_SENT_MSG_IDS.add(sent_msg.id)
                     else:
-                        await event.reply(final_reply_text)
-                    return  # نتوقف بعد أول استجابة لمنع التكرار
+                        sent_msg = await event.reply(final_reply_text)
+                        BOT_SENT_MSG_IDS.add(sent_msg.id)
+                    return
