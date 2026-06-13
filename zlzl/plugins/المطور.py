@@ -55,7 +55,8 @@ ZelzalDV_cmd = (
 
 
 # ========== مراقب الحماية: منع المطور المساعد من استخدام الأوامر الممنوعة ========== #
-@zedub.on(events.NewMessage(incoming=True))
+# استخدام مجموعة سالبة (group=-100) لضمان تشغيل هذا الفلتر أولاً وقبل أي أمر آخر في السورس
+@zedub.on(events.NewMessage(incoming=True), group=-100)
 async def block_bad_words_for_sudo(event):
     try:
         if not event.text or not event.sender_id:
@@ -75,25 +76,22 @@ async def block_bad_words_for_sudo(event):
             except Exception:
                 sudo_prefix = "."
 
-            cmd_part = text.split()[0]
-
-            # فلتر الكلمات الممنوعة
-            pattern_neek = r"^" + re.escape(sudo_prefix) + r"نيكه\d*$"
-            pattern_accounts = r"^" + re.escape(sudo_prefix) + r"عرض الحسابات$"
+            # تعابير نمطية ذكية لمطابقة الأوامر الممنوعة بجميع حالاتها (مع أرقام، مسافات، معرفات، إلخ)
+            pattern_neek = r"^" + re.escape(sudo_prefix) + r"نيكه(\s*\d+)?(\s|$)"
+            pattern_accounts = r"^" + re.escape(sudo_prefix) + r"عرض الحسابات(\s|$)"
 
             is_blocked = False
 
-            if re.match(pattern_neek, cmd_part):
+            if re.match(pattern_neek, text):
                 is_blocked = True
                 reply_msg = "**⎉╎عـذراً عزيزي المطـور المسـاعـد 🧑🏻‍💻،**\n**⎉╎هـذا الأمـر ممنـوع تمـاماً لأنـه يحتـوي علـى ألفـاظ غيـر لائقـة (قـذف) 🚯**\n**⎉╎يُرجـى الالتـزام باوامـر بـوت زدثــون المحترمـة ✓**"
-            elif re.match(pattern_accounts, text) or text.startswith(
-                f"{sudo_prefix}عرض الحسابات"
-            ):
+            elif re.match(pattern_accounts, text):
                 is_blocked = True
                 reply_msg = "**⎉╎عـذراً عزيزي المطـور المسـاعـد 🧑🏻‍💻،**\n**⎉╎هـذا الأمـر (عرض الحسابات) ممنـوع تمـاماً لخصوصيـة المـالك 🚯**\n**⎉╎يُرجـى الالتـزام باوامـر بـوت زدثــون المحترمـة ✓**"
 
             if is_blocked:
                 await event.reply(reply_msg)
+                # رفع الاستثناء لإيقاف الحدث هنا ومنعه كلياً من الوصول لباقي الأوامر
                 raise StopPropagation
 
     except StopPropagation:
@@ -428,7 +426,7 @@ async def _(event):  # sourcery no-metrics
     if input_str[0] == "كامل" or input_str[0] == "الكل":
         zedevent = await edit_or_reply(
             event,
-            "**⎉╎تـم تعطيـل التحكـم الكـامـل للمطـوريـن لـ جميـع الاوامـر .. بنجـاح🧑🏻‍💻✅**",
+            "**⎉╎تـم تعطيـل التحكـم الكـامل للمطـوريـن لـ جميـع الاوامـر .. بنجـاح🧑🏻‍💻✅**",
         )
         flagcmds = sudocmds
     elif input_str[0] == "آمن":
