@@ -89,3 +89,4 @@ faker
 google-genai
 redis
 pytubefix
+lxml_html_clean
