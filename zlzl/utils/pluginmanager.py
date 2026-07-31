@@ -1,175 +1,140 @@
-import contextlib
-import importlib
-import sys
-from pathlib import Path
+import os
+import requests
+import asyncio
+from zlzl.plugins import admin_cmd
+from zlzl.core.managers import edit_or_reply
 
-from zlzl import CMD_HELP, LOAD_PLUG
+# استيراد دوال التحميل من ملف utils الخاص بسورس زدثون
+try:
+    from zlzl.utils import load_module, remove_plugin
+except ImportError:
+    from ..utils import load_module, remove_plugin 
 
-from ..Config import Config
-from ..core import LOADED_CMDS, PLG_INFO
-from ..core.logger import logging
-from ..core.managers import edit_delete, edit_or_reply
-from ..core.session import zedub
-from ..helpers.tools import media_type
+# ==============================================
+# إعدادات مستودع  جيتهوب
+# ==============================================
+USERNAME = "tomsmm29-oss"
+REPO = "ZTele"
+BRANCH = "master" 
+# ==============================================
 
-# استيراد reply_id الحقيقي
-from ..helpers.utils import _format, _zedtools, _zedutils, install_pip, reply_id
-from .decorators import admin_cmd, sudo_cmd
+@admin_cmd(pattern=r"[.!+$](تحديث السورس|تحديث البوت|تحديث ملف)(?:\s+(.*))?")
+async def smart_hot_update(event):
+    cmd_type = event.pattern_match.group(1)
+    plugin_name = event.pattern_match.group(2)
+    
+    # 1. بداية رسالة التحديث
+    MSG = await edit_or_reply(
+        event,
+        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 - تحـديث زدثــون\n"
+        "**•─────────────────•**\n\n"
+        "**⇜ يتـم تحـديث بـوت زدثــون .. انتظـر . . .🌐**"
+    )
+    
+    # 2. عداد التحديث المتحرك (من 10% إلى 100%)
+    animation_frames = [
+        "%𝟷𝟶 ▬▭▭▭▭▭▭▭▭▭",
+        "%𝟸𝟶 ▬▬▭▭▭▭▭▭▭▭",
+        "%𝟹𝟶 ▬▬▬▭▭▭▭▭▭▭",
+        "%𝟺𝟶 ▬▬▬▬▭▭▭▭▭▭",
+        "%𝟻𝟶 ▬▬▬▬▬▭▭▭▭▭",
+        "%𝟼𝟶 ▬▬▬▬▬▬▭▭▭▭",
+        "%𝟽𝟶 ▬▬▬▬▬▬▬▭▭▭",
+        "%𝟾𝟶 ▬▬▬▬▬▬▬▬▭▭",
+        "%𝟿𝟶 ▬▬▬▬▬▬▬▬▬▭",
+        "%𝟷𝟶𝟶 ▬▬▬▬▬▬▬▬▬▬💯"
+    ]
+    
+    for frame in animation_frames:
+        await asyncio.sleep(1)
+        await MSG.edit(
+            "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 - تحـديث زدثــون\n"
+            "**•─────────────────•**\n\n"
+            "**⇜ يتـم تحـديث بـوت زدثــون .. انتظـر . . .🌐**\n\n"
+            f"{frame}"
+        )
 
-LOGS = logging.getLogger("ZThon")
-
-
-def load_module(shortname, plugin_path=None):
-    if shortname.startswith("__"):
-        pass
-    elif shortname.endswith("_"):
-        path = Path(f"zlzl/plugins/{shortname}.py")
-        checkplugins(path)
-        name = "zlzl.plugins.{}".format(shortname)
-        spec = importlib.util.spec_from_file_location(name, path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        LOGS.info(f"Successfully imported {shortname}")
-    else:
-        if plugin_path is None:
-            path = Path(f"zlzl/plugins/{shortname}.py")
-            name = f"zlzl.plugins.{shortname}"
-        else:
-            path = Path((f"{plugin_path}/{shortname}.py"))
-            name = f"{plugin_path}/{shortname}".replace("/", ".")
-
-        checkplugins(path)
-        spec = importlib.util.spec_from_file_location(name, path)
-        mod = importlib.util.module_from_spec(spec)
-
-        # =================================================
-        # 💉 الحقن الذكي (Smart Injection) 💉
-        # =================================================
-        mod.bot = zedub
-        mod.LOGS = LOGS
-        mod.Config = Config
-        mod._format = _format
-        mod.tgbot = zedub.tgbot
-        mod.sudo_cmd = sudo_cmd
-        mod.CMD_HELP = CMD_HELP
-        mod.admin_cmd = admin_cmd
-        mod._zedutils = _zedutils
-        mod._zedtools = _zedtools
-        mod.install_pip = install_pip
-        mod.parse_pre = _format.parse_pre
-        mod.edit_or_reply = edit_or_reply
-        mod.logger = logging.getLogger(shortname)
-        mod.borg = zedub
-
-        # هنا السحر: نعطيه الدالة الحقيقية عشان الأوامر تشتغل
-        mod.reply_id = reply_id
-        mod.media_type = media_type
-        mod.edit_delete = edit_delete
-
-        # =================================================
-
+    # 3. سحب التحديثات وتطبيقها لحظياً
+    if plugin_name:
+        # إذا تم تحديد ملف معين
+        plugin_name = plugin_name.strip()
+        GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{USERNAME}/{REPO}/{BRANCH}/zlzl/plugins/{plugin_name}.py"
+        
         try:
-            spec.loader.exec_module(mod)
-            sys.modules[f"zlzl.plugins.{shortname}"] = mod
-            LOGS.info(f"✅ Successfully imported {shortname}")
-        except TypeError as e:
-            # إذا الملف حاول يجمع (+=) بنصيده هنا
-            if "unsupported operand type(s) for +=" in str(e):
-                LOGS.warning(
-                    f"⚠️ الملف {shortname} قديم ويسبب مشاكل (+). تم تخطيه لسلامة البوت."
+            res = requests.get(GITHUB_RAW_URL)
+            if res.status_code == 200:
+                file_path = f"zlzl/plugins/{plugin_name}.py"
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(res.text)
+                    
+                remove_plugin(plugin_name)
+                load_module(plugin_name)
+                
+                await MSG.edit(
+                    "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 - تحـديث زدثــون\n"
+                    "**•─────────────────•**\n\n"
+                    "**•⎆┊تم التحـديث ⎌ بنجـاح**\n"
+                    f"**•⎆┊تم تحديث ملف `{plugin_name}` 🌐**"
                 )
-            else:
-                LOGS.error(f"❌ Failed to load {shortname}: {e}")
+            elif res.status_code == 404:
+                await MSG.edit(f"❌ **لم أجد ملفاً باسم `{plugin_name}`**")
         except Exception as e:
-            LOGS.error(f"❌ Failed to load {shortname}: {e}")
+            await MSG.edit(f"❌ **خطأ:** `{str(e)}`")
 
-
-def lload_module(shortname, plugin_path=None):
-    if shortname.startswith("__"):
-        pass
-    elif shortname.endswith("_"):
-        path = Path(f"zlzl/plugins/{shortname}.py")
-        checkplugins(path)
-        name = "zlzl.plugins.{}".format(shortname)
-        spec = importlib.util.spec_from_file_location(name, path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        print("Successfully imported library")
     else:
-        if plugin_path is None:
-            path = Path(f"zlzl/plugins/{shortname}.py")
-            name = f"zlzl.plugins.{shortname}"
-        else:
-            path = Path((f"{plugin_path}/{shortname}.py"))
-            name = f"{plugin_path}/{shortname}".replace("/", ".")
-
-        checkplugins(path)
-        spec = importlib.util.spec_from_file_location(name, path)
-        mod = importlib.util.module_from_spec(spec)
-
-        mod.bot = zedub
-        mod.LOGS = LOGS
-        mod.Config = Config
-        mod._format = _format
-        mod.tgbot = zedub.tgbot
-        mod.sudo_cmd = sudo_cmd
-        mod.CMD_HELP = CMD_HELP
-        mod.admin_cmd = admin_cmd
-        mod._zedutils = _zedutils
-        mod._zedtools = _zedtools
-        mod.install_pip = install_pip
-        mod.parse_pre = _format.parse_pre
-        mod.edit_or_reply = edit_or_reply
-        mod.logger = logging.getLogger(shortname)
-        mod.borg = zedub
-
-        # الحقن الذكي هنا أيضاً
-        mod.reply_id = reply_id
-        mod.media_type = media_type
-        mod.edit_delete = edit_delete
-
+        # إذا كان المطلوب تحديث السورس بالكامل ذكياً
+        GITHUB_API_URL = f"https://api.github.com/repos/{USERNAME}/{REPO}/commits/{BRANCH}"
+        
         try:
-            spec.loader.exec_module(mod)
-            sys.modules[f"zlzl.plugins.{shortname}"] = mod
-            print("Successfully imported library")
+            res = requests.get(GITHUB_API_URL)
+            if res.status_code == 200:
+                commit_data = res.json()
+                modified_files = commit_data.get("files", [])
+                
+                updated = False
+                
+                for f in modified_files:
+                    filename = f.get("filename")
+                    status = f.get("status")
+                    
+                    if filename.startswith("zlzl/plugins/") and filename.endswith(".py"):
+                        p_name = filename.split("/")[-1].replace(".py", "")
+                        
+                        if status == "removed":
+                            remove_plugin(p_name)
+                            if os.path.exists(filename):
+                                os.remove(filename)
+                            updated = True
+                            
+                        elif status in ["modified", "added"]:
+                            raw_url = f"https://raw.githubusercontent.com/{USERNAME}/{REPO}/{BRANCH}/{filename}"
+                            raw_res = requests.get(raw_url)
+                            
+                            if raw_res.status_code == 200:
+                                with open(filename, "w", encoding="utf-8") as file_obj:
+                                    file_obj.write(raw_res.text)
+                                    
+                                remove_plugin(p_name)
+                                load_module(p_name)
+                                updated = True
+                
+                if updated:
+                    await MSG.edit(
+                        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 - تحـديث زدثــون\n"
+                        "**•─────────────────•**\n\n"
+                        "**•⎆┊تم التحـديث ⎌ بنجـاح**\n"
+                        "**•⎆┊تم تحديث السورس  🌐**"
+                    )
+                else:
+                    await MSG.edit(
+                        "ᯓ 𝗦𝗢𝗨𝗥𝗖𝗘 𝗭𝗧𝗛𝗢𝗡 - تحـديث زدثــون\n"
+                        "**•─────────────────•**\n\n"
+                        "**•⎆┊السـورس محـدث بالفعـل ⎌ **\n"
+                        "**•⎆┊لا توجد تحديثات جديدة 🌐 **"
+                    )
+            
+            else:
+                await MSG.edit(f"❌ **فشل الاتصال بجيتهوب!**")
+                
         except Exception as e:
-            print(f"Failed to load {shortname}: {e}")
-
-
-def remove_plugin(shortname):
-    try:
-        cmd = []
-        if shortname in PLG_INFO:
-            cmd += PLG_INFO[shortname]
-        else:
-            cmd = [shortname]
-        for cmdname in cmd:
-            if cmdname in LOADED_CMDS:
-                for i in LOADED_CMDS[cmdname]:
-                    zedub.remove_event_handler(i)
-                del LOADED_CMDS[cmdname]
-        return True
-    except Exception as e:
-        LOGS.error(e)
-    with contextlib.suppress(BaseException):
-        for i in LOAD_PLUG[shortname]:
-            zedub.remove_event_handler(i)
-        del LOAD_PLUG[shortname]
-    try:
-        name = f"zlzl.plugins.{shortname}"
-        for i in reversed(range(len(zedub._event_builders))):
-            ev, cb = zedub._event_builders[i]
-            if cb.__module__ == name:
-                del zedub._event_builders[i]
-    except BaseException as exc:
-        raise ValueError from exc
-
-
-def checkplugins(filename):
-    with open(filename, "r") as f:
-        filedata = f.read()
-    filedata = filedata.replace("sendmessage", "send_message")
-    filedata = filedata.replace("sendfile", "send_file")
-    filedata = filedata.replace("editmessage", "edit_message")
-    with open(filename, "w") as f:
-        f.write(filedata)
+            await MSG.edit(f"❌ **خطأ:**\n`{str(e)}`")
