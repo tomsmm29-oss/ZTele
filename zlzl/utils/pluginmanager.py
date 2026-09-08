@@ -1,9 +1,11 @@
 import importlib.util
 import sys
 from pathlib import Path
+
 from ..core.logger import logging
 
 LOGS = logging.getLogger(__name__)
+
 
 def load_module(shortname, plugin_path=None):
     if shortname.startswith("__"):
@@ -23,6 +25,7 @@ def load_module(shortname, plugin_path=None):
         LOGS.info(f"تم تحميل الملف: {shortname}")
     except Exception as e:
         LOGS.error(f"خطأ في تحميل {shortname}: {e}")
+
 
 def remove_plugin(shortname):
     name = f"zlzl.plugins.{shortname}"
