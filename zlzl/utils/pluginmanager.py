@@ -4,7 +4,7 @@ import os
 import requests
 
 from zlzl.core.managers import edit_or_reply
-from zlzl.plugins import admin_cmd
+from zlzl.utils.decorators import admin_cmd
 
 # استيراد دوال التحميل من ملف utils الخاص بسورس زدثون
 try:
