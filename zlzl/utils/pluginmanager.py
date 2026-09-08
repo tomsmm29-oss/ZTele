@@ -6,12 +6,6 @@ import requests
 from zlzl.core.managers import edit_or_reply
 from zlzl.utils.decorators import admin_cmd
 
-# استيراد دوال التحميل من ملف utils الخاص بسورس زدثون
-try:
-    from zlzl.utils import load_module, remove_plugin
-except ImportError:
-    from ..utils import load_module, remove_plugin
-
 # ==============================================
 # إعدادات مستودع  جيتهوب
 # ==============================================
@@ -23,6 +17,12 @@ BRANCH = "master"
 
 @admin_cmd(pattern=r"[.!+$](تحديث السورس|تحديث البوت|تحديث ملف)(?:\s+(.*))?")
 async def smart_hot_update(event):
+    # استيراد الدوال هنا وقت تشغيل الأمر لمنع Circular Import
+    try:
+        from zlzl.utils import load_module, remove_plugin
+    except ImportError:
+        from ..utils import load_module, remove_plugin
+
     event.pattern_match.group(1)
     plugin_name = event.pattern_match.group(2)
 
