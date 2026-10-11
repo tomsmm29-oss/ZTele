@@ -105,7 +105,7 @@ async def log_tagged_messages(event):
 
     if gvarstatus("GRPLOG") and gvarstatus("GRPLOG") == "false":
         return
-    
+
     # --- نظام الاستثناء الجديد للتاكات ---
     sender_id = event.sender_id
     excluded_str = gvarstatus("EXCLUDE_PM_LOG") or ""
@@ -332,6 +332,7 @@ async def set_grplog(event):
 # أوامر الاستثناء الجديدة بإستايل زدثون
 # ==========================================
 
+
 @zedub.zed_cmd(
     pattern="استثناء(?:\s|$)([\s\S]*)",
     command=("استثناء", plugin_category),
@@ -352,24 +353,36 @@ async def add_exception_user(event):
             entity = await event.client.get_entity(target)
             user_id = entity.id
         except Exception:
-            return await edit_delete(event, "**⌔ عـذراً .. لـم أستطـع العثـور علـى هـذا الشخـص ✕**", 5)
+            return await edit_delete(
+                event, "**⌔ عـذراً .. لـم أستطـع العثـور علـى هـذا الشخـص ✕**", 5
+            )
     elif event.is_reply:
         reply = await event.get_reply_message()
         user_id = reply.sender_id
     elif event.is_private:
         user_id = event.chat_id
     else:
-        return await edit_delete(event, "**⌔ عـذراً .. يجـب استخـدام الامـر بالـرد أو وضـع يـوزر/آيـدي الشخـص ✕**", 5)
+        return await edit_delete(
+            event,
+            "**⌔ عـذراً .. يجـب استخـدام الامـر بالـرد أو وضـع يـوزر/آيـدي الشخـص ✕**",
+            5,
+        )
 
     excluded_str = gvarstatus("EXCLUDE_PM_LOG") or ""
     excluded_list = [str(x) for x in excluded_str.split(",") if x.strip()]
 
     if str(user_id) in excluded_list:
-        return await edit_delete(event, "**⌔ هـذا الشخـص مستثنـى بالفعـل مـن التخـزين مسبقـاً ✓**", 5)
+        return await edit_delete(
+            event, "**⌔ هـذا الشخـص مستثنـى بالفعـل مـن التخـزين مسبقـاً ✓**", 5
+        )
 
     excluded_list.append(str(user_id))
     addgvar("EXCLUDE_PM_LOG", ",".join(excluded_list))
-    await edit_delete(event, "**⌔ تـم الاستثنـاء .. لـن يقـوم البـوت بتخـزين رسائـل هـذا الشخـص أبـداً ✓**", 7)
+    await edit_delete(
+        event,
+        "**⌔ تـم الاستثنـاء .. لـن يقـوم البـوت بتخـزين رسائـل هـذا الشخـص أبـداً ✓**",
+        7,
+    )
 
 
 @zedub.zed_cmd(
@@ -392,20 +405,28 @@ async def remove_exception_user(event):
             entity = await event.client.get_entity(target)
             user_id = entity.id
         except Exception:
-            return await edit_delete(event, "**⌔ عـذراً .. لـم أستطـع العثـور علـى هـذا الشخـص ✕**", 5)
+            return await edit_delete(
+                event, "**⌔ عـذراً .. لـم أستطـع العثـور علـى هـذا الشخـص ✕**", 5
+            )
     elif event.is_reply:
         reply = await event.get_reply_message()
         user_id = reply.sender_id
     elif event.is_private:
         user_id = event.chat_id
     else:
-        return await edit_delete(event, "**⌔ عـذراً .. يجـب استخـدام الامـر بالـرد أو وضـع يـوزر/آيـدي الشخـص ✕**", 5)
+        return await edit_delete(
+            event,
+            "**⌔ عـذراً .. يجـب استخـدام الامـر بالـرد أو وضـع يـوزر/آيـدي الشخـص ✕**",
+            5,
+        )
 
     excluded_str = gvarstatus("EXCLUDE_PM_LOG") or ""
     excluded_list = [str(x) for x in excluded_str.split(",") if x.strip()]
 
     if str(user_id) not in excluded_list:
-        return await edit_delete(event, "**⌔ هـذا الشخـص غيـر مستثنـى مـن التخـزين مسبقـاً ✓**", 5)
+        return await edit_delete(
+            event, "**⌔ هـذا الشخـص غيـر مستثنـى مـن التخـزين مسبقـاً ✓**", 5
+        )
 
     excluded_list.remove(str(user_id))
     if excluded_list:
@@ -413,4 +434,8 @@ async def remove_exception_user(event):
     else:
         delgvar("EXCLUDE_PM_LOG")
 
-    await edit_delete(event, "**⌔ تـم إلغـاء الاستثنـاء .. سيقـوم البـوت بتخـزين رسائلـه الآن طبـيعيـاً ✓**", 7)
+    await edit_delete(
+        event,
+        "**⌔ تـم إلغـاء الاستثنـاء .. سيقـوم البـوت بتخـزين رسائلـه الآن طبـيعيـاً ✓**",
+        7,
+    )
